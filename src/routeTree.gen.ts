@@ -17,6 +17,8 @@ import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AiRouteImport } from './routes/ai'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPublicTelemetryRouteImport } from './routes/api/public/telemetry'
+import { Route as ApiPublicCommandsRouteImport } from './routes/api/public/commands'
 
 const ZonesRoute = ZonesRouteImport.update({
   id: '/zones',
@@ -58,6 +60,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTelemetryRoute = ApiPublicTelemetryRouteImport.update({
+  id: '/api/public/telemetry',
+  path: '/api/public/telemetry',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCommandsRoute = ApiPublicCommandsRouteImport.update({
+  id: '/api/public/commands',
+  path: '/api/public/commands',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +80,8 @@ export interface FileRoutesByFullPath {
   '/motor': typeof MotorRoute
   '/settings': typeof SettingsRoute
   '/zones': typeof ZonesRoute
+  '/api/public/commands': typeof ApiPublicCommandsRoute
+  '/api/public/telemetry': typeof ApiPublicTelemetryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +92,8 @@ export interface FileRoutesByTo {
   '/motor': typeof MotorRoute
   '/settings': typeof SettingsRoute
   '/zones': typeof ZonesRoute
+  '/api/public/commands': typeof ApiPublicCommandsRoute
+  '/api/public/telemetry': typeof ApiPublicTelemetryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +105,8 @@ export interface FileRoutesById {
   '/motor': typeof MotorRoute
   '/settings': typeof SettingsRoute
   '/zones': typeof ZonesRoute
+  '/api/public/commands': typeof ApiPublicCommandsRoute
+  '/api/public/telemetry': typeof ApiPublicTelemetryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +119,8 @@ export interface FileRouteTypes {
     | '/motor'
     | '/settings'
     | '/zones'
+    | '/api/public/commands'
+    | '/api/public/telemetry'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +131,8 @@ export interface FileRouteTypes {
     | '/motor'
     | '/settings'
     | '/zones'
+    | '/api/public/commands'
+    | '/api/public/telemetry'
   id:
     | '__root__'
     | '/'
@@ -121,6 +143,8 @@ export interface FileRouteTypes {
     | '/motor'
     | '/settings'
     | '/zones'
+    | '/api/public/commands'
+    | '/api/public/telemetry'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +156,8 @@ export interface RootRouteChildren {
   MotorRoute: typeof MotorRoute
   SettingsRoute: typeof SettingsRoute
   ZonesRoute: typeof ZonesRoute
+  ApiPublicCommandsRoute: typeof ApiPublicCommandsRoute
+  ApiPublicTelemetryRoute: typeof ApiPublicTelemetryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +218,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/telemetry': {
+      id: '/api/public/telemetry'
+      path: '/api/public/telemetry'
+      fullPath: '/api/public/telemetry'
+      preLoaderRoute: typeof ApiPublicTelemetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/commands': {
+      id: '/api/public/commands'
+      path: '/api/public/commands'
+      fullPath: '/api/public/commands'
+      preLoaderRoute: typeof ApiPublicCommandsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,7 +244,19 @@ const rootRouteChildren: RootRouteChildren = {
   MotorRoute: MotorRoute,
   SettingsRoute: SettingsRoute,
   ZonesRoute: ZonesRoute,
+  ApiPublicCommandsRoute: ApiPublicCommandsRoute,
+  ApiPublicTelemetryRoute: ApiPublicTelemetryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
