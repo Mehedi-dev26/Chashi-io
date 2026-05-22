@@ -1,40 +1,29 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard,
-  Map,
-  Droplets,
-  Gauge,
-  Sparkles,
-  BarChart3,
-  Bell,
-  Settings,
-  Cpu,
-  LogOut,
+  LayoutDashboard, Map, Droplets, Gauge, Sparkles, BarChart3, Bell,
+  Settings, Cpu, LogOut, History, Receipt, Network, Satellite, Brain, MapPin,
 } from "lucide-react";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarFooter,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  SidebarHeader, SidebarFooter, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
 
 const mainItems = [
   { title: "ড্যাশবোর্ড", url: "/", icon: LayoutDashboard },
   { title: "জমির মানচিত্র", url: "/map", icon: Map },
+  { title: "GPS স্যাটেলাইট", url: "/gps", icon: MapPin },
   { title: "সেচ জোন", url: "/zones", icon: Droplets },
   { title: "মোটর নিয়ন্ত্রণ", url: "/motor", icon: Gauge },
+  { title: "ডিভাইস নেটওয়ার্ক", url: "/devices", icon: Network },
 ];
 
 const analyticsItems = [
   { title: "AI পরামর্শ", url: "/ai", icon: Sparkles },
+  { title: "ML পূর্বাভাস", url: "/forecast", icon: Brain },
+  { title: "NDVI স্যাটেলাইট", url: "/satellite", icon: Satellite },
+  { title: "ঐতিহাসিক তথ্য", url: "/history", icon: History },
   { title: "পরিসংখ্যান", url: "/analytics", icon: BarChart3 },
+  { title: "বিলিং", url: "/billing", icon: Receipt },
   { title: "বিজ্ঞপ্তি", url: "/alerts", icon: Bell },
 ];
 

@@ -11,8 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SatelliteRouteImport } from './routes/satellite'
 import { Route as MotorRouteImport } from './routes/motor'
 import { Route as MapRouteImport } from './routes/map'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as GpsRouteImport } from './routes/gps'
+import { Route as ForecastRouteImport } from './routes/forecast'
+import { Route as DevicesRouteImport } from './routes/devices'
+import { Route as BillingRouteImport } from './routes/billing'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AiRouteImport } from './routes/ai'
@@ -30,6 +36,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SatelliteRoute = SatelliteRouteImport.update({
+  id: '/satellite',
+  path: '/satellite',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MotorRoute = MotorRouteImport.update({
   id: '/motor',
   path: '/motor',
@@ -38,6 +49,31 @@ const MotorRoute = MotorRouteImport.update({
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GpsRoute = GpsRouteImport.update({
+  id: '/gps',
+  path: '/gps',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForecastRoute = ForecastRouteImport.update({
+  id: '/forecast',
+  path: '/forecast',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevicesRoute = DevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -76,8 +112,14 @@ export interface FileRoutesByFullPath {
   '/ai': typeof AiRoute
   '/alerts': typeof AlertsRoute
   '/analytics': typeof AnalyticsRoute
+  '/billing': typeof BillingRoute
+  '/devices': typeof DevicesRoute
+  '/forecast': typeof ForecastRoute
+  '/gps': typeof GpsRoute
+  '/history': typeof HistoryRoute
   '/map': typeof MapRoute
   '/motor': typeof MotorRoute
+  '/satellite': typeof SatelliteRoute
   '/settings': typeof SettingsRoute
   '/zones': typeof ZonesRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
@@ -88,8 +130,14 @@ export interface FileRoutesByTo {
   '/ai': typeof AiRoute
   '/alerts': typeof AlertsRoute
   '/analytics': typeof AnalyticsRoute
+  '/billing': typeof BillingRoute
+  '/devices': typeof DevicesRoute
+  '/forecast': typeof ForecastRoute
+  '/gps': typeof GpsRoute
+  '/history': typeof HistoryRoute
   '/map': typeof MapRoute
   '/motor': typeof MotorRoute
+  '/satellite': typeof SatelliteRoute
   '/settings': typeof SettingsRoute
   '/zones': typeof ZonesRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
@@ -101,8 +149,14 @@ export interface FileRoutesById {
   '/ai': typeof AiRoute
   '/alerts': typeof AlertsRoute
   '/analytics': typeof AnalyticsRoute
+  '/billing': typeof BillingRoute
+  '/devices': typeof DevicesRoute
+  '/forecast': typeof ForecastRoute
+  '/gps': typeof GpsRoute
+  '/history': typeof HistoryRoute
   '/map': typeof MapRoute
   '/motor': typeof MotorRoute
+  '/satellite': typeof SatelliteRoute
   '/settings': typeof SettingsRoute
   '/zones': typeof ZonesRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
@@ -115,8 +169,14 @@ export interface FileRouteTypes {
     | '/ai'
     | '/alerts'
     | '/analytics'
+    | '/billing'
+    | '/devices'
+    | '/forecast'
+    | '/gps'
+    | '/history'
     | '/map'
     | '/motor'
+    | '/satellite'
     | '/settings'
     | '/zones'
     | '/api/public/commands'
@@ -127,8 +187,14 @@ export interface FileRouteTypes {
     | '/ai'
     | '/alerts'
     | '/analytics'
+    | '/billing'
+    | '/devices'
+    | '/forecast'
+    | '/gps'
+    | '/history'
     | '/map'
     | '/motor'
+    | '/satellite'
     | '/settings'
     | '/zones'
     | '/api/public/commands'
@@ -139,8 +205,14 @@ export interface FileRouteTypes {
     | '/ai'
     | '/alerts'
     | '/analytics'
+    | '/billing'
+    | '/devices'
+    | '/forecast'
+    | '/gps'
+    | '/history'
     | '/map'
     | '/motor'
+    | '/satellite'
     | '/settings'
     | '/zones'
     | '/api/public/commands'
@@ -152,8 +224,14 @@ export interface RootRouteChildren {
   AiRoute: typeof AiRoute
   AlertsRoute: typeof AlertsRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  BillingRoute: typeof BillingRoute
+  DevicesRoute: typeof DevicesRoute
+  ForecastRoute: typeof ForecastRoute
+  GpsRoute: typeof GpsRoute
+  HistoryRoute: typeof HistoryRoute
   MapRoute: typeof MapRoute
   MotorRoute: typeof MotorRoute
+  SatelliteRoute: typeof SatelliteRoute
   SettingsRoute: typeof SettingsRoute
   ZonesRoute: typeof ZonesRoute
   ApiPublicCommandsRoute: typeof ApiPublicCommandsRoute
@@ -176,6 +254,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/satellite': {
+      id: '/satellite'
+      path: '/satellite'
+      fullPath: '/satellite'
+      preLoaderRoute: typeof SatelliteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/motor': {
       id: '/motor'
       path: '/motor'
@@ -188,6 +273,41 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/map'
       preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gps': {
+      id: '/gps'
+      path: '/gps'
+      fullPath: '/gps'
+      preLoaderRoute: typeof GpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forecast': {
+      id: '/forecast'
+      path: '/forecast'
+      fullPath: '/forecast'
+      preLoaderRoute: typeof ForecastRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/devices': {
+      id: '/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof DevicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -240,8 +360,14 @@ const rootRouteChildren: RootRouteChildren = {
   AiRoute: AiRoute,
   AlertsRoute: AlertsRoute,
   AnalyticsRoute: AnalyticsRoute,
+  BillingRoute: BillingRoute,
+  DevicesRoute: DevicesRoute,
+  ForecastRoute: ForecastRoute,
+  GpsRoute: GpsRoute,
+  HistoryRoute: HistoryRoute,
   MapRoute: MapRoute,
   MotorRoute: MotorRoute,
+  SatelliteRoute: SatelliteRoute,
   SettingsRoute: SettingsRoute,
   ZonesRoute: ZonesRoute,
   ApiPublicCommandsRoute: ApiPublicCommandsRoute,
