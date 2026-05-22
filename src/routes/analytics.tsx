@@ -45,8 +45,8 @@ function AnalyticsPage() {
           {[
             { label: "মোট পানি (এ মাসে)", value: `${bn("৩২,৪০০")} L`, trend: 8, up: false },
             { label: "মোট বিদ্যুৎ", value: `${bn("৪৮০")} kWh`, trend: 12, up: false },
-            { label: "সক্রিয় দিন", value: `${bn(২৪)}`, trend: 5, up: true },
-            { label: "AI দক্ষতা", value: `${bn(৯২)}%`, trend: 4, up: true },
+            { label: "সক্রিয় দিন", value: bn(24), trend: 5, up: true },
+            { label: "AI দক্ষতা", value: `${bn(92)}%`, trend: 4, up: true },
           ].map((s) => (
             <div key={s.label} className="glass-card rounded-2xl p-4 hover-lift">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</p>
