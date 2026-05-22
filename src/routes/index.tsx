@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { StatsCards } from "@/components/dashboard/StatsCards";
+import { QuickActions } from "@/components/dashboard/QuickActions";
 import { FieldMap } from "@/components/dashboard/FieldMap";
 import { MotorPanel } from "@/components/dashboard/MotorPanel";
 import { ZonesGrid } from "@/components/dashboard/ZonesGrid";
 import { AIInsights } from "@/components/dashboard/AIInsights";
 import { UsageChart } from "@/components/dashboard/UsageChart";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { Roadmap } from "@/components/dashboard/Roadmap";
 import { useIrrigationData } from "@/hooks/useIrrigationData";
 
 export const Route = createFileRoute("/")({
@@ -29,22 +31,26 @@ function Dashboard() {
     >
       <div className="stagger space-y-5">
         <StatsCards zones={zones} motor={motor} />
+        <QuickActions />
 
-        <div className="grid lg:grid-cols-[1fr_360px] gap-5">
-          <FieldMap zones={zones} onToggle={toggleValve} />
-          <MotorPanel motor={motor} onToggle={toggleMotor} />
-        </div>
+        {/* Bigger map full width with motor sidebar */}
+        <FieldMap zones={zones} onToggle={toggleValve} />
 
         <div className="grid lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 space-y-5">
+          <MotorPanel motor={motor} onToggle={toggleMotor} />
+          <div className="lg:col-span-2">
             <UsageChart />
-            <ZonesGrid zones={zones} onToggle={toggleValve} />
-          </div>
-          <div className="space-y-5">
-            <AIInsights zones={zones} />
-            <ActivityFeed activity={activity} />
           </div>
         </div>
+
+        <ZonesGrid zones={zones} onToggle={toggleValve} />
+
+        <div className="grid lg:grid-cols-2 gap-5">
+          <AIInsights zones={zones} />
+          <ActivityFeed activity={activity} />
+        </div>
+
+        <Roadmap />
       </div>
     </DashboardLayout>
   );
