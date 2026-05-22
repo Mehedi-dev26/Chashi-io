@@ -58,8 +58,8 @@ export function FieldMap({ zones, onToggle }: { zones: FieldZone[]; onToggle: (i
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_300px] gap-4">
-        <div className="relative aspect-[16/9] min-h-[420px] sm:min-h-[520px] rounded-xl overflow-hidden border border-border bg-[oklch(0.96_0.03_140)]">
+      <div className="grid lg:grid-cols-[1fr_280px] gap-4">
+        <div className="relative aspect-[16/10] rounded-xl overflow-hidden border border-border bg-[oklch(0.96_0.03_140)]">
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <defs>
               <pattern id="terrain" width="2" height="2" patternUnits="userSpaceOnUse">
