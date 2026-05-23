@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Map, Droplets, Gauge, Sparkles, BarChart3, Bell,
-  Settings, Cpu, LogOut, History, Receipt, Network, Satellite, Brain, MapPin,
+  Settings, Cpu, LogOut, History, Receipt, Network, Satellite, Brain, MapPin, CircuitBoard,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
