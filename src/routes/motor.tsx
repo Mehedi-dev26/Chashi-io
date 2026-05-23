@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MotorPanel } from "@/components/dashboard/MotorPanel";
 import { useIrrigationData } from "@/hooks/useIrrigationData";
-import { Gauge, Zap, Timer, ShieldCheck, Wrench, Activity } from "lucide-react";
+import { Gauge, Zap, Timer, ShieldCheck, Wrench, Activity, Brain, Power } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
@@ -11,8 +12,40 @@ export const Route = createFileRoute("/motor")({
   component: MotorPage,
 });
 
+type ShutoffLog = { time: string; reason: string; level: number; mode: "auto" | "manual" };
+
 function MotorPage() {
-  const { motor, toggleMotor } = useIrrigationData();
+  const { zones, motor, toggleMotor } = useIrrigationData();
+
+  // === AI Auto-Shutoff State ===
+  const [aiEnabled, setAiEnabled] = useState(true);
+  const [threshold, setThreshold] = useState(95); // % water/soil saturation
+  const [shutoffLogs, setShutoffLogs] = useState<ShutoffLog[]>([
+    { time: "গতকাল ১৮:৪২", reason: "Z-০৩ পরিপূর্ণতা ৯৬%", level: 96, mode: "auto" },
+    { time: "গতকাল ১৪:১০", reason: "Z-০১ পরিপূর্ণতা ৯৭%", level: 97, mode: "auto" },
+    { time: "২ দিন আগে ১১:২৫", reason: "ম্যানুয়াল বন্ধ", level: 78, mode: "manual" },
+  ]);
+  const triggeredRef = useRef(false);
+
+  // Watch zones — if any irrigating zone crosses threshold, auto-stop pump
+  useEffect(() => {
+    if (!aiEnabled || !motor.isOn) {
+      triggeredRef.current = false;
+      return;
+    }
+    const flooded = zones.find((z) => z.valveOpen && z.waterLevel >= threshold);
+    if (flooded && !triggeredRef.current) {
+      triggeredRef.current = true;
+      const log: ShutoffLog = {
+        time: new Date().toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" }),
+        reason: `${flooded.id} পরিপূর্ণতা ${bn(Math.round(flooded.waterLevel))}% — অপচয় রোধ`,
+        level: Math.round(flooded.waterLevel),
+        mode: "auto",
+      };
+      setShutoffLogs((l) => [log, ...l].slice(0, 12));
+      toggleMotor();
+    }
+  }, [zones, motor.isOn, aiEnabled, threshold, toggleMotor]);
 
   const logs = [
     { time: "১০:৪২", event: "পাম্প চালু — চাপ ৪২ PSI", type: "success" },
@@ -20,6 +53,7 @@ function MotorPage() {
     { time: "০৮:০০", event: "দৈনিক স্বাস্থ্য পরীক্ষা", type: "info" },
     { time: "গতকাল ২২:১০", event: "পাম্প বন্ধ — নির্ধারিত সময়", type: "warning" },
   ];
+
 
   return (
     <DashboardLayout
