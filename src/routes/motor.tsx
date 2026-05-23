@@ -120,6 +120,80 @@ function MotorPage() {
             ))}
           </div>
         </div>
+
+        {/* === AI Auto-Shutoff === */}
+        <div className="glass-card rounded-2xl p-5 relative overflow-hidden">
+          <div className="absolute -top-6 -right-6 h-32 w-32 bg-primary/15 blur-3xl rounded-full" />
+          <div className="flex items-start justify-between gap-4 flex-wrap relative">
+            <div className="flex items-center gap-2.5">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-chart-2 grid place-items-center glow-primary">
+                <Brain className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h2 className="text-base font-extrabold">AI অপচয়-রোধ স্বয়ংক্রিয় নিয়ন্ত্রণ</h2>
+                <p className="text-xs text-muted-foreground">পরিপূর্ণতা সীমা ছাড়ালে পাম্প স্বয়ংক্রিয়ভাবে বন্ধ হয় — পানি, বিদ্যুৎ ও মাটির ক্ষতি প্রতিরোধ।</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setAiEnabled((v) => !v)}
+              className={`px-4 h-10 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                aiEnabled ? "bg-success/15 text-success border border-success/40" : "bg-muted text-muted-foreground border border-border"
+              }`}
+            >
+              <Power className="h-4 w-4" /> {aiEnabled ? "AI সক্রিয়" : "AI নিষ্ক্রিয়"}
+            </button>
+          </div>
+
+          <div className="mt-4 grid lg:grid-cols-[280px_1fr] gap-4 relative">
+            <div className="rounded-xl glass-panel p-4">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">শাট-অফ সীমা</p>
+              <p className="text-3xl font-black mt-1 text-primary">{bn(threshold)}%</p>
+              <input
+                type="range" min={70} max={99} value={threshold}
+                onChange={(e) => setThreshold(+e.target.value)}
+                className="w-full mt-3 accent-primary"
+                disabled={!aiEnabled}
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1 font-mono">
+                <span>{bn("৭০")}%</span><span>{bn("৯৯")}%</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-3">যেকোনো সক্রিয় জোন এই সীমা অতিক্রম করলে AI পাম্প বন্ধ করবে।</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+                <div className="rounded-lg bg-success/10 border border-success/30 p-2">
+                  <p className="text-[10px] text-muted-foreground">এ মাসে সাশ্রয়</p>
+                  <p className="text-sm font-extrabold text-success">{bn("১৮,৪৩০")} L</p>
+                </div>
+                <div className="rounded-lg bg-chart-2/10 border border-chart-2/30 p-2">
+                  <p className="text-[10px] text-muted-foreground">অটো-শাটঅফ</p>
+                  <p className="text-sm font-extrabold text-chart-2">{bn(shutoffLogs.filter((l) => l.mode === "auto").length)} বার</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl glass-panel p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-bold">শাট-অফ রেকর্ড</p>
+                <span className="text-[10px] text-muted-foreground font-mono">সর্বশেষ {bn(shutoffLogs.length)}টি ইভেন্ট</span>
+              </div>
+              <div className="space-y-1.5 max-h-[240px] overflow-y-auto pr-1">
+                {shutoffLogs.map((l, i) => (
+                  <div key={i} className="flex items-center gap-3 rounded-lg bg-card/60 border border-border p-2.5 hover-lift">
+                    <div className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 ${l.mode === "auto" ? "bg-primary/15" : "bg-muted"}`}>
+                      {l.mode === "auto" ? <Brain className="h-4 w-4 text-primary" /> : <Power className="h-4 w-4 text-muted-foreground" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{l.reason}</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">{l.time} · {l.mode === "auto" ? "AI স্বয়ংক্রিয়" : "ম্যানুয়াল"}</p>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${l.level >= 95 ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}>
+                      {bn(l.level)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
