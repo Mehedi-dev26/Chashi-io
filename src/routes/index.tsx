@@ -26,8 +26,8 @@ function Dashboard() {
 
   return (
     <DashboardLayout
-      title="মিশন কন্ট্রোল · স্মার্ট সেচ গ্রিড"
-      subtitle="৭টি জোন · ৩২.৬ হেক্টর · যেকোনো স্থান থেকে IoT-সক্ষম ভাল্ভ ও পাম্প পরিচালনা করুন।"
+      title="কেন্দ্রীয় পরিচালন কেন্দ্র · BMDA স্মার্ট ইরিগেশন প্ল্যাটফর্ম"
+      subtitle="৭টি সেচ জোন · ৩২.৬ হেক্টর কৃষিজমি · IoT-নিয়ন্ত্রিত ভাল্ভ, পাম্প ও সেন্সর নেটওয়ার্ক · বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষ"
     >
       <div className="stagger space-y-5">
         <StatsCards zones={zones} motor={motor} />
