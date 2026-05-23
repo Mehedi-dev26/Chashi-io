@@ -34,6 +34,16 @@ export function AppSidebar() {
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (path: string) => currentPath === path;
 
+  // Frosted-glass active state (no solid colour fill)
+  const itemCls =
+    "text-sidebar-foreground transition-all relative overflow-hidden " +
+    "hover:bg-white/8 hover:text-sidebar-foreground " +
+    "data-[active=true]:bg-white/12 data-[active=true]:backdrop-blur-xl " +
+    "data-[active=true]:border data-[active=true]:border-white/25 " +
+    "data-[active=true]:text-white data-[active=true]:font-semibold " +
+    "data-[active=true]:shadow-[0_4px_20px_-4px_rgba(255,255,255,0.15),inset_0_1px_0_rgba(255,255,255,0.2)]";
+
+
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="border-b border-sidebar-border">
