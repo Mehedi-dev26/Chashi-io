@@ -15,6 +15,7 @@ const mainItems = [
   { title: "সেচ জোন", url: "/zones", icon: Droplets },
   { title: "মোটর নিয়ন্ত্রণ", url: "/motor", icon: Gauge },
   { title: "ডিভাইস নেটওয়ার্ক", url: "/devices", icon: Network },
+  { title: "হার্ডওয়্যার গাইড", url: "/hardware", icon: CircuitBoard },
 ];
 
 const analyticsItems = [
