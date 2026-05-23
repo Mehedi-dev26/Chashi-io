@@ -22,16 +22,18 @@ export function DashboardLayout({
           <main className="flex-1 px-4 sm:px-6 py-6 space-y-5 animate-fade-in">
             <div className="flex items-start justify-between gap-4 flex-wrap animate-slide-down">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
                   {title.includes("·") ? (
                     <>
-                      {title.split("·")[0]}·<span className="text-gradient">{title.split("·")[1]}</span>
+                      <span className="text-foreground">{title.split("·")[0].trim()}</span>
+                      <span className="mx-2 text-muted-foreground/40 font-light">·</span>
+                      <span className="text-gradient">{title.split("·").slice(1).join("·").trim()}</span>
                     </>
                   ) : (
                     <span className="text-gradient">{title}</span>
                   )}
                 </h1>
-                {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+                {subtitle && <p className="text-sm text-muted-foreground mt-2 font-medium">{subtitle}</p>}
               </div>
               {actions}
             </div>

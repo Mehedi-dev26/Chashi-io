@@ -15,6 +15,7 @@ import { Route as SatelliteRouteImport } from './routes/satellite'
 import { Route as MotorRouteImport } from './routes/motor'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as HardwareRouteImport } from './routes/hardware'
 import { Route as GpsRouteImport } from './routes/gps'
 import { Route as ForecastRouteImport } from './routes/forecast'
 import { Route as DevicesRouteImport } from './routes/devices'
@@ -54,6 +55,11 @@ const MapRoute = MapRouteImport.update({
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HardwareRoute = HardwareRouteImport.update({
+  id: '/hardware',
+  path: '/hardware',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GpsRoute = GpsRouteImport.update({
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/devices': typeof DevicesRoute
   '/forecast': typeof ForecastRoute
   '/gps': typeof GpsRoute
+  '/hardware': typeof HardwareRoute
   '/history': typeof HistoryRoute
   '/map': typeof MapRoute
   '/motor': typeof MotorRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/devices': typeof DevicesRoute
   '/forecast': typeof ForecastRoute
   '/gps': typeof GpsRoute
+  '/hardware': typeof HardwareRoute
   '/history': typeof HistoryRoute
   '/map': typeof MapRoute
   '/motor': typeof MotorRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/devices': typeof DevicesRoute
   '/forecast': typeof ForecastRoute
   '/gps': typeof GpsRoute
+  '/hardware': typeof HardwareRoute
   '/history': typeof HistoryRoute
   '/map': typeof MapRoute
   '/motor': typeof MotorRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/devices'
     | '/forecast'
     | '/gps'
+    | '/hardware'
     | '/history'
     | '/map'
     | '/motor'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/devices'
     | '/forecast'
     | '/gps'
+    | '/hardware'
     | '/history'
     | '/map'
     | '/motor'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/devices'
     | '/forecast'
     | '/gps'
+    | '/hardware'
     | '/history'
     | '/map'
     | '/motor'
@@ -228,6 +240,7 @@ export interface RootRouteChildren {
   DevicesRoute: typeof DevicesRoute
   ForecastRoute: typeof ForecastRoute
   GpsRoute: typeof GpsRoute
+  HardwareRoute: typeof HardwareRoute
   HistoryRoute: typeof HistoryRoute
   MapRoute: typeof MapRoute
   MotorRoute: typeof MotorRoute
@@ -280,6 +293,13 @@ declare module '@tanstack/react-router' {
       path: '/history'
       fullPath: '/history'
       preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hardware': {
+      id: '/hardware'
+      path: '/hardware'
+      fullPath: '/hardware'
+      preLoaderRoute: typeof HardwareRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gps': {
@@ -364,6 +384,7 @@ const rootRouteChildren: RootRouteChildren = {
   DevicesRoute: DevicesRoute,
   ForecastRoute: ForecastRoute,
   GpsRoute: GpsRoute,
+  HardwareRoute: HardwareRoute,
   HistoryRoute: HistoryRoute,
   MapRoute: MapRoute,
   MotorRoute: MotorRoute,

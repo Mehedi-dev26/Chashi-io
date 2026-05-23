@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Map, Droplets, Gauge, Sparkles, BarChart3, Bell,
-  Settings, Cpu, LogOut, History, Receipt, Network, Satellite, Brain, MapPin,
+  Settings, Cpu, LogOut, History, Receipt, Network, Satellite, Brain, MapPin, CircuitBoard,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -15,6 +15,7 @@ const mainItems = [
   { title: "সেচ জোন", url: "/zones", icon: Droplets },
   { title: "মোটর নিয়ন্ত্রণ", url: "/motor", icon: Gauge },
   { title: "ডিভাইস নেটওয়ার্ক", url: "/devices", icon: Network },
+  { title: "হার্ডওয়্যার গাইড", url: "/hardware", icon: CircuitBoard },
 ];
 
 const analyticsItems = [
@@ -32,6 +33,16 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (path: string) => currentPath === path;
+
+  // Frosted-glass active state (no solid colour fill)
+  const itemCls =
+    "text-sidebar-foreground transition-all relative overflow-hidden " +
+    "hover:bg-white/8 hover:text-sidebar-foreground " +
+    "data-[active=true]:bg-white/12 data-[active=true]:backdrop-blur-xl " +
+    "data-[active=true]:border data-[active=true]:border-white/25 " +
+    "data-[active=true]:text-white data-[active=true]:font-semibold " +
+    "data-[active=true]:shadow-[0_4px_20px_-4px_rgba(255,255,255,0.15),inset_0_1px_0_rgba(255,255,255,0.2)]";
+
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -61,7 +72,7 @@ export function AppSidebar() {
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
-                    className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:font-semibold data-[active=true]:shadow-md transition-all"
+                    className={itemCls}
                   >
                     <Link to={item.url} className="flex items-center gap-2.5">
                       <item.icon className="h-4 w-4" />
@@ -84,7 +95,7 @@ export function AppSidebar() {
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
-                    className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:font-semibold data-[active=true]:shadow-md transition-all"
+                    className={itemCls}
                   >
                     <Link to={item.url} className="flex items-center gap-2.5">
                       <item.icon className="h-4 w-4" />
@@ -105,7 +116,7 @@ export function AppSidebar() {
               asChild
               isActive={isActive("/settings")}
               tooltip="সেটিংস"
-              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground"
+              className={itemCls}
             >
               <Link to="/settings" className="flex items-center gap-2.5">
                 <Settings className="h-4 w-4" />
