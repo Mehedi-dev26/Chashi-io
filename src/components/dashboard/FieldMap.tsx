@@ -220,18 +220,22 @@ export function FieldMap({ zones, onToggle }: { zones: FieldZone[]; onToggle: (i
             </div>
 
             <div className="pt-2 border-t border-border">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">ভাল্ভ নিয়ন্ত্রণ</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-bold">ভাল্ভ নিয়ন্ত্রণ</p>
               <button
                 onClick={() => onToggle(active.id)}
-                className={`w-full h-10 rounded-lg font-semibold text-sm transition ${
+                className={`group relative w-full h-12 rounded-xl font-extrabold text-sm tracking-wide overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] ring-1 ${
                   active.valveOpen
-                    ? "bg-destructive/15 border border-destructive/40 text-destructive hover:bg-destructive/25"
-                    : "bg-primary text-primary-foreground hover:opacity-90 glow-primary"
+                    ? "bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 text-white shadow-lg shadow-red-500/40 ring-white/30"
+                    : "bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white shadow-lg shadow-emerald-500/40 ring-white/30"
                 }`}
               >
-                {active.valveOpen ? "● ভাল্ভ বন্ধ করুন" : "▶ ভাল্ভ খুলে সেচ শুরু"}
+                <span className="absolute inset-0 bg-gradient-to-t from-black/15 to-white/15 opacity-0 group-hover:opacity-100 transition" />
+                <span className="relative flex items-center justify-center gap-2 drop-shadow">
+                  {active.valveOpen ? "● ভাল্ভ বন্ধ করুন" : "▶ ভাল্ভ খুলে সেচ শুরু"}
+                </span>
               </button>
             </div>
+
           </div>
         )}
       </div>
