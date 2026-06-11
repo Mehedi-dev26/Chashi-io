@@ -108,25 +108,32 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="gap-1">
+      <SidebarContent className="gap-2 py-2">
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel className="text-[11px] uppercase tracking-wider font-bold text-sidebar-foreground/60 px-2">প্রধান</SidebarGroupLabel>}
+          {!collapsed && <SidebarGroupLabel className="text-[11px] uppercase tracking-wider font-bold text-sidebar-foreground/70 px-2 mb-1">প্রধান</SidebarGroupLabel>}
           <SidebarGroupContent>
-            <SidebarMenu className="gap-1">{mainItems.map(renderItem)}</SidebarMenu>
+            <SidebarMenu className="gap-1.5">{mainItems.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel className="text-[11px] uppercase tracking-wider font-bold text-sidebar-foreground/60 px-2">বিশ্লেষণ ও সতর্কতা</SidebarGroupLabel>}
+          {!collapsed && <SidebarGroupLabel className="text-[11px] uppercase tracking-wider font-bold text-sidebar-foreground/70 px-2 mb-1">বিশ্লেষণ ও সতর্কতা</SidebarGroupLabel>}
           <SidebarGroupContent>
-            <SidebarMenu className="gap-1">{analyticsItems.map(renderItem)}</SidebarMenu>
+            <SidebarMenu className="gap-1.5">{analyticsItems.map(renderItem)}</SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          {!collapsed && <SidebarGroupLabel className="text-[11px] uppercase tracking-wider font-bold text-sidebar-foreground/70 px-2 mb-1">কনফিগারেশন</SidebarGroupLabel>}
+          <SidebarGroupContent>
+            <SidebarMenu className="gap-1.5">{renderItem(settingsItem)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
+
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu className="gap-1">
-          {renderItem(settingsItem)}
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={handleLogout}
