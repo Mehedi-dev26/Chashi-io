@@ -75,77 +75,101 @@ function HistoryPage() {
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "মোট পানি ব্যবহার", val: `${(totalUsage / 1000).toFixed(1)} m³`, icon: Droplets, color: "text-chart-1" },
-          { label: "গড় মাটির আর্দ্রতা", val: `${avgSoil}%`, icon: Activity, color: "text-chart-2" },
-          { label: "গড় তাপমাত্রা", val: `${(data.reduce((s,r)=>s+r.temp,0)/data.length).toFixed(1)}°C`, icon: Thermometer, color: "text-chart-4" },
-          { label: "ডেটা পয়েন্ট", val: `${data.length * 24}`, icon: Calendar, color: "text-chart-3" },
+          { label: "মোট পানি ব্যবহার",  val: `${(totalUsage / 1000).toFixed(1)} m³`, icon: Droplets,    grad: "from-sky-500 via-blue-500 to-indigo-500",         ring: "ring-sky-300/40" },
+          { label: "গড় মাটির আর্দ্রতা", val: `${avgSoil}%`,                          icon: Activity,    grad: "from-emerald-500 via-teal-500 to-cyan-500",       ring: "ring-emerald-300/40" },
+          { label: "গড় তাপমাত্রা",      val: `${(data.reduce((s,r)=>s+r.temp,0)/data.length).toFixed(1)}°C`, icon: Thermometer, grad: "from-amber-500 via-orange-500 to-rose-500", ring: "ring-amber-300/40" },
+          { label: "ডেটা পয়েন্ট",       val: `${data.length * 24}`,                   icon: Calendar,    grad: "from-indigo-500 via-violet-500 to-fuchsia-500",  ring: "ring-indigo-300/40" },
         ].map((s, i) => (
-          <Card key={i} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className={`h-10 w-10 rounded-lg bg-muted grid place-items-center ${s.color}`}><s.icon className="h-5 w-5" /></div>
-              <div>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-                <p className="text-xl font-bold">{s.val}</p>
+          <div
+            key={i}
+            className={`relative overflow-hidden rounded-2xl p-4 text-white bg-gradient-to-br ${s.grad} shadow-lg ring-1 ${s.ring} border-2 border-white/20 animate-fade-in hover-lift`}
+            style={{ animationDelay: `${i * 60}ms` }}
+          >
+            <div className="absolute -top-10 -right-10 h-28 w-28 rounded-full bg-white/15 blur-2xl" />
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm shrink-0">
+                <s.icon className="h-5 w-5 drop-shadow" />
               </div>
-            </CardContent>
-          </Card>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wider font-bold opacity-95">{s.label}</p>
+                <p className="text-2xl font-extrabold drop-shadow truncate">{s.val}</p>
+              </div>
+            </div>
+          </div>
         ))}
       </div>
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">মাটির আর্দ্রতা ও পানির স্তর</CardTitle></CardHeader>
+      <Card className="border-2 border-sky-400/30 shadow-md shadow-sky-500/10 overflow-hidden">
+        <div className="h-1.5 bg-gradient-to-r from-sky-500 via-emerald-500 to-cyan-500" />
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Droplets className="h-4 w-4 text-sky-500"/>মাটির আর্দ্রতা ও পানির স্তর</CardTitle></CardHeader>
         <CardContent className="h-72">
           <ResponsiveContainer>
             <AreaChart data={data}>
               <defs>
-                <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.5}/><stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/></linearGradient>
-                <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.5}/><stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/></linearGradient>
+                <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.55}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient>
+                <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.55}/><stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/></linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2}/>
               <XAxis dataKey="t" fontSize={11}/><YAxis fontSize={11}/>
               <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}/>
               <Legend />
-              <Area type="monotone" dataKey="soil" name="মাটির আর্দ্রতা %" stroke="hsl(var(--chart-1))" fill="url(#g1)" strokeWidth={2}/>
-              <Area type="monotone" dataKey="water" name="পানির স্তর %" stroke="hsl(var(--chart-2))" fill="url(#g2)" strokeWidth={2}/>
+              <Area type="monotone" dataKey="soil" name="মাটির আর্দ্রতা %" stroke="#10b981" fill="url(#g1)" strokeWidth={2.5}/>
+              <Area type="monotone" dataKey="water" name="পানির স্তর %" stroke="#0ea5e9" fill="url(#g2)" strokeWidth={2.5}/>
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card><CardHeader><CardTitle className="text-base">দৈনিক পানি ব্যবহার (লিটার)</CardTitle></CardHeader>
+        <Card className="border-2 border-violet-400/30 shadow-md shadow-violet-500/10 overflow-hidden">
+          <div className="h-1.5 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500" />
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Droplets className="h-4 w-4 text-violet-500"/>দৈনিক পানি ব্যবহার (লিটার)</CardTitle></CardHeader>
           <CardContent className="h-64"><ResponsiveContainer>
             <AreaChart data={data}>
+              <defs>
+                <linearGradient id="gUsage" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.6}/><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/></linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2}/>
               <XAxis dataKey="t" fontSize={11}/><YAxis fontSize={11}/>
               <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}/>
-              <Area type="monotone" dataKey="usage" stroke="hsl(var(--chart-3))" fill="hsl(var(--chart-3))" fillOpacity={0.3} strokeWidth={2}/>
+              <Area type="monotone" dataKey="usage" stroke="#8b5cf6" fill="url(#gUsage)" strokeWidth={2.5}/>
             </AreaChart>
-          </ResponsiveContainer></CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-base">তাপমাত্রা ট্রেন্ড (°C)</CardTitle></CardHeader>
+          </ResponsiveContainer></CardContent>
+        </Card>
+        <Card className="border-2 border-orange-400/30 shadow-md shadow-orange-500/10 overflow-hidden">
+          <div className="h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500" />
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Thermometer className="h-4 w-4 text-orange-500"/>তাপমাত্রা ট্রেন্ড (°C)</CardTitle></CardHeader>
           <CardContent className="h-64"><ResponsiveContainer>
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2}/>
               <XAxis dataKey="t" fontSize={11}/><YAxis fontSize={11}/>
               <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}/>
-              <Line type="monotone" dataKey="temp" stroke="hsl(var(--chart-4))" strokeWidth={2.5} dot={false}/>
+              <Line type="monotone" dataKey="temp" stroke="#f97316" strokeWidth={3} dot={{ r: 3, fill: "#f97316" }} activeDot={{ r: 5 }}/>
             </LineChart>
-          </ResponsiveContainer></CardContent></Card>
+          </ResponsiveContainer></CardContent>
+        </Card>
       </div>
 
-      <Card><CardHeader><CardTitle className="text-base">বিস্তারিত লগ</CardTitle></CardHeader>
+      <Card className="border-2 border-emerald-400/30 shadow-md shadow-emerald-500/10 overflow-hidden">
+        <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4 text-emerald-500"/>বিস্তারিত লগ</CardTitle></CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b bg-muted/30"><tr className="text-left">
-              <th className="p-3 font-medium">তারিখ</th><th className="p-3 font-medium">মাটি %</th>
-              <th className="p-3 font-medium">পানি %</th><th className="p-3 font-medium">তাপ °C</th>
-              <th className="p-3 font-medium">ব্যবহার (L)</th><th className="p-3 font-medium">অবস্থা</th>
-            </tr></thead>
+            <thead className="border-b bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10">
+              <tr className="text-left text-[11px] uppercase tracking-wider">
+                <th className="p-3 font-bold">তারিখ</th><th className="p-3 font-bold">মাটি %</th>
+                <th className="p-3 font-bold">পানি %</th><th className="p-3 font-bold">তাপ °C</th>
+                <th className="p-3 font-bold">ব্যবহার (L)</th><th className="p-3 font-bold">অবস্থা</th>
+              </tr>
+            </thead>
             <tbody>{data.slice(-10).reverse().map((r, i) => (
-              <tr key={i} className="border-b last:border-0 hover:bg-muted/20">
-                <td className="p-3">{r.t}</td><td className="p-3">{r.soil}%</td><td className="p-3">{r.water}%</td>
-                <td className="p-3">{r.temp}°</td><td className="p-3">{r.usage.toLocaleString()}</td>
-                <td className="p-3"><Badge variant={r.soil < 35 ? "destructive" : r.soil > 70 ? "default" : "secondary"}>
+              <tr key={i} className="border-b last:border-0 hover:bg-emerald-500/5 transition-colors">
+                <td className="p-3 font-semibold">{r.t}</td>
+                <td className="p-3"><span className="font-mono font-bold text-emerald-600">{r.soil}%</span></td>
+                <td className="p-3"><span className="font-mono font-bold text-sky-600">{r.water}%</span></td>
+                <td className="p-3"><span className="font-mono font-bold text-orange-600">{r.temp}°</span></td>
+                <td className="p-3 font-mono">{r.usage.toLocaleString()}</td>
+                <td className="p-3"><Badge variant={r.soil < 35 ? "destructive" : r.soil > 70 ? "default" : "secondary"} className="font-bold">
                   {r.soil < 35 ? "শুষ্ক" : r.soil > 70 ? "ভেজা" : "স্বাভাবিক"}</Badge></td>
               </tr>
             ))}</tbody>
