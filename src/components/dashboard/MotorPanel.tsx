@@ -47,19 +47,24 @@ export function MotorPanel({ motor, onToggle }: { motor: MotorState; onToggle: (
         {motor.isOn ? "পাম্প বন্ধ করতে চাপুন" : "পাম্প চালু করতে চাপুন"}
       </p>
 
-      <div className="grid grid-cols-2 gap-2 relative">
+      <div className="grid grid-cols-2 gap-2.5 relative">
         {metrics.map((m) => (
-          <div key={m.label} className="rounded-lg glass-panel p-2.5">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <m.icon className="h-3 w-3" />
-              <span className="text-[10px] uppercase tracking-wider">{m.label}</span>
+          <div
+            key={m.label}
+            className={`relative rounded-xl p-3 bg-gradient-to-br ${m.tint} text-white shadow-lg ${m.ring} ring-1 ring-white/20 overflow-hidden`}
+          >
+            <div className="absolute -top-3 -right-3 h-12 w-12 rounded-full bg-white/15 blur-xl pointer-events-none" />
+            <div className="flex items-center gap-1.5 relative">
+              <m.icon className="h-3.5 w-3.5 text-white drop-shadow" strokeWidth={2.4} />
+              <span className="text-[11px] uppercase tracking-wider font-bold text-white/90">{m.label}</span>
             </div>
-            <p className="mt-1 text-sm font-bold">
-              {m.value} <span className="text-[10px] text-muted-foreground font-normal">{m.unit}</span>
+            <p className="mt-1.5 text-lg font-extrabold leading-none relative drop-shadow">
+              {m.value} <span className="text-[11px] font-semibold text-white/80">{m.unit}</span>
             </p>
           </div>
         ))}
       </div>
+
 
       <div className="mt-3 rounded-lg glass-panel p-3">
         <div className="flex justify-between items-center text-xs">
