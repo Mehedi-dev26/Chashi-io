@@ -5,11 +5,11 @@ const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২
 
 export function MotorPanel({ motor, onToggle }: { motor: MotorState; onToggle: () => void }) {
   const metrics = [
-    { icon: Gauge, label: "চাপ", value: bn(motor.pressure), unit: "PSI" },
-    { icon: Droplets, label: "প্রবাহ", value: bn(motor.flowRate), unit: "লি/মি" },
-    { icon: Zap, label: "কারেন্ট", value: bn(motor.current), unit: "অ্যাম্পি" },
-    { icon: Activity, label: "ভোল্টেজ", value: bn(motor.voltage), unit: "ভোল্ট" },
-    { icon: Timer, label: "আজকের সময়", value: bn(motor.runtime.toFixed(2)), unit: "ঘণ্টা" },
+    { icon: Gauge,    label: "চাপ",         value: bn(motor.pressure),            unit: "PSI",      tint: "from-orange-500 to-red-500",      ring: "shadow-orange-500/30" },
+    { icon: Droplets, label: "প্রবাহ",      value: bn(motor.flowRate),            unit: "লি/মি",   tint: "from-sky-500 to-cyan-500",        ring: "shadow-sky-500/30" },
+    { icon: Zap,      label: "কারেন্ট",     value: bn(motor.current),             unit: "অ্যাম্পি", tint: "from-amber-500 to-yellow-500",    ring: "shadow-amber-500/30" },
+    { icon: Activity, label: "ভোল্টেজ",     value: bn(motor.voltage),             unit: "ভোল্ট",   tint: "from-violet-500 to-fuchsia-500",  ring: "shadow-violet-500/30" },
+    { icon: Timer,    label: "আজকের সময়",   value: bn(motor.runtime.toFixed(2)),  unit: "ঘণ্টা",   tint: "from-emerald-500 to-teal-600",    ring: "shadow-emerald-500/30" },
   ];
 
   return (
