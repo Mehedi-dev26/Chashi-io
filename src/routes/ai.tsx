@@ -95,28 +95,34 @@ function AIPage() {
       subtitle="রিয়েল-টাইম সেন্সর ডেটা ও আবহাওয়া বিশ্লেষণ করে বাংলায় তাৎক্ষণিক সিদ্ধান্ত-সহায়তা।"
     >
       <div className="stagger space-y-5">
-        <div className="grid lg:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-3 gap-3">
           {[
-            { icon: Brain, label: "AI ইঞ্জিন", value: "BMDA কৃষি-GPT", desc: "বাংলাদেশী ফসলের জন্য fine-tuned" },
-            { icon: TrendingUp, label: "সাশ্রয় (এ সপ্তাহে)", value: `${bn("৩,২০০")} L`, desc: "পানি ও বিদ্যুৎ মিলিয়ে" },
-            { icon: CloudRain, label: "আবহাওয়া উৎস", value: "BMD লাইভ", desc: "প্রতি ৩০ মিনিটে আপডেট" },
+            { icon: Brain,      label: "AI ইঞ্জিন",          value: "BMDA কৃষি-GPT",  desc: "বাংলাদেশী ফসলের জন্য fine-tuned", grad: "from-violet-500 via-fuchsia-500 to-pink-500",   ring: "ring-violet-300/40" },
+            { icon: TrendingUp, label: "সাশ্রয় (এ সপ্তাহে)", value: `${bn("৩,২০০")} L`, desc: "পানি ও বিদ্যুৎ মিলিয়ে",          grad: "from-lime-500 via-green-500 to-emerald-500",     ring: "ring-lime-300/40" },
+            { icon: CloudRain,  label: "আবহাওয়া উৎস",       value: "BMD লাইভ",        desc: "প্রতি ৩০ মিনিটে আপডেট",            grad: "from-orange-500 via-amber-500 to-yellow-500",   ring: "ring-amber-300/40" },
           ].map((c) => (
-            <div key={c.label} className="glass-card rounded-2xl p-5 hover-lift relative overflow-hidden">
-              <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-primary/15 blur-2xl" />
-              <c.icon className="h-6 w-6 text-primary relative" />
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-3 font-bold">{c.label}</p>
-              <p className="text-xl font-extrabold mt-1">{c.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{c.desc}</p>
+            <div
+              key={c.label}
+              className={`relative overflow-hidden rounded-2xl p-5 text-white bg-gradient-to-br ${c.grad} shadow-lg ring-1 ${c.ring} border-2 border-white/20 hover-lift`}
+            >
+              <div className="absolute -top-10 -right-10 h-28 w-28 rounded-full bg-white/15 blur-2xl" />
+              <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-sm grid place-items-center ring-1 ring-white/30">
+                <c.icon className="h-5 w-5 drop-shadow" />
+              </div>
+              <p className="text-[11px] uppercase tracking-wider mt-3 font-bold opacity-95">{c.label}</p>
+              <p className="text-xl font-extrabold mt-1 drop-shadow">{c.value}</p>
+              <p className="text-xs opacity-90 mt-1">{c.desc}</p>
             </div>
           ))}
         </div>
 
         <div className="grid lg:grid-cols-[1fr_360px] gap-5">
-          <div className="glass-card rounded-2xl p-5 relative overflow-hidden flex flex-col" style={{ minHeight: 540 }}>
-            <div className="absolute top-0 right-0 h-40 w-40 bg-primary/15 blur-3xl rounded-full pointer-events-none" />
-            <div className="flex items-center gap-2 relative">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-chart-2 grid place-items-center glow-primary">
-                <Sparkles className="h-4 w-4 text-primary-foreground" />
+          <div className="rounded-2xl p-5 relative overflow-hidden flex flex-col bg-card border-2 border-violet-400/30 shadow-md shadow-violet-500/10 ring-1 ring-violet-300/20" style={{ minHeight: 540 }}>
+            <div className="absolute top-0 right-0 h-40 w-40 bg-violet-500/15 blur-3xl rounded-full pointer-events-none" />
+            <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500" />
+            <div className="flex items-center gap-2 relative mt-1">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 grid place-items-center shadow-lg ring-1 ring-white/30">
+                <Sparkles className="h-5 w-5 text-white drop-shadow" />
               </div>
               <div>
                 <h2 className="text-base font-extrabold">AI কে জিজ্ঞাসা করুন</h2>
@@ -124,28 +130,28 @@ function AIPage() {
               </div>
             </div>
 
-            <div ref={scrollRef} className="mt-4 rounded-xl glass-panel p-4 flex-1 overflow-y-auto space-y-3" style={{ maxHeight: 360 }}>
+            <div ref={scrollRef} className="mt-4 rounded-xl glass-panel p-4 flex-1 overflow-y-auto space-y-3 border border-violet-200/30" style={{ maxHeight: 360 }}>
               {messages.map((m, i) => (
                 <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
-                  <div className={`h-7 w-7 rounded-lg grid place-items-center shrink-0 ${m.role === "ai" ? "bg-gradient-to-br from-primary to-chart-2" : "bg-accent"}`}>
-                    {m.role === "ai" ? <Sparkles className="h-3.5 w-3.5 text-primary-foreground" /> : <User className="h-3.5 w-3.5 text-accent-foreground" />}
+                  <div className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 shadow-md ring-1 ring-white/30 ${m.role === "ai" ? "bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500" : "bg-gradient-to-br from-lime-500 via-green-500 to-emerald-500"}`}>
+                    {m.role === "ai" ? <Sparkles className="h-4 w-4 text-white drop-shadow" /> : <User className="h-4 w-4 text-white drop-shadow" />}
                   </div>
-                  <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-line ${m.role === "ai" ? "bg-card border border-border" : "bg-primary text-primary-foreground"}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line shadow-sm ${m.role === "ai" ? "bg-card border-2 border-violet-200/40" : "bg-gradient-to-br from-lime-500 via-green-500 to-emerald-500 text-white border-2 border-white/20"}`}>
                     {m.text}
-                    <p className={`text-[10px] mt-1 font-mono ${m.role === "ai" ? "text-muted-foreground" : "text-primary-foreground/70"}`}>{m.time}</p>
+                    <p className={`text-[10px] mt-1 font-mono ${m.role === "ai" ? "text-muted-foreground" : "text-white/80"}`}>{m.time}</p>
                   </div>
                 </div>
               ))}
               {thinking && (
                 <div className="flex gap-3">
-                  <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-primary to-chart-2 grid place-items-center">
-                    <Sparkles className="h-3.5 w-3.5 text-primary-foreground animate-pulse" />
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 grid place-items-center shadow-md">
+                    <Sparkles className="h-4 w-4 text-white animate-pulse" />
                   </div>
-                  <div className="bg-card border border-border rounded-xl px-3 py-2 text-sm">
+                  <div className="bg-card border-2 border-violet-200/40 rounded-2xl px-3.5 py-2.5 text-sm">
                     <span className="inline-flex gap-1">
-                      <span className="h-1.5 w-1.5 bg-primary rounded-full animate-bounce" />
-                      <span className="h-1.5 w-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0.15s" }} />
-                      <span className="h-1.5 w-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0.3s" }} />
+                      <span className="h-1.5 w-1.5 bg-violet-500 rounded-full animate-bounce" />
+                      <span className="h-1.5 w-1.5 bg-fuchsia-500 rounded-full animate-bounce" style={{ animationDelay: "0.15s" }} />
+                      <span className="h-1.5 w-1.5 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: "0.3s" }} />
                     </span>
                   </div>
                 </div>
@@ -153,11 +159,22 @@ function AIPage() {
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
-              {suggestions.map((s) => (
-                <button key={s} onClick={() => send(s)} className="text-xs px-3 py-1.5 rounded-full glass-panel hover-lift text-foreground/80">
-                  {s}
-                </button>
-              ))}
+              {suggestions.map((s, i) => {
+                const palettes = [
+                  "bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500",
+                  "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500",
+                  "bg-gradient-to-r from-lime-500 via-green-500 to-emerald-500",
+                ];
+                return (
+                  <button
+                    key={s}
+                    onClick={() => send(s)}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-full text-white shadow-md ring-1 ring-white/30 hover:scale-[1.03] active:scale-[0.98] transition ${palettes[i % 3]}`}
+                  >
+                    {s}
+                  </button>
+                );
+              })}
             </div>
 
             <form
@@ -171,9 +188,9 @@ function AIPage() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="আপনার প্রশ্ন বাংলায় লিখুন..."
-                className="flex-1 h-11 px-4 rounded-xl bg-card border border-border text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition"
+                className="flex-1 h-11 px-4 rounded-xl bg-card border-2 border-violet-200/40 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition"
               />
-              <button type="submit" disabled={!prompt.trim() || thinking} className="h-11 px-4 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center gap-1.5 hover-lift glow-primary disabled:opacity-50">
+              <button type="submit" disabled={!prompt.trim() || thinking} className="h-11 px-4 rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 text-white font-bold flex items-center gap-1.5 shadow-lg ring-1 ring-white/30 hover:scale-[1.02] active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed">
                 <Send className="h-4 w-4" /> পাঠান
               </button>
             </form>
