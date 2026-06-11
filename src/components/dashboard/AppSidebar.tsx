@@ -134,7 +134,6 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu className="gap-1">
-          {renderItem(settingsItem)}
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={handleLogout}
