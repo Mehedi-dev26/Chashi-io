@@ -111,12 +111,11 @@ function Landing() {
           {/* Stats */}
           <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
             {stats.map((s) => (
-              <div key={s.u} className="relative rounded-2xl p-[1.5px] bg-gradient-to-br hover:scale-[1.03] transition" style={{ backgroundImage: `linear-gradient(135deg, var(--tw-gradient-stops))` }}>
-                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${s.c} opacity-90`} />
-                <div className="relative rounded-[14px] bg-white/95 backdrop-blur p-4 sm:p-5 text-center">
-                  <p className={`text-3xl sm:text-4xl font-black tabular-nums bg-gradient-to-br ${s.c} bg-clip-text text-transparent`}>{s.v}</p>
-                  <p className="text-[11px] sm:text-xs text-muted-foreground font-semibold mt-1">{s.u}</p>
-                </div>
+              <div key={s.u} className={`relative overflow-hidden rounded-2xl p-5 sm:p-6 text-center bg-gradient-to-br ${s.c} shadow-xl hover:scale-[1.04] hover:-translate-y-1 transition-transform duration-300`}>
+                <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-white/25 blur-xl" />
+                <div className="absolute -bottom-8 -left-6 h-16 w-16 rounded-full bg-white/15 blur-lg" />
+                <p className="relative font-bangla text-3xl sm:text-4xl font-extrabold tabular-nums text-white drop-shadow">{s.v}</p>
+                <p className="relative font-bangla text-[11px] sm:text-xs text-white/95 font-semibold mt-1.5 uppercase tracking-wider">{s.u}</p>
               </div>
             ))}
           </div>
