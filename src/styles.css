@@ -155,6 +155,27 @@
     background-clip: text;
     color: transparent;
   }
+  .text-sun {
+    background: var(--gradient-sun);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .text-rainbow {
+    background: var(--gradient-rainbow);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: rainbow-shift 8s ease infinite;
+  }
+  @keyframes rainbow-shift {
+    0%,100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .bg-sun { background: var(--gradient-sun); }
+  .bg-rainbow { background: var(--gradient-rainbow); }
+  .shadow-sun { box-shadow: var(--shadow-sun); }
   .glow-primary { box-shadow: var(--shadow-glow); }
   .grid-bg {
     background-image:
