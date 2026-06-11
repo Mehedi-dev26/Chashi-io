@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Sprout, ArrowRight, Droplets, Gauge, Sparkles, ShieldCheck,
   Satellite, CircuitBoard, Brain, Wifi,
-  CheckCircle2, PlayCircle, Award, TrendingUp, Leaf, Globe2,
+  CheckCircle2, PlayCircle, Award, TrendingUp, Leaf,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
