@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/gps")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "GPS মানচিত্র · জমি ও যন্ত্রপাতি Link Up · BMDA" },
