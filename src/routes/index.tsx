@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Sprout, ArrowRight, Droplets, Gauge, Sparkles, ShieldCheck,
-  Satellite, CircuitBoard, Brain, Wifi,
-  CheckCircle2, PlayCircle, Award, TrendingUp, Leaf,
+  Sprout, ArrowRight, Cpu, Droplets, Gauge, Sparkles, ShieldCheck,
+  Activity, Satellite, CircuitBoard, ChevronRight, MapPin, Brain, Zap,
+  Sun, CloudRain, Leaf, BarChart3, Wifi, Star, CheckCircle2, PlayCircle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -17,408 +17,269 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
+const features = [
+  { icon: Droplets, title: "জোন-ভিত্তিক সেচ", desc: "৭+ জোনের ভাল্ভ ও পানি প্রবাহ স্মার্টফোন থেকে নিয়ন্ত্রণ।", tint: "from-sky-400 to-cyan-500" },
+  { icon: Gauge, title: "মোটর অটোমেশন", desc: "চাপ, ভোল্টেজ, কারেন্ট মনিটরিং সহ স্বয়ংক্রিয় shutoff।", tint: "from-amber-400 to-orange-500" },
+  { icon: Brain, title: "AI পরামর্শ", desc: "মাটি, আবহাওয়া ও ফসল অনুযায়ী বুদ্ধিমান সেচ সুপারিশ।", tint: "from-violet-500 to-fuchsia-500" },
+  { icon: Satellite, title: "NDVI স্যাটেলাইট", desc: "Sentinel-2 ডেটায় ফসলের স্বাস্থ্য ও জলের প্রয়োজন বিশ্লেষণ।", tint: "from-emerald-400 to-teal-500" },
+  { icon: CircuitBoard, title: "Master-Slave Hardware", desc: "ESP32 মাস্টার + একাধিক ESP8266 sub-node দিয়ে স্কেলেবল।", tint: "from-yellow-400 to-amber-500" },
+  { icon: ShieldCheck, title: "Role-Based Security", desc: "Admin, Operator, Viewer — প্রত্যেকের জন্য নিরাপদ access।", tint: "from-rose-400 to-pink-600" },
+];
+
+const stats = [
+  { v: "৩২.৬", u: "হেক্টর কভারেজ", c: "from-emerald-400 to-teal-500" },
+  { v: "৪০%", u: "জল সাশ্রয়", c: "from-sky-400 to-blue-500" },
+  { v: "২৪/৭", u: "রিয়েল-টাইম মনিটরিং", c: "from-amber-400 to-orange-500" },
+  { v: "৭+", u: "সক্রিয় জোন", c: "from-fuchsia-400 to-rose-500" },
+];
+
+const steps = [
+  { n: "০১", t: "হার্ডওয়্যার ইনস্টল", d: "ESP32 মাস্টার ও ESP8266 sub-node মাঠে স্থাপন।", i: CircuitBoard, c: "bg-amber-100 text-amber-700" },
+  { n: "০২", t: "সেন্সর সংযোগ", d: "মাটির আদ্রতা, LDR, flow ও pressure sensor যুক্ত করুন।", i: Wifi, c: "bg-sky-100 text-sky-700" },
+  { n: "০৩", t: "AI পরামর্শ গ্রহণ", d: "Dashboard থেকে বাংলায় বুদ্ধিমান সেচ-সিদ্ধান্ত পান।", i: Sparkles, c: "bg-violet-100 text-violet-700" },
+];
+
 function Landing() {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
-      <Nav />
-      <Hero />
-      <BentoFeatures />
-      <Architecture />
-      <Workflow />
-      <CTA />
-      <Footer />
-    </div>
-  );
-}
+    <div className="min-h-screen overflow-x-hidden">
+      {/* Nav */}
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/75 border-b border-border/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+          <Link to="/" className="flex items-center gap-2.5 min-w-0">
+            <div className="h-10 w-10 shrink-0 rounded-2xl bg-gradient-to-br from-emerald-500 via-amber-400 to-orange-500 grid place-items-center shadow-lg shadow-amber-500/30">
+              <Sprout className="h-5 w-5 text-white" />
+            </div>
+            <div className="leading-tight min-w-0">
+              <p className="font-black text-sm truncate">BMDA স্মার্ট সেচ</p>
+              <p className="text-[10px] text-muted-foreground truncate">বরেন্দ্র · IoT v২.৬</p>
+            </div>
+          </Link>
+          <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
+            <a href="#features" className="text-muted-foreground hover:text-foreground transition">বৈশিষ্ট্য</a>
+            <a href="#how" className="text-muted-foreground hover:text-foreground transition">কীভাবে কাজ করে</a>
+            <a href="#tech" className="text-muted-foreground hover:text-foreground transition">প্রযুক্তি</a>
+            <a href="#about" className="text-muted-foreground hover:text-foreground transition">প্রকল্প</a>
+          </nav>
+          <Link to="/auth" className="h-10 px-4 sm:px-5 shrink-0 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white text-sm font-bold inline-flex items-center gap-1.5 shadow-lg shadow-orange-500/30 hover:shadow-xl hover:scale-[1.02] transition">
+            লগ ইন <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </header>
 
-/* ------------------------------- NAV ------------------------------- */
-function Nav() {
-  return (
-    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/70 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3.5 sm:px-6">
-        <Link to="/" className="flex min-w-0 items-center gap-2.5">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-emerald-gold shadow-gold">
-            <Sprout className="h-5 w-5 text-white" />
+      {/* Hero */}
+      <section className="relative">
+        <div className="absolute inset-0 grid-bg opacity-30 -z-10" />
+        <div className="absolute -top-20 left-1/4 w-[420px] h-[420px] bg-amber-300/40 blur-3xl rounded-full -z-10" />
+        <div className="absolute top-40 -right-20 w-[420px] h-[420px] bg-emerald-400/30 blur-3xl rounded-full -z-10" />
+        <div className="absolute top-80 left-1/2 w-[360px] h-[360px] bg-sky-400/25 blur-3xl rounded-full -z-10" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-16 sm:pb-24 text-center">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 px-3.5 h-auto py-1.5 rounded-full bg-gradient-to-r from-amber-100 via-yellow-50 to-emerald-100 border border-amber-300/60 text-xs font-semibold text-amber-900 mb-6 shadow-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inset-0 rounded-full bg-amber-500 animate-ping opacity-60" />
+              <span className="relative rounded-full h-2 w-2 bg-amber-500" />
+            </span>
+            বরেন্দ্র অঞ্চলের জন্য পরবর্তী-প্রজন্মের কৃষি প্ল্যাটফর্ম
+            <Sun className="h-3.5 w-3.5 text-amber-600" />
           </div>
-          <div className="min-w-0 leading-tight">
-            <div className="truncate font-display text-base text-foreground sm:text-lg">BMDA স্মার্ট সেচ</div>
-            <div className="hidden text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:block">Barind Smart Irrigation</div>
-          </div>
-        </Link>
-        <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
-          <a href="#features" className="transition-colors hover:text-foreground">বৈশিষ্ট্য</a>
-          <a href="#architecture" className="transition-colors hover:text-foreground">আর্কিটেকচার</a>
-          <a href="#how" className="transition-colors hover:text-foreground">কীভাবে কাজ করে</a>
-        </nav>
-        <Link
-          to="/auth"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-elegant transition-transform hover:scale-[1.03]"
-        >
-          লগ ইন <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
-    </header>
-  );
-}
 
-/* ------------------------------- HERO ------------------------------- */
-function Hero() {
-  return (
-    <section className="relative overflow-hidden bg-gradient-hero text-white">
-      <div className="absolute inset-0 grid-bg-gold opacity-40" />
-      <div className="absolute -left-32 top-10 h-96 w-96 rounded-full bg-emerald-rich/30 blur-3xl animate-float" />
-      <div className="absolute -right-24 bottom-0 h-[28rem] w-[28rem] rounded-full bg-gold/25 blur-3xl" />
-
-      <div className="relative mx-auto max-w-7xl px-4 pb-24 pt-16 sm:px-6 sm:pt-20 lg:pt-28">
-        <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-white/5 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.22em] text-gold-soft backdrop-blur">
-            <Award className="h-3.5 w-3.5" /> বরেন্দ্র · IoT v২.৬
-          </span>
-
-          <h1 className="mt-7 font-display text-5xl leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
-            বুদ্ধিমান সেচে
-            <br />
-            <span className="text-gradient-gold italic">সমৃদ্ধ কৃষক।</span>
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] max-w-5xl mx-auto">
+            <span className="text-foreground">বুদ্ধিমান সেচ,</span><br />
+            <span className="text-rainbow">সমৃদ্ধ কৃষক।</span>
           </h1>
-
-          <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/75 sm:text-lg">
-            ESP32 ও ESP8266-চালিত IoT সেন্সর নেটওয়ার্ক, AI সিদ্ধান্ত-সহায়তা ও স্যাটেলাইট বিশ্লেষণ —
+          <p className="mt-5 sm:mt-6 text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2">
+            ESP32/ESP8266-চালিত IoT সেন্সর নেটওয়ার্ক, AI সিদ্ধান্ত-সহায়তা ও স্যাটেলাইট বিশ্লেষণ —
             বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষের জন্য নির্মিত পেশাদার স্মার্ট ইরিগেশন প্ল্যাটফর্ম।
           </p>
 
-          <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row">
-            <Link
-              to="/auth"
-              className="group inline-flex items-center gap-2 rounded-full bg-gradient-gold px-7 py-3.5 text-sm font-semibold text-emerald-deep shadow-gold transition-transform hover:scale-[1.04]"
-            >
-              Main Panel-এ প্রবেশ করুন
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          <div className="mt-7 sm:mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3 px-4 sm:px-0">
+            <Link to="/auth" className="h-12 px-7 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-bold text-sm shadow-xl shadow-orange-500/30 hover:shadow-2xl hover:scale-[1.02] transition inline-flex items-center justify-center gap-2">
+              Main Panel-এ প্রবেশ করুন <ArrowRight className="h-4 w-4" />
             </Link>
-            <a
-              href="#how"
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-sm font-medium text-white backdrop-blur transition-colors hover:bg-white/10"
-            >
+            <a href="#features" className="h-12 px-6 rounded-xl border-2 border-emerald-300 bg-white/70 backdrop-blur font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-emerald-50 hover:border-emerald-400 transition text-emerald-800">
               <PlayCircle className="h-4 w-4" /> ডেমো দেখুন
             </a>
           </div>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/60">
-            <Badge>Government-grade Security</Badge>
-            <Badge>Eco-friendly</Badge>
-            <Badge>Real-time</Badge>
-            <Badge>বাংলায় তৈরি 🇧🇩</Badge>
+          {/* Trust strip */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+            {["✅ Government-grade security", "🌱 Eco-friendly", "⚡ Real-time", "🇧🇩 বাংলায় তৈরি"].map((t) => (
+              <span key={t} className="font-medium">{t}</span>
+            ))}
+          </div>
+
+          {/* Stats */}
+          <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
+            {stats.map((s) => (
+              <div key={s.u} className="relative rounded-2xl p-[1.5px] bg-gradient-to-br hover:scale-[1.03] transition" style={{ backgroundImage: `linear-gradient(135deg, var(--tw-gradient-stops))` }}>
+                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${s.c} opacity-90`} />
+                <div className="relative rounded-[14px] bg-white/95 backdrop-blur p-4 sm:p-5 text-center">
+                  <p className={`text-3xl sm:text-4xl font-black tabular-nums bg-gradient-to-br ${s.c} bg-clip-text text-transparent`}>{s.v}</p>
+                  <p className="text-[11px] sm:text-xs text-muted-foreground font-semibold mt-1">{s.u}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+      </section>
 
-        <div className="mx-auto mt-16 grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-          {[
-            { v: "৩২.৬", u: "হেক্টর কভারেজ" },
-            { v: "৪০%", u: "জল সাশ্রয়" },
-            { v: "২৪/৭", u: "মনিটরিং" },
-            { v: "৭+", u: "সক্রিয় জোন" },
-          ].map((s) => (
-            <div key={s.u} className="glass-dark rounded-2xl px-4 py-5 text-center">
-              <div className="font-display text-3xl text-gold-soft sm:text-4xl">{s.v}</div>
-              <div className="mt-1 text-[11px] uppercase tracking-wider text-white/65">{s.u}</div>
+      {/* Features */}
+      <section id="features" className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-10 sm:mb-14">
+          <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্ল্যাটফর্মের বৈশিষ্ট্য</p>
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tight">
+            যা যা <span className="text-rainbow">প্রয়োজন</span>, একসাথে।
+          </h2>
+          <p className="mt-3 text-muted-foreground max-w-xl mx-auto text-sm sm:text-base">
+            সেচ, মোটর, সেন্সর, AI, স্যাটেলাইট — সমস্ত কিছু একটি বুদ্ধিমান কেন্দ্রীয় প্যানেল থেকে।
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {features.map((f) => (
+            <div key={f.title} className="group relative rounded-2xl p-[1.5px] bg-gradient-to-br hover:-translate-y-1 transition-transform duration-300">
+              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${f.tint} opacity-80 group-hover:opacity-100 transition`} />
+              <div className="relative rounded-[15px] bg-white/95 backdrop-blur p-5 sm:p-6 h-full">
+                <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${f.tint} grid place-items-center shadow-lg mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform`}>
+                  <f.icon className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold tracking-tight">{f.title}</h3>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{f.desc}</p>
+              </div>
             </div>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
+      </section>
 
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <CheckCircle2 className="h-3.5 w-3.5 text-gold" /> {children}
-    </span>
-  );
-}
-
-/* ---------------------------- BENTO FEATURES ---------------------------- */
-function BentoFeatures() {
-  return (
-    <section id="features" className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6">
-      <SectionHeader
-        eyebrow="প্ল্যাটফর্মের বৈশিষ্ট্য"
-        title={<>যা যা প্রয়োজন, <span className="text-gradient-prestige italic">একসাথে।</span></>}
-        subtitle="সেচ, মোটর, সেন্সর, AI, স্যাটেলাইট — সমস্ত কিছু একটি বুদ্ধিমান কেন্দ্রীয় প্যানেল থেকে।"
-      />
-
-      <div className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6 lg:auto-rows-[12rem]">
-        {/* Big: AI advisor */}
-        <article className="group relative overflow-hidden rounded-3xl bg-gradient-emerald-gold p-7 text-white shadow-deep hover-lift sm:col-span-2 lg:col-span-3 lg:row-span-2">
-          <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-gold/30 blur-3xl" />
-          <div className="relative flex h-full flex-col justify-between gap-6">
-            <div>
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
-                <Brain className="h-6 w-6 text-gold-soft" />
-              </div>
-              <h3 className="mt-5 font-display text-3xl leading-tight sm:text-4xl">AI পরামর্শ ইঞ্জিন</h3>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-white/80">
-                মাটি, আবহাওয়া, NDVI ও ফসলের জাত অনুযায়ী বাংলায় বুদ্ধিমান সেচ সুপারিশ —
-                Lovable AI Gateway দ্বারা চালিত।
-              </p>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-white/70">
-              <span className="rounded-full bg-white/10 px-3 py-1">Gemini 2.5</span>
-              <span className="rounded-full bg-white/10 px-3 py-1">বাংলা NLG</span>
-              <span className="rounded-full bg-white/10 px-3 py-1">Sentinel-2</span>
-            </div>
-          </div>
-        </article>
-
-        {/* Zone irrigation */}
-        <BentoCard
-          icon={<Droplets className="h-5 w-5" />}
-          title="জোন-ভিত্তিক সেচ"
-          desc="৭+ জোনের ভাল্ভ ও পানি প্রবাহ স্মার্টফোন থেকে নিয়ন্ত্রণ।"
-          tone="emerald"
-          className="lg:col-span-3"
-        />
-
-        {/* Motor automation */}
-        <BentoCard
-          icon={<Gauge className="h-5 w-5" />}
-          title="মোটর অটোমেশন"
-          desc="চাপ, ভোল্টেজ ও কারেন্ট মনিটরিং সহ স্বয়ংক্রিয় shutoff।"
-          tone="gold"
-          className="lg:col-span-2"
-        />
-
-        {/* NDVI */}
-        <BentoCard
-          icon={<Satellite className="h-5 w-5" />}
-          title="NDVI স্যাটেলাইট"
-          desc="Sentinel-2 ডেটায় ফসলের স্বাস্থ্য বিশ্লেষণ।"
-          tone="cream"
-          className="lg:col-span-1"
-        />
-
-        {/* Master-Slave */}
-        <BentoCard
-          icon={<CircuitBoard className="h-5 w-5" />}
-          title="Master-Slave Hardware"
-          desc="ESP32 মাস্টার + একাধিক ESP8266 sub-node — সম্পূর্ণ স্কেলেবল IoT mesh।"
-          tone="dark"
-          className="sm:col-span-2 lg:col-span-4"
-        />
-
-        {/* Security */}
-        <BentoCard
-          icon={<ShieldCheck className="h-5 w-5" />}
-          title="Role-Based Security"
-          desc="Admin · Operator · Viewer — RLS সুরক্ষিত।"
-          tone="gold"
-          className="lg:col-span-2"
-        />
-      </div>
-    </section>
-  );
-}
-
-type Tone = "emerald" | "gold" | "cream" | "dark";
-function BentoCard({
-  icon, title, desc, tone, className = "",
-}: {
-  icon: React.ReactNode; title: string; desc: string; tone: Tone; className?: string;
-}) {
-  const toneCx: Record<Tone, string> = {
-    emerald: "bg-white border border-border/60 text-foreground",
-    gold: "bg-gradient-card-gold border border-gold/30 text-foreground",
-    cream: "bg-secondary border border-border/60 text-foreground",
-    dark: "bg-emerald-deep text-white border border-emerald-rich/40",
-  };
-  const iconCx: Record<Tone, string> = {
-    emerald: "bg-primary/10 text-primary",
-    gold: "bg-emerald-deep text-gold-soft",
-    cream: "bg-primary/10 text-primary",
-    dark: "bg-gold/20 text-gold-soft",
-  };
-  return (
-    <article className={`group relative overflow-hidden rounded-3xl p-6 shadow-elegant hover-lift ${toneCx[tone]} ${className}`}>
-      <div className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${iconCx[tone]}`}>{icon}</div>
-      <h3 className="mt-4 font-display text-xl leading-tight sm:text-2xl">{title}</h3>
-      <p className={`mt-2 text-sm leading-relaxed ${tone === "dark" ? "text-white/75" : "text-muted-foreground"}`}>{desc}</p>
-    </article>
-  );
-}
-
-/* ---------------------------- ARCHITECTURE ---------------------------- */
-function Architecture() {
-  return (
-    <section id="architecture" className="relative overflow-hidden bg-emerald-deep text-white">
-      <div className="absolute inset-0 grid-bg-gold opacity-30" />
-      <div className="absolute -right-20 top-20 h-80 w-80 rounded-full bg-gold/20 blur-3xl" />
-      <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6">
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-gold-soft">প্রযুক্তি স্ট্যাক</span>
-            <h2 className="mt-3 font-display text-4xl leading-tight tracking-tight sm:text-5xl">
-              Master–Slave <span className="text-gradient-gold italic">IoT</span><br />আর্কিটেকচার
+      {/* How it works */}
+      <section id="how" className="py-16 sm:py-24 bg-gradient-to-b from-amber-50/60 via-yellow-50/40 to-emerald-50/60 border-y border-amber-200/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-14">
+            <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">৩ ধাপে শুরু</p>
+            <h2 className="text-3xl sm:text-5xl font-black tracking-tight">
+              কীভাবে <span className="text-rainbow">কাজ করে</span>?
             </h2>
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-white/75">
-              একটি ESP32 মাস্টার নোড পাম্প হাউস পরিচালনা করে — flow, pressure, tank level।
-              মাঠে একাধিক ESP8266 sub-node মাটির আদ্রতা, LDR ও ভাল্ভ নিয়ন্ত্রণ করে।
-              সব কিছু WiFi/HTTP দিয়ে cloud panel-এ লাইভ সংযুক্ত।
-            </p>
-            <ul className="mt-7 space-y-3 text-sm text-white/80">
-              {[
-                { i: CircuitBoard, t: "ESP32 মাস্টার + ESP8266 সাব-নোড" },
-                { i: TrendingUp, t: "রিয়েল-টাইম telemetry (প্রতি ৫ সেকেন্ডে)" },
-                { i: Globe2, t: "GPS-ভিত্তিক জোন ম্যাপিং" },
-                { i: Sparkles, t: "Lovable AI Gateway দিয়ে বাংলা পরামর্শ" },
-              ].map(({ i: Icon, t }) => (
-                <li key={t} className="flex items-start gap-3">
-                  <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-gold/15 text-gold-soft">
-                    <Icon className="h-4 w-4" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {steps.map((s) => (
+              <div key={s.n} className="relative rounded-3xl bg-white/90 backdrop-blur border border-amber-200/60 p-6 shadow-lg hover:shadow-2xl hover:-translate-y-1 transition">
+                <div className="flex items-center justify-between mb-4">
+                  <span className={`h-12 w-12 rounded-2xl grid place-items-center ${s.c}`}>
+                    <s.i className="h-6 w-6" />
                   </span>
-                  <span>{t}</span>
+                  <span className="text-4xl font-black text-amber-300/80 tabular-nums">{s.n}</span>
+                </div>
+                <h3 className="text-lg font-bold">{s.t}</h3>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{s.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Tech section */}
+      <section id="tech" className="py-16 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্রযুক্তি স্ট্যাক</p>
+            <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+              Master–Slave <span className="text-rainbow">IoT আর্কিটেকচার</span>
+            </h2>
+            <p className="mt-4 text-muted-foreground leading-relaxed">
+              একটি ESP32 মাস্টার নোড পাম্প হাউস পরিচালনা করে — flow, pressure, tank level। মাঠে একাধিক ESP8266 sub-node মাটির আদ্রতা, LDR ও ভাল্ভ নিয়ন্ত্রণ করে। সব কিছু WiFi/HTTP দিয়ে cloud panel-এ লাইভ সংযুক্ত।
+            </p>
+            <ul className="mt-6 space-y-2.5">
+              {[
+                { i: Cpu, t: "ESP32 মাস্টার + ESP8266 সাব-নোড", c: "from-amber-400 to-orange-500" },
+                { i: Activity, t: "রিয়েল-টাইম telemetry (প্রতি ৫ সেকেন্ডে)", c: "from-sky-400 to-blue-500" },
+                { i: MapPin, t: "GPS-ভিত্তিক জোন ম্যাপিং", c: "from-rose-400 to-pink-500" },
+                { i: Sparkles, t: "Lovable AI Gateway দিয়ে বাংলা পরামর্শ", c: "from-violet-500 to-fuchsia-500" },
+              ].map((x) => (
+                <li key={x.t} className="flex items-center gap-3 text-sm font-medium">
+                  <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${x.c} grid place-items-center shrink-0 shadow-md`}>
+                    <x.i className="h-4 w-4 text-white" />
+                  </div>
+                  {x.t}
                 </li>
               ))}
             </ul>
           </div>
-
-          {/* Visual diagram */}
           <div className="relative">
-            <div className="glass-dark rounded-3xl p-6 shadow-deep">
-              {/* Master */}
-              <div className="mx-auto w-fit rounded-2xl bg-gradient-gold px-6 py-5 text-center text-emerald-deep shadow-gold animate-glow-pulse">
-                <CircuitBoard className="mx-auto h-7 w-7" />
-                <div className="mt-2 font-display text-lg">ESP32 Master</div>
-                <div className="text-[11px] font-medium uppercase tracking-wider opacity-80">পাম্প হাউস</div>
-                <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-deep/90 px-2.5 py-0.5 text-[10px] text-gold-soft">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-soft" /> ONLINE
+            <div className="rounded-3xl p-[2px] bg-gradient-to-br from-amber-400 via-emerald-400 to-sky-500 shadow-2xl shadow-emerald-500/20">
+              <div className="rounded-[22px] bg-white/95 backdrop-blur p-6 sm:p-8 relative overflow-hidden">
+                <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-amber-300/40 blur-2xl" />
+                <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-emerald-300/40 blur-2xl" />
+                <div className="space-y-4 relative">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 grid place-items-center shadow"><Cpu className="h-5 w-5 text-white" /></div>
+                      <div className="min-w-0"><p className="font-bold text-sm truncate">ESP32 Master</p><p className="text-[10px] text-muted-foreground truncate">পাম্প হাউস</p></div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-md shrink-0">ONLINE</span>
+                  </div>
+                  <div className="pl-6 border-l-2 border-dashed border-emerald-400/60 space-y-2">
+                    {[
+                      { n: "Sub-Node ১ · ধান জোন", c: "from-emerald-400 to-teal-500" },
+                      { n: "Sub-Node ২ · গম জোন", c: "from-amber-400 to-yellow-500" },
+                      { n: "Sub-Node ৩ · সবজি জোন", c: "from-rose-400 to-pink-500" },
+                    ].map((n) => (
+                      <div key={n.n} className="flex items-center justify-between p-2.5 rounded-lg bg-white border border-border/60 shadow-sm">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className={`h-6 w-6 shrink-0 rounded-md bg-gradient-to-br ${n.c} grid place-items-center`}><Zap className="h-3 w-3 text-white" /></span>
+                          <span className="text-xs font-semibold truncate">{n.n}</span>
+                        </div>
+                        <span className="text-[10px] text-emerald-600 font-bold shrink-0">● LIVE</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-              {/* Connection lines */}
-              <svg className="my-2 h-12 w-full" viewBox="0 0 300 50" preserveAspectRatio="none">
-                <path d="M150 0 L60 50 M150 0 L150 50 M150 0 L240 50" className="flow-line" stroke="oklch(0.76 0.14 86)" strokeWidth="1.5" fill="none" />
-              </svg>
-
-              <div className="grid grid-cols-3 gap-2">
-                {["ধান জোন", "গম জোন", "সবজি জোন"].map((zone, i) => (
-                  <div key={zone} className="rounded-xl border border-gold/20 bg-white/5 p-3 text-center">
-                    <Wifi className="mx-auto h-4 w-4 text-gold-soft" />
-                    <div className="mt-1.5 text-[11px] font-semibold text-white">Sub-Node {["১", "২", "৩"][i]}</div>
-                    <div className="text-[10px] text-white/60">{zone}</div>
-                    <div className="mt-1.5 inline-flex items-center gap-1 text-[9px] text-gold-soft">
-                      <span className="h-1 w-1 animate-pulse rounded-full bg-gold-soft" /> LIVE
-                    </div>
-                  </div>
+      {/* Testimonial / About */}
+      <section id="about" className="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="rounded-3xl p-[2px] bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 shadow-2xl shadow-orange-500/20">
+          <div className="rounded-[22px] bg-gradient-to-br from-white via-amber-50/60 to-emerald-50/40 p-8 sm:p-12 text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-64 h-64 bg-amber-300/30 blur-3xl rounded-full -translate-x-1/2 -translate-y-1/2" />
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-300/30 blur-3xl rounded-full translate-x-1/2 translate-y-1/2" />
+            <div className="relative">
+              <div className="inline-flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />)}
+              </div>
+              <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্রকল্প সম্পর্কে</p>
+              <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+                বরেন্দ্র অঞ্চলে <span className="text-rainbow">পানির সুষম ব্যবহার</span>
+              </h2>
+              <p className="mt-5 text-muted-foreground text-sm sm:text-base leading-relaxed max-w-3xl mx-auto">
+                BMDA স্মার্ট সেচ প্ল্যাটফর্ম বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষের কৃষি অবকাঠামোকে আধুনিকীকরণের একটি উদ্যোগ।
+                এটি IoT, কৃত্রিম বুদ্ধিমত্তা ও স্যাটেলাইট ডেটা একত্রিত করে কৃষকদের জন্য জল সাশ্রয়, ফসলের উৎপাদন বৃদ্ধি ও পরিচালনার ব্যয় কমানোর সমাধান প্রদান করে।
+              </p>
+              <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+                {["Water-saving", "AI-driven", "Government-backed", "Made in BD"].map((t) => (
+                  <span key={t} className="inline-flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/80 border border-amber-300/60 text-xs font-bold text-amber-900 shadow-sm">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> {t}
+                  </span>
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------------------------- WORKFLOW ---------------------------- */
-function Workflow() {
-  const steps = [
-    { n: "০১", t: "হার্ডওয়্যার ইনস্টল", d: "ESP32 মাস্টার ও ESP8266 sub-node মাঠে স্থাপন করুন।", i: CircuitBoard },
-    { n: "০২", t: "সেন্সর সংযোগ", d: "মাটির আদ্রতা, LDR, flow ও pressure sensor যুক্ত করুন।", i: Wifi },
-    { n: "০৩", t: "AI পরামর্শ গ্রহণ", d: "Dashboard থেকে বাংলায় বুদ্ধিমান সেচ-সিদ্ধান্ত পান।", i: Sparkles },
-  ];
-  return (
-    <section id="how" className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
-      <SectionHeader
-        eyebrow="৩ ধাপে শুরু"
-        title={<>কীভাবে <span className="text-gradient-prestige italic">কাজ করে?</span></>}
-        subtitle="ইনস্টল থেকে ইনসাইট — মাত্র তিনটি ধাপে আপনার মাঠ স্মার্ট হয়ে উঠবে।"
-      />
-      <div className="mt-14 grid gap-5 md:grid-cols-3">
-        {steps.map(({ n, t, d, i: Icon }, idx) => (
-          <article key={n} className="group relative overflow-hidden rounded-3xl border border-border/60 bg-card p-7 shadow-elegant hover-lift">
-            <div className="absolute -right-4 -top-4 font-display text-[7rem] leading-none text-primary/[0.06] select-none">{n}</div>
-            <div className="relative">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-emerald-gold text-white shadow-gold">
-                <Icon className="h-5 w-5" />
+              <div className="mt-8">
+                <Link to="/auth" className="h-12 px-8 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-bold text-sm shadow-xl shadow-orange-500/40 hover:shadow-2xl hover:scale-[1.03] transition inline-flex items-center gap-2">
+                  এখনই Panel-এ প্রবেশ করুন <ArrowRight className="h-4 w-4" />
+                </Link>
               </div>
-              <div className="mt-5 text-xs font-semibold uppercase tracking-[0.22em] text-primary">Step {n}</div>
-              <h3 className="mt-1 font-display text-2xl text-foreground">{t}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{d}</p>
-              {idx < 2 && (
-                <div className="absolute right-2 top-7 hidden text-primary/30 md:block">
-                  <ArrowRight className="h-5 w-5" />
-                </div>
-              )}
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ---------------------------- CTA ---------------------------- */
-function CTA() {
-  return (
-    <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6">
-      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-emerald-gold p-10 text-white shadow-deep sm:p-14">
-        <div className="absolute inset-0 grid-bg-gold opacity-30" />
-        <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-gold/30 blur-3xl" />
-        <div className="absolute -left-16 -bottom-20 h-72 w-72 rounded-full bg-emerald-rich/40 blur-3xl" />
-        <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-gold-soft">প্রকল্প সম্পর্কে</span>
-            <h2 className="mt-3 font-display text-4xl leading-tight tracking-tight sm:text-5xl">
-              বরেন্দ্র অঞ্চলে পানির <span className="text-gradient-gold italic">সুষম ব্যবহার</span>
-            </h2>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/80">
-              BMDA স্মার্ট সেচ প্ল্যাটফর্ম বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষের কৃষি অবকাঠামোকে
-              আধুনিকীকরণের একটি উদ্যোগ। IoT, কৃত্রিম বুদ্ধিমত্তা ও স্যাটেলাইট ডেটা একত্রিত করে
-              কৃষকদের জন্য জল সাশ্রয়, ফসলের উৎপাদন বৃদ্ধি ও পরিচালনার ব্যয় কমানোর সমাধান।
-            </p>
-            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs text-white/75">
-              <Badge>Water-saving</Badge>
-              <Badge>AI-driven</Badge>
-              <Badge>Government-backed</Badge>
-              <Badge>Made in BD</Badge>
             </div>
           </div>
-          <Link
-            to="/auth"
-            className="group inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-gradient-gold px-7 py-4 text-sm font-semibold text-emerald-deep shadow-gold transition-transform hover:scale-[1.04] lg:self-center"
-          >
-            এখনই Panel-এ প্রবেশ করুন
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
         </div>
-      </div>
-    </section>
-  );
-}
+      </section>
 
-/* ---------------------------- FOOTER ---------------------------- */
-function Footer() {
-  return (
-    <footer className="border-t border-border/60 bg-secondary/50">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-7 sm:flex-row sm:px-6">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Leaf className="h-3.5 w-3.5 text-primary" />
-          পরিবেশবান্ধব কৃষি · © ২০২৬ বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষ
+      <footer className="border-t border-border/50 py-8 text-center text-xs text-muted-foreground px-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+          <span className="inline-flex items-center gap-1.5"><Leaf className="h-3.5 w-3.5 text-emerald-600" /> পরিবেশবান্ধব কৃষি</span>
+          <span className="hidden sm:inline">·</span>
+          <span>© {new Date().getFullYear()} বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষ · BMDA স্মার্ট সেচ প্ল্যাটফর্ম</span>
         </div>
-        <div className="text-xs text-muted-foreground">BMDA স্মার্ট সেচ প্ল্যাটফর্ম</div>
-      </div>
-    </footer>
-  );
-}
-
-/* ---------------------------- HELPERS ---------------------------- */
-function SectionHeader({
-  eyebrow, title, subtitle,
-}: { eyebrow: string; title: React.ReactNode; subtitle: string }) {
-  return (
-    <div className="mx-auto max-w-2xl text-center">
-      <span className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">{eyebrow}</span>
-      <h2 className="mt-3 font-display text-4xl tracking-tight text-foreground sm:text-5xl">{title}</h2>
-      <p className="mt-4 text-base text-muted-foreground">{subtitle}</p>
+      </footer>
     </div>
   );
 }
