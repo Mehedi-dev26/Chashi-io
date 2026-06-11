@@ -135,14 +135,18 @@ function Landing() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {features.map((f) => (
-            <div key={f.title} className="group relative rounded-2xl p-[1.5px] bg-gradient-to-br hover:-translate-y-1 transition-transform duration-300">
-              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${f.tint} opacity-80 group-hover:opacity-100 transition`} />
-              <div className="relative rounded-[15px] bg-white/95 backdrop-blur p-5 sm:p-6 h-full">
-                <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${f.tint} grid place-items-center shadow-lg mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform`}>
-                  <f.icon className="h-6 w-6 text-white" />
+            <div
+              key={f.title}
+              className={`group relative overflow-hidden rounded-2xl p-6 sm:p-7 text-white bg-gradient-to-br ${f.tint} shadow-xl hover:-translate-y-1.5 hover:shadow-2xl transition-all duration-300`}
+            >
+              <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/20 blur-2xl group-hover:scale-125 transition-transform duration-500" />
+              <div className="absolute -bottom-12 -left-12 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+              <div className="relative">
+                <div className="h-12 w-12 rounded-xl bg-white/25 backdrop-blur grid place-items-center shadow-lg mb-5 group-hover:scale-110 group-hover:rotate-6 transition-transform">
+                  <f.icon className="h-6 w-6 text-white drop-shadow" />
                 </div>
-                <h3 className="text-lg font-bold tracking-tight">{f.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{f.desc}</p>
+                <h3 className="font-bangla text-xl font-bold tracking-tight text-white">{f.title}</h3>
+                <p className="text-sm text-white/90 mt-2 leading-relaxed">{f.desc}</p>
               </div>
             </div>
           ))}
