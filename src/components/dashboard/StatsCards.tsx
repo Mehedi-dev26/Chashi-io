@@ -9,15 +9,20 @@ export function StatsCards({ zones, motor }: { zones: FieldZone[]; motor: MotorS
   const avgMoisture = zones.reduce((s, z) => s + z.soilMoisture, 0) / zones.length;
   const kw = (motor.voltage * motor.current) / 1000;
 
+  // Only three palettes used across all cards — pressure (amber), electricity (violet), moisture (lime)
+  const P_AMBER  = { grad: "from-orange-500 via-amber-500 to-yellow-500",   ring: "ring-amber-300/40" };
+  const P_VIOLET = { grad: "from-violet-500 via-fuchsia-500 to-pink-500",   ring: "ring-violet-300/40" };
+  const P_LIME   = { grad: "from-lime-500 via-green-500 to-emerald-500",    ring: "ring-lime-300/40" };
+
   const items = [
-    { label: "মোট জমি",         value: bn(totalArea.toFixed(1)),               unit: "একর",        icon: Sprout,    ratio: 0.78,                       trend: 4.2,  up: true,  grad: "from-emerald-500 via-teal-500 to-cyan-500",     ring: "ring-emerald-300/40" },
-    { label: "সক্রিয় ভাল্ভ",     value: bn(irrigating),                          unit: `/ ${bn(zones.length)} জোন`, icon: Droplets,  ratio: irrigating / zones.length,  trend: 12,   up: true,  grad: "from-sky-500 via-blue-500 to-indigo-500",       ring: "ring-sky-300/40" },
-    { label: "পাম্পের চাপ",      value: bn(motor.pressure),                      unit: "PSI",         icon: Gauge,     ratio: motor.pressure / 60,        trend: 2.1,  up: false, grad: "from-orange-500 via-amber-500 to-yellow-500",   ring: "ring-amber-300/40" },
-    { label: "বিদ্যুৎ ব্যবহার",   value: bn(kw.toFixed(1)),                       unit: "কিলোওয়াট",   icon: Zap,       ratio: 0.65,                       trend: 8.4,  up: false, grad: "from-violet-500 via-fuchsia-500 to-pink-500",   ring: "ring-violet-300/40" },
-    { label: "প্রবাহ হার",        value: bn(Math.round(motor.flowRate)),         unit: "লিটার/মিনিট", icon: Activity,  ratio: motor.flowRate / 1500,      trend: 5.6,  up: true,  grad: "from-cyan-500 via-sky-500 to-blue-500",         ring: "ring-cyan-300/40" },
-    { label: "গড় মাটির আর্দ্রতা", value: `${bn(avgMoisture.toFixed(0))}%`,        unit: "rh",          icon: CloudRain, ratio: avgMoisture / 100,          trend: 3.8,  up: true,  grad: "from-lime-500 via-green-500 to-emerald-500",    ring: "ring-lime-300/40" },
-    { label: "নেটওয়ার্ক স্বাস্থ্য", value: `${bn(motor.health)}%`,                unit: "অনলাইন",      icon: Wifi,      ratio: motor.health / 100,         trend: 0.4,  up: true,  grad: "from-teal-500 via-emerald-500 to-green-500",    ring: "ring-teal-300/40" },
-    { label: "AI স্বয়ংক্রিয়তা",  value: bn(92),                                  unit: "% সিদ্ধান্ত", icon: Brain,     ratio: 0.92,                       trend: 6.7,  up: true,  grad: "from-indigo-500 via-violet-500 to-fuchsia-500", ring: "ring-indigo-300/40" },
+    { label: "মোট জমি",          value: bn(totalArea.toFixed(1)),               unit: "একর",         icon: Sprout,    ratio: 0.78,                      trend: 4.2,  up: true,  ...P_LIME },
+    { label: "সক্রিয় ভাল্ভ",      value: bn(irrigating),                          unit: `/ ${bn(zones.length)} জোন`, icon: Droplets,  ratio: irrigating / zones.length, trend: 12,   up: true,  ...P_VIOLET },
+    { label: "পাম্পের চাপ",       value: bn(motor.pressure),                      unit: "PSI",          icon: Gauge,     ratio: motor.pressure / 60,       trend: 2.1,  up: false, ...P_AMBER },
+    { label: "বিদ্যুৎ ব্যবহার",    value: bn(kw.toFixed(1)),                       unit: "কিলোওয়াট",    icon: Zap,       ratio: 0.65,                      trend: 8.4,  up: false, ...P_VIOLET },
+    { label: "প্রবাহ হার",         value: bn(Math.round(motor.flowRate)),         unit: "লিটার/মিনিট",  icon: Activity,  ratio: motor.flowRate / 1500,     trend: 5.6,  up: true,  ...P_AMBER },
+    { label: "গড় মাটির আর্দ্রতা",  value: `${bn(avgMoisture.toFixed(0))}%`,        unit: "rh",           icon: CloudRain, ratio: avgMoisture / 100,         trend: 3.8,  up: true,  ...P_LIME },
+    { label: "নেটওয়ার্ক স্বাস্থ্য", value: `${bn(motor.health)}%`,                unit: "অনলাইন",       icon: Wifi,      ratio: motor.health / 100,        trend: 0.4,  up: true,  ...P_LIME },
+    { label: "AI স্বয়ংক্রিয়তা",   value: bn(92),                                  unit: "% সিদ্ধান্ত",  icon: Brain,     ratio: 0.92,                      trend: 6.7,  up: true,  ...P_VIOLET },
   ];
 
   return (

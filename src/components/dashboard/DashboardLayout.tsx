@@ -44,19 +44,15 @@ export function DashboardLayout({
           <main className="flex-1 px-4 sm:px-6 py-6 space-y-5 animate-fade-in min-w-0">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:gap-4 animate-slide-down">
               <div className="min-w-0">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight break-words">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight break-words text-foreground">
                   {title.includes("·") ? (
                     <>
-                      <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-300 dark:via-teal-300 dark:to-cyan-300 bg-clip-text text-transparent drop-shadow-sm">
-                        {title.split("·")[0].trim()}
-                      </span>
+                      <span>{title.split("·")[0].trim()}</span>
                       <span className="mx-2 text-muted-foreground/40 font-light">·</span>
-                      <span className="bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 dark:from-indigo-300 dark:via-violet-300 dark:to-fuchsia-300 bg-clip-text text-transparent drop-shadow-sm">
-                        {title.split("·").slice(1).join("·").trim()}
-                      </span>
+                      <span className="text-muted-foreground">{title.split("·").slice(1).join("·").trim()}</span>
                     </>
                   ) : (
-                    <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-300 dark:via-teal-300 dark:to-cyan-300 bg-clip-text text-transparent">{title}</span>
+                    <span>{title}</span>
                   )}
                 </h1>
                 {subtitle && <p className="text-xs sm:text-sm text-muted-foreground mt-2 font-medium break-words">{subtitle}</p>}
