@@ -83,9 +83,9 @@ function Landing() {
             <Sun className="h-3.5 w-3.5 text-amber-600" />
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-display font-normal tracking-tight leading-[1.05] max-w-5xl mx-auto">
-            <span className="text-foreground">বুদ্ধিমান সেচ,</span><br />
-            <span className="text-rainbow">সমৃদ্ধ কৃষক।</span>
+          <h1 className="font-bangla text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] max-w-5xl mx-auto">
+            <span className="text-foreground">বরেন্দ্র স্মার্ট ইরিগেশন</span><br />
+            <span className="text-rainbow">IoT-চালিত কৃষি বিপ্লব।</span>
           </h1>
           <p className="mt-5 sm:mt-6 text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2">
             ESP32/ESP8266-চালিত IoT সেন্সর নেটওয়ার্ক, AI সিদ্ধান্ত-সহায়তা ও স্যাটেলাইট বিশ্লেষণ —
@@ -111,12 +111,11 @@ function Landing() {
           {/* Stats */}
           <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
             {stats.map((s) => (
-              <div key={s.u} className="relative rounded-2xl p-[1.5px] bg-gradient-to-br hover:scale-[1.03] transition" style={{ backgroundImage: `linear-gradient(135deg, var(--tw-gradient-stops))` }}>
-                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${s.c} opacity-90`} />
-                <div className="relative rounded-[14px] bg-white/95 backdrop-blur p-4 sm:p-5 text-center">
-                  <p className={`text-3xl sm:text-4xl font-black tabular-nums bg-gradient-to-br ${s.c} bg-clip-text text-transparent`}>{s.v}</p>
-                  <p className="text-[11px] sm:text-xs text-muted-foreground font-semibold mt-1">{s.u}</p>
-                </div>
+              <div key={s.u} className={`relative overflow-hidden rounded-2xl p-5 sm:p-6 text-center bg-gradient-to-br ${s.c} shadow-xl hover:scale-[1.04] hover:-translate-y-1 transition-transform duration-300`}>
+                <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-white/25 blur-xl" />
+                <div className="absolute -bottom-8 -left-6 h-16 w-16 rounded-full bg-white/15 blur-lg" />
+                <p className="relative font-bangla text-3xl sm:text-4xl font-extrabold tabular-nums text-white drop-shadow">{s.v}</p>
+                <p className="relative font-bangla text-[11px] sm:text-xs text-white/95 font-semibold mt-1.5 uppercase tracking-wider">{s.u}</p>
               </div>
             ))}
           </div>
@@ -127,7 +126,7 @@ function Landing() {
       <section id="features" className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-10 sm:mb-14">
           <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্ল্যাটফর্মের বৈশিষ্ট্য</p>
-          <h2 className="text-3xl sm:text-5xl font-display font-normal tracking-tight">
+          <h2 className="text-3xl sm:text-5xl font-bangla font-extrabold tracking-tight">
             যা যা <span className="text-rainbow">প্রয়োজন</span>, একসাথে।
           </h2>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto text-sm sm:text-base">
@@ -136,14 +135,18 @@ function Landing() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {features.map((f) => (
-            <div key={f.title} className="group relative rounded-2xl p-[1.5px] bg-gradient-to-br hover:-translate-y-1 transition-transform duration-300">
-              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${f.tint} opacity-80 group-hover:opacity-100 transition`} />
-              <div className="relative rounded-[15px] bg-white/95 backdrop-blur p-5 sm:p-6 h-full">
-                <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${f.tint} grid place-items-center shadow-lg mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform`}>
-                  <f.icon className="h-6 w-6 text-white" />
+            <div
+              key={f.title}
+              className={`group relative overflow-hidden rounded-2xl p-6 sm:p-7 text-white bg-gradient-to-br ${f.tint} shadow-xl hover:-translate-y-1.5 hover:shadow-2xl transition-all duration-300`}
+            >
+              <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/20 blur-2xl group-hover:scale-125 transition-transform duration-500" />
+              <div className="absolute -bottom-12 -left-12 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+              <div className="relative">
+                <div className="h-12 w-12 rounded-xl bg-white/25 backdrop-blur grid place-items-center shadow-lg mb-5 group-hover:scale-110 group-hover:rotate-6 transition-transform">
+                  <f.icon className="h-6 w-6 text-white drop-shadow" />
                 </div>
-                <h3 className="text-lg font-bold tracking-tight">{f.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{f.desc}</p>
+                <h3 className="font-bangla text-xl font-bold tracking-tight text-white">{f.title}</h3>
+                <p className="text-sm text-white/90 mt-2 leading-relaxed">{f.desc}</p>
               </div>
             </div>
           ))}
@@ -155,7 +158,7 @@ function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10 sm:mb-14">
             <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">৩ ধাপে শুরু</p>
-            <h2 className="text-3xl sm:text-5xl font-display font-normal tracking-tight">
+            <h2 className="text-3xl sm:text-5xl font-bangla font-extrabold tracking-tight">
               কীভাবে <span className="text-rainbow">কাজ করে</span>?
             </h2>
           </div>
@@ -181,7 +184,7 @@ function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্রযুক্তি স্ট্যাক</p>
-            <h2 className="text-3xl sm:text-5xl font-display font-normal tracking-tight leading-tight">
+            <h2 className="text-3xl sm:text-5xl font-bangla font-extrabold tracking-tight leading-tight">
               Master–Slave <span className="text-rainbow">IoT আর্কিটেকচার</span>
             </h2>
             <p className="mt-4 text-muted-foreground leading-relaxed">
@@ -249,7 +252,7 @@ function Landing() {
                 {[...Array(5)].map((_, i) => <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />)}
               </div>
               <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্রকল্প সম্পর্কে</p>
-              <h2 className="text-3xl sm:text-5xl font-display font-normal tracking-tight leading-tight">
+              <h2 className="text-3xl sm:text-5xl font-bangla font-extrabold tracking-tight leading-tight">
                 বরেন্দ্র অঞ্চলে <span className="text-rainbow">পানির সুষম ব্যবহার</span>
               </h2>
               <p className="mt-5 text-muted-foreground text-sm sm:text-base leading-relaxed max-w-3xl mx-auto">
