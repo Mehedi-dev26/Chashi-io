@@ -20,6 +20,8 @@ import { Route as GpsRouteImport } from './routes/gps'
 import { Route as ForecastRouteImport } from './routes/forecast'
 import { Route as DevicesRouteImport } from './routes/devices'
 import { Route as BillingRouteImport } from './routes/billing'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AiRouteImport } from './routes/ai'
@@ -82,6 +84,16 @@ const BillingRoute = BillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -118,6 +130,8 @@ export interface FileRoutesByFullPath {
   '/ai': typeof AiRoute
   '/alerts': typeof AlertsRoute
   '/analytics': typeof AnalyticsRoute
+  '/app': typeof AppRoute
+  '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/devices': typeof DevicesRoute
   '/forecast': typeof ForecastRoute
@@ -137,6 +151,8 @@ export interface FileRoutesByTo {
   '/ai': typeof AiRoute
   '/alerts': typeof AlertsRoute
   '/analytics': typeof AnalyticsRoute
+  '/app': typeof AppRoute
+  '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/devices': typeof DevicesRoute
   '/forecast': typeof ForecastRoute
@@ -157,6 +173,8 @@ export interface FileRoutesById {
   '/ai': typeof AiRoute
   '/alerts': typeof AlertsRoute
   '/analytics': typeof AnalyticsRoute
+  '/app': typeof AppRoute
+  '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/devices': typeof DevicesRoute
   '/forecast': typeof ForecastRoute
@@ -178,6 +196,8 @@ export interface FileRouteTypes {
     | '/ai'
     | '/alerts'
     | '/analytics'
+    | '/app'
+    | '/auth'
     | '/billing'
     | '/devices'
     | '/forecast'
@@ -197,6 +217,8 @@ export interface FileRouteTypes {
     | '/ai'
     | '/alerts'
     | '/analytics'
+    | '/app'
+    | '/auth'
     | '/billing'
     | '/devices'
     | '/forecast'
@@ -216,6 +238,8 @@ export interface FileRouteTypes {
     | '/ai'
     | '/alerts'
     | '/analytics'
+    | '/app'
+    | '/auth'
     | '/billing'
     | '/devices'
     | '/forecast'
@@ -236,6 +260,8 @@ export interface RootRouteChildren {
   AiRoute: typeof AiRoute
   AlertsRoute: typeof AlertsRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  AppRoute: typeof AppRoute
+  AuthRoute: typeof AuthRoute
   BillingRoute: typeof BillingRoute
   DevicesRoute: typeof DevicesRoute
   ForecastRoute: typeof ForecastRoute
@@ -330,6 +356,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BillingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analytics': {
       id: '/analytics'
       path: '/analytics'
@@ -380,6 +420,8 @@ const rootRouteChildren: RootRouteChildren = {
   AiRoute: AiRoute,
   AlertsRoute: AlertsRoute,
   AnalyticsRoute: AnalyticsRoute,
+  AppRoute: AppRoute,
+  AuthRoute: AuthRoute,
   BillingRoute: BillingRoute,
   DevicesRoute: DevicesRoute,
   ForecastRoute: ForecastRoute,
