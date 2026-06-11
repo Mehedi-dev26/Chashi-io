@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, Map, Droplets, Gauge, Sparkles, BarChart3, Bell,
   Settings, Cpu, LogOut, History, Receipt, Network, Satellite, Brain, MapPin, CircuitBoard,
@@ -7,9 +7,11 @@ import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarHeader, SidebarFooter, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const mainItems = [
-  { title: "ড্যাশবোর্ড", url: "/", icon: LayoutDashboard },
+  { title: "ড্যাশবোর্ড", url: "/app", icon: LayoutDashboard },
   { title: "জমির মানচিত্র", url: "/map", icon: Map },
   { title: "GPS স্যাটেলাইট", url: "/gps", icon: MapPin },
   { title: "সেচ জোন", url: "/zones", icon: Droplets },
@@ -33,6 +35,16 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (path: string) => currentPath === path;
+  const { profile, user, roles, signOut } = useAuth();
+  const navigate = useNavigate();
+  const initials = (profile?.display_name || user?.email || "অ").slice(0, 2).toUpperCase();
+  const roleLabel = roles.includes("admin") ? "অ্যাডমিন" : roles.includes("operator") ? "অপারেটর" : "ভিউয়ার";
+
+  const handleLogout = async () => {
+    await signOut();
+    toast.success("সফলভাবে লগ আউট হয়েছেন");
+    navigate({ to: "/" });
+  };
 
   // Frosted-glass active state (no solid colour fill)
   const itemCls =
@@ -126,8 +138,9 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
+              onClick={handleLogout}
               tooltip="লগ আউট"
-              className="text-sidebar-foreground hover:bg-destructive/30 hover:text-sidebar-foreground"
+              className="text-sidebar-foreground hover:bg-destructive/30 hover:text-sidebar-foreground cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
               <span>লগ আউট</span>
@@ -135,8 +148,14 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
         {!collapsed && (
-          <div className="px-2 pb-1 pt-2 text-[10px] text-sidebar-foreground/60 animate-fade-in">
-            অপারেটর · মোঃ রহমান
+          <div className="flex items-center gap-2 px-2 pb-1 pt-2.5 animate-fade-in">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sidebar-primary to-chart-2 grid place-items-center text-[10px] font-bold text-sidebar-primary-foreground shrink-0">
+              {initials}
+            </div>
+            <div className="leading-tight min-w-0">
+              <p className="text-[11px] font-bold text-sidebar-foreground truncate">{profile?.display_name || user?.email?.split("@")[0]}</p>
+              <p className="text-[9px] text-sidebar-foreground/60 truncate">{roleLabel} · {user?.email}</p>
+            </div>
           </div>
         )}
       </SidebarFooter>

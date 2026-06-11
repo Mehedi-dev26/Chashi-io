@@ -6,7 +6,7 @@ import { useRouterState, Link } from "@tanstack/react-router";
 const bnDigits = (s: string) => s.replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
 const ROUTE_LABEL: Record<string, string> = {
-  "/": "ড্যাশবোর্ড",
+  "/app": "ড্যাশবোর্ড",
   "/map": "জমির মানচিত্র",
   "/gps": "GPS স্যাটেলাইট",
   "/zones": "সেচ জোন",
@@ -49,7 +49,7 @@ export function TopBar() {
 
         {/* Breadcrumb */}
         <nav className="hidden sm:flex items-center gap-1.5 text-xs min-w-0">
-          <Link to="/" className="text-muted-foreground hover:text-foreground transition font-medium">BMDA</Link>
+          <Link to="/app" className="text-muted-foreground hover:text-foreground transition font-medium">BMDA</Link>
           <ChevronRight className="h-3 w-3 text-muted-foreground/50 shrink-0" />
           <span className="font-semibold text-foreground truncate">{label}</span>
         </nav>
