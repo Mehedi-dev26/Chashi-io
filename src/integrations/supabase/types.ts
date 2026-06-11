@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      gps_assets: {
+        Row: {
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["gps_asset_kind"]
+          label: string
+          lat: number
+          lng: number
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["gps_asset_kind"]
+          label: string
+          lat: number
+          lng: number
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["gps_asset_kind"]
+          label?: string
+          lat?: number
+          lng?: number
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -77,6 +113,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "operator" | "viewer"
+      gps_asset_kind: "field" | "valve" | "motor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -205,6 +242,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "operator", "viewer"],
+      gps_asset_kind: ["field", "valve", "motor"],
     },
   },
 } as const
