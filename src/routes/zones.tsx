@@ -35,16 +35,20 @@ function ZonesPage() {
       <div className="stagger space-y-5">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: "মোট জোন", value: bn(zones.length), tone: "primary" },
-            { label: "সেচ চলছে", value: bn(irrigating), tone: "chart-2" },
-            { label: "সতর্কতা", value: bn(alerts), tone: "destructive" },
-            { label: "গড় আর্দ্রতা", value: `${bn(avgMoisture.toFixed(0))}%`, tone: "accent" },
+            { label: "মোট জোন",    value: bn(zones.length), grad: "from-emerald-500 via-teal-500 to-cyan-500",   ring: "ring-emerald-300/40",  pct: 100 },
+            { label: "সেচ চলছে",   value: bn(irrigating),   grad: "from-sky-500 via-blue-500 to-indigo-500",       ring: "ring-sky-300/40",       pct: (irrigating / zones.length) * 100 },
+            { label: "সতর্কতা",     value: bn(alerts),       grad: "from-rose-500 via-red-500 to-orange-500",       ring: "ring-rose-300/40",      pct: (alerts / zones.length) * 100 },
+            { label: "গড় আর্দ্রতা", value: `${bn(avgMoisture.toFixed(0))}%`, grad: "from-amber-500 via-yellow-500 to-lime-500", ring: "ring-amber-300/40", pct: avgMoisture },
           ].map((s) => (
-            <div key={s.label} className="glass-card rounded-2xl p-4 hover-lift">
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</p>
-              <p className="text-3xl font-bold mt-2" style={{ color: `var(--color-${s.tone})` }}>{s.value}</p>
-              <div className="mt-2 h-1 rounded-full overflow-hidden bg-muted">
-                <div className="h-full" style={{ width: "70%", background: `var(--color-${s.tone})` }} />
+            <div
+              key={s.label}
+              className={`relative overflow-hidden rounded-2xl p-4 text-white bg-gradient-to-br ${s.grad} shadow-lg ring-1 ${s.ring} hover-lift border-2 border-white/20`}
+            >
+              <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-white/15 blur-2xl" />
+              <p className="text-[11px] uppercase tracking-wider font-bold drop-shadow">{s.label}</p>
+              <p className="text-3xl font-extrabold mt-2 drop-shadow">{s.value}</p>
+              <div className="mt-3 h-1.5 rounded-full overflow-hidden bg-black/20">
+                <div className="h-full bg-white/90 rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(6, s.pct))}%` }} />
               </div>
             </div>
           ))}

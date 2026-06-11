@@ -367,21 +367,27 @@ function HardwarePage() {
         {/* Quick stats */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { icon: Server,      label: "মাস্টার নোড",   value: bn(1) },
-            { icon: Radio,       label: "সাব-নোড (যেকোনো)", value: `${bn(1)}–${bn(50)}+` },
-            { icon: Wifi,        label: "প্রোটোকল",      value: "WiFi · HTTP" },
-            { icon: Zap,         label: "প্রতি সাব খরচ", value: subTotalPerNode },
+            { icon: Server, label: "মাস্টার নোড",       value: bn(1),               grad: "from-indigo-500 via-violet-500 to-fuchsia-500" },
+            { icon: Radio,  label: "সাব-নোড (যেকোনো)", value: `${bn(1)}–${bn(50)}+`, grad: "from-emerald-500 via-teal-500 to-cyan-500" },
+            { icon: Wifi,   label: "প্রোটোকল",          value: "WiFi · HTTP",        grad: "from-sky-500 via-blue-500 to-indigo-500" },
+            { icon: Zap,    label: "প্রতি সাব খরচ",     value: subTotalPerNode,      grad: "from-amber-500 via-orange-500 to-rose-500" },
           ].map((s) => (
-            <div key={s.label} className="glass-card rounded-2xl p-5 hover-lift">
-              <s.icon className="h-5 w-5 text-primary" />
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-2 font-bold">{s.label}</p>
-              <p className="text-lg font-extrabold mt-1">{s.value}</p>
+            <div
+              key={s.label}
+              className={`relative overflow-hidden rounded-2xl p-5 text-white bg-gradient-to-br ${s.grad} shadow-lg ring-1 ring-white/25 border-2 border-white/15 hover-lift`}
+            >
+              <div className="absolute -top-10 -right-10 h-28 w-28 rounded-full bg-white/15 blur-2xl" />
+              <div className="h-9 w-9 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm">
+                <s.icon className="h-5 w-5 drop-shadow" />
+              </div>
+              <p className="text-[11px] uppercase tracking-wider mt-3 font-bold opacity-95">{s.label}</p>
+              <p className="text-lg font-extrabold mt-1 drop-shadow">{s.value}</p>
             </div>
           ))}
         </div>
 
         {/* MASTER section */}
-        <div className="glass-card rounded-2xl p-5 border-l-4 border-primary">
+        <div className="glass-card rounded-2xl p-5 border-2 border-indigo-400/40 shadow-md shadow-indigo-500/10 ring-1 ring-indigo-300/20">
           <div className="flex items-center gap-2 mb-1">
             <Server className="h-5 w-5 text-primary" />
             <h2 className="text-base font-extrabold">১. মাস্টার নোড — কম্পোনেন্ট তালিকা</h2>
@@ -439,7 +445,7 @@ function HardwarePage() {
         </div>
 
         {/* SUB section */}
-        <div className="glass-card rounded-2xl p-5 border-l-4 border-chart-2">
+        <div className="glass-card rounded-2xl p-5 border-2 border-emerald-400/40 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-300/20">
           <div className="flex items-center gap-2 mb-1">
             <Radio className="h-5 w-5 text-chart-2" />
             <h2 className="text-base font-extrabold">২. সাব-নোড — কম্পোনেন্ট তালিকা (প্রতি জোন)</h2>
