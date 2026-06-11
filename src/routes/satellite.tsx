@@ -54,21 +54,24 @@ function SatPage() {
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "গড় NDVI", val: avgNdvi, sub: +avgNdvi > 0.6 ? "চমৎকার" : "মাঝারি", icon: Leaf, color: "from-success to-chart-4" },
-          { label: "সর্বাধিক", val: Math.max(...ndvi.map(z => z.ndvi)).toFixed(2), sub: ndvi.reduce((a, b) => a.ndvi > b.ndvi ? a : b).id, icon: Leaf, color: "from-chart-1 to-chart-2" },
-          { label: "সর্বনিম্ন (সমস্যা)", val: Math.min(...ndvi.map(z => z.ndvi)).toFixed(2), sub: ndvi.reduce((a, b) => a.ndvi < b.ndvi ? a : b).id, icon: Leaf, color: "from-warning to-destructive" },
-          { label: "সর্বশেষ Pass", val: "২ দিন", sub: "Sentinel-2A", icon: Satellite, color: "from-primary to-chart-3" },
+          { label: "গড় NDVI",          val: avgNdvi,                                                          sub: +avgNdvi > 0.6 ? "চমৎকার" : "মাঝারি",                                  icon: Leaf,      color: "from-emerald-500 via-teal-500 to-cyan-500",     ring: "ring-emerald-300/40" },
+          { label: "সর্বাধিক",          val: Math.max(...ndvi.map(z => z.ndvi)).toFixed(2),                   sub: ndvi.reduce((a, b) => a.ndvi > b.ndvi ? a : b).id,                     icon: Leaf,      color: "from-lime-500 via-green-500 to-emerald-500",    ring: "ring-lime-300/40" },
+          { label: "সর্বনিম্ন (সমস্যা)", val: Math.min(...ndvi.map(z => z.ndvi)).toFixed(2),                   sub: ndvi.reduce((a, b) => a.ndvi < b.ndvi ? a : b).id,                     icon: Leaf,      color: "from-amber-500 via-orange-500 to-rose-500",     ring: "ring-amber-300/40" },
+          { label: "সর্বশেষ Pass",      val: "২ দিন",                                                          sub: "Sentinel-2A",                                                          icon: Satellite, color: "from-indigo-500 via-violet-500 to-fuchsia-500", ring: "ring-indigo-300/40" },
         ].map((s, i) => (
-          <Card key={i} className="overflow-hidden animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
-            <CardContent className="p-0">
-              <div className={`bg-gradient-to-br ${s.color} p-4 text-white`}>
-                <s.icon className="h-5 w-5 opacity-80"/>
-                <p className="text-[11px] opacity-90 mt-1.5">{s.label}</p>
-                <p className="text-2xl font-bold">{s.val}</p>
-                <p className="text-[10px] opacity-80">{s.sub}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div
+            key={i}
+            className={`relative overflow-hidden rounded-2xl p-4 text-white bg-gradient-to-br ${s.color} shadow-lg ring-1 ${s.ring} border-2 border-white/20 animate-fade-in hover-lift`}
+            style={{ animationDelay: `${i * 60}ms` }}
+          >
+            <div className="absolute -top-10 -right-10 h-28 w-28 rounded-full bg-white/15 blur-2xl" />
+            <div className="h-9 w-9 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm">
+              <s.icon className="h-5 w-5 drop-shadow" />
+            </div>
+            <p className="text-[11px] uppercase tracking-wider font-bold mt-2 opacity-95">{s.label}</p>
+            <p className="text-3xl font-extrabold mt-1 drop-shadow">{s.val}</p>
+            <p className="text-[10px] opacity-90 mt-0.5">{s.sub}</p>
+          </div>
         ))}
       </div>
 
