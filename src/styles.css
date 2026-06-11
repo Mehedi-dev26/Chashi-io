@@ -53,8 +53,9 @@
   --color-gold-soft: var(--gold-soft);
   --color-cream: var(--cream);
 
-  --font-display: "DM Serif Display", "Hind Siliguri", Georgia, serif;
-  --font-sans: "Fira Sans", "Hind Siliguri", system-ui, sans-serif;
+  --font-display: "Noto Serif Bengali", "Hind Siliguri", Georgia, serif;
+  --font-bangla: "Baloo Da 2", "Hind Siliguri", system-ui, sans-serif;
+  --font-sans: "Hind Siliguri", "Fira Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   --animate-fade-in: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
