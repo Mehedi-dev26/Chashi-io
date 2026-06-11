@@ -41,23 +41,27 @@ export function DashboardLayout({
         <AppSidebar />
         <SidebarInset className="flex-1 flex flex-col min-w-0 bg-transparent">
           <TopBar />
-          <main className="flex-1 px-4 sm:px-6 py-6 space-y-5 animate-fade-in">
-            <div className="flex items-start justify-between gap-4 flex-wrap animate-slide-down">
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
+          <main className="flex-1 px-4 sm:px-6 py-6 space-y-5 animate-fade-in min-w-0">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:gap-4 animate-slide-down">
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight break-words">
                   {title.includes("·") ? (
                     <>
-                      <span className="text-foreground">{title.split("·")[0].trim()}</span>
+                      <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-300 dark:via-teal-300 dark:to-cyan-300 bg-clip-text text-transparent drop-shadow-sm">
+                        {title.split("·")[0].trim()}
+                      </span>
                       <span className="mx-2 text-muted-foreground/40 font-light">·</span>
-                      <span className="text-gradient">{title.split("·").slice(1).join("·").trim()}</span>
+                      <span className="bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 dark:from-indigo-300 dark:via-violet-300 dark:to-fuchsia-300 bg-clip-text text-transparent drop-shadow-sm">
+                        {title.split("·").slice(1).join("·").trim()}
+                      </span>
                     </>
                   ) : (
-                    <span className="text-gradient">{title}</span>
+                    <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-300 dark:via-teal-300 dark:to-cyan-300 bg-clip-text text-transparent">{title}</span>
                   )}
                 </h1>
-                {subtitle && <p className="text-sm text-muted-foreground mt-2 font-medium">{subtitle}</p>}
+                {subtitle && <p className="text-xs sm:text-sm text-muted-foreground mt-2 font-medium break-words">{subtitle}</p>}
               </div>
-              {actions}
+              {actions && <div className="shrink-0">{actions}</div>}
             </div>
             <div className="space-y-5">{children}</div>
             <footer className="text-center text-[11px] text-muted-foreground py-6">
