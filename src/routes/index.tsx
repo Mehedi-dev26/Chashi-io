@@ -83,7 +83,7 @@ function Landing() {
             <Sun className="h-3.5 w-3.5 text-amber-600" />
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] max-w-5xl mx-auto">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-display font-normal tracking-tight leading-[1.05] max-w-5xl mx-auto">
             <span className="text-foreground">বুদ্ধিমান সেচ,</span><br />
             <span className="text-rainbow">সমৃদ্ধ কৃষক।</span>
           </h1>
@@ -127,7 +127,7 @@ function Landing() {
       <section id="features" className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-10 sm:mb-14">
           <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্ল্যাটফর্মের বৈশিষ্ট্য</p>
-          <h2 className="text-3xl sm:text-5xl font-black tracking-tight">
+          <h2 className="text-3xl sm:text-5xl font-display font-normal tracking-tight">
             যা যা <span className="text-rainbow">প্রয়োজন</span>, একসাথে।
           </h2>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto text-sm sm:text-base">
@@ -155,7 +155,7 @@ function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10 sm:mb-14">
             <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">৩ ধাপে শুরু</p>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight">
+            <h2 className="text-3xl sm:text-5xl font-display font-normal tracking-tight">
               কীভাবে <span className="text-rainbow">কাজ করে</span>?
             </h2>
           </div>
@@ -181,7 +181,7 @@ function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্রযুক্তি স্ট্যাক</p>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+            <h2 className="text-3xl sm:text-5xl font-display font-normal tracking-tight leading-tight">
               Master–Slave <span className="text-rainbow">IoT আর্কিটেকচার</span>
             </h2>
             <p className="mt-4 text-muted-foreground leading-relaxed">
@@ -249,7 +249,7 @@ function Landing() {
                 {[...Array(5)].map((_, i) => <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />)}
               </div>
               <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্রকল্প সম্পর্কে</p>
-              <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+              <h2 className="text-3xl sm:text-5xl font-display font-normal tracking-tight leading-tight">
                 বরেন্দ্র অঞ্চলে <span className="text-rainbow">পানির সুষম ব্যবহার</span>
               </h2>
               <p className="mt-5 text-muted-foreground text-sm sm:text-base leading-relaxed max-w-3xl mx-auto">
