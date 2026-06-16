@@ -558,33 +558,30 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { MapContainer, Marker, Polyline, Popup, CircleMarker, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 
+// High-resolution Google tile servers (subdomains mt0-mt3) — support z up to ~21
+// lyrs=s satellite only, lyrs=y hybrid (satellite + labels + roads), lyrs=m streets, lyrs=p terrain
+const GOOGLE_SUBS = ["mt0", "mt1", "mt2", "mt3"];
 const TILES = {
   satellite: {
-    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attr: 'Imagery © <a href="https://www.esri.com">Esri</a>',
-    maxNativeZoom: 17,
+    url: "https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+    attr: "Imagery © Google",
+    maxNativeZoom: 21,
+    subdomains: GOOGLE_SUBS,
   },
   street: {
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attr: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxNativeZoom: 19,
+    url: "https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
+    attr: "Map © Google",
+    maxNativeZoom: 21,
+    subdomains: GOOGLE_SUBS,
   },
   terrain: {
-    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-    attr: 'Map data: © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
-    maxNativeZoom: 17,
+    url: "https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}",
+    attr: "Terrain © Google",
+    maxNativeZoom: 20,
+    subdomains: GOOGLE_SUBS,
   },
-};
+} as const;
 
-// Place-name overlay for satellite view (roads, labels, boundaries)
-const SATELLITE_LABELS = {
-  url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-  attr: "Labels © Esri",
-};
-const SATELLITE_ROADS = {
-  url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
-  attr: "Transportation © Esri",
-};
 
 function makeIcon(kind: Kind) {
   const m = KIND_META[kind];
