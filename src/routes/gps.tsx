@@ -290,14 +290,24 @@ function GpsPage() {
                 layer={layer}
                 assets={shownAssets}
                 showLabels={showLabels}
-                onMapClick={(lat, lng) => { setPending({ lat, lng }); setLabel(""); setNotes(""); }}
+                onMapClick={handleMapClick}
                 onSelect={setSelected}
                 selected={selected}
                 flyTo={flyTo}
+                pipelines={pipelines}
+                drawPts={drawPts}
+                drawColor={drawColor}
+                drawMode={drawMode}
               />
             ) : (
               <div className="absolute inset-0 grid place-items-center text-muted-foreground text-sm gap-2">
                 <Loader2 className="h-5 w-5 animate-spin" /> মানচিত্র লোড হচ্ছে…
+              </div>
+            )}
+            {drawMode && (
+              <div className="absolute top-2 left-2 right-2 z-[400] rounded-lg px-3 py-2 bg-foreground/90 text-background text-xs font-semibold flex items-center gap-2 shadow-lg">
+                <Spline className="h-3.5 w-3.5" />
+                পাইপলাইন আঁকার মোড — মানচিত্রে ক্লিক করে পয়েন্ট যোগ করুন ({bn(drawPts.length)} টি)
               </div>
             )}
           </div>
