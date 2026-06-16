@@ -630,7 +630,7 @@ function LeafletMap({
 }) {
   const t = TILES[layer];
   return (
-    <MapContainer center={CENTER} zoom={14} maxZoom={22} className="absolute inset-0 w-full h-full" scrollWheelZoom>
+    <MapContainer center={CENTER} zoom={14} maxZoom={22} className="absolute inset-0 w-full h-full" scrollWheelZoom preferCanvas>
       <TileLayer
         key={layer}
         url={t.url}
@@ -638,6 +638,10 @@ function LeafletMap({
         subdomains={t.subdomains as unknown as string[]}
         maxNativeZoom={t.maxNativeZoom}
         maxZoom={22}
+        detectRetina
+        crossOrigin
+        updateWhenIdle={false}
+        keepBuffer={4}
       />
 
       <ClickHandler onClick={onMapClick} />
