@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X, Search, Eye, EyeOff, Globe, Spline, Undo2, CheckCircle2 } from "lucide-react";
+import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X, Search, Eye, EyeOff, Globe, Spline, Undo2, CheckCircle2, MousePointer2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -71,6 +71,7 @@ function GpsPage() {
   const [drawColor, setDrawColor] = useState(PIPELINE_COLORS[0]);
   const [savingPipe, setSavingPipe] = useState(false);
 
+  const pipelineAssets = useMemo(() => assets.filter((a) => a.kind === "motor" || a.kind === "valve"), [assets]);
 
   useEffect(() => {
     if (!user) return;
@@ -117,10 +118,38 @@ function GpsPage() {
   // Map click — routes to either pipeline draw or asset pending
   const handleMapClick = (lat: number, lng: number) => {
     if (drawMode) {
+      if (drawPts.length === 0) {
+        toast.error("প্রথমে একটি মোটর নির্বাচন করুন");
+        return;
+      }
       setDrawPts((p) => [...p, [lat, lng]]);
     } else {
       setPending({ lat, lng }); setLabel(""); setNotes("");
     }
+  };
+
+  const addPipelineAssetPoint = (asset: Asset) => {
+    if (!drawMode) {
+      setSelected(asset.id);
+      setFlyTo([asset.lat, asset.lng]);
+      return;
+    }
+    if (drawPts.length === 0 && asset.kind !== "motor") {
+      toast.error("পাইপলাইন মোটর থেকে শুরু করুন");
+      return;
+    }
+    if (drawPts.length > 0 && asset.kind !== "valve") {
+      toast.error("মোটরের পরে ভাল্ভ নির্বাচন করুন");
+      return;
+    }
+    const alreadyPicked = drawPts.some(([lat, lng]) => Math.abs(lat - asset.lat) < 0.000001 && Math.abs(lng - asset.lng) < 0.000001);
+    if (alreadyPicked) {
+      toast.error("এই পয়েন্টটি ইতিমধ্যে যুক্ত আছে");
+      return;
+    }
+    setSelected(asset.id);
+    setDrawPts((p) => [...p, [asset.lat, asset.lng]]);
+    toast.success(`${KIND_META[asset.kind].label} যুক্ত হয়েছে: ${asset.label}`);
   };
 
   const savePipeline = async () => {
@@ -291,7 +320,7 @@ function GpsPage() {
                 assets={shownAssets}
                 showLabels={showLabels}
                 onMapClick={handleMapClick}
-                onSelect={setSelected}
+                onSelect={drawMode ? addPipelineAssetPoint : (asset) => setSelected(asset.id)}
                 selected={selected}
                 flyTo={flyTo}
                 pipelines={pipelines}
@@ -427,10 +456,14 @@ function GpsPage() {
               {!drawMode ? (
                 <Button size="sm" className="w-full h-8 text-xs"
                   onClick={() => { setDrawMode(true); setDrawPts([]); setPending(null); }}>
-                  <Spline className="h-3.5 w-3.5 mr-1" /> নতুন পাইপলাইন আঁকুন
+                  <Spline className="h-3.5 w-3.5 mr-1" /> মোটর থেকে পাইপলাইন যুক্ত করুন
                 </Button>
               ) : (
                 <div className="rounded-lg border-2 p-2 space-y-2" style={{ borderColor: drawColor + "55" }}>
+                  <div className="rounded-md bg-muted/60 px-2 py-1.5 text-[11px] text-muted-foreground flex items-start gap-1.5">
+                    <MousePointer2 className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>{drawPts.length === 0 ? "প্রথমে নিচের তালিকা থেকে মোটর নির্বাচন করুন, এরপর এক বা একাধিক ভাল্ভ নির্বাচন করুন।" : "এখন ভাল্ভ নির্বাচন করুন; প্রয়োজনে মানচিত্রে ক্লিক করে মাঝের বাঁক-পয়েন্ট যোগ করা যাবে।"}</span>
+                  </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {PIPELINE_COLORS.map((c) => (
                       <button key={c} onClick={() => setDrawColor(c)}
@@ -440,6 +473,26 @@ function GpsPage() {
                   </div>
                   <Input value={drawLabel} onChange={(e) => setDrawLabel(e.target.value)}
                     placeholder="পাইপলাইনের নাম" className="h-8 text-xs" />
+                  <div className="grid grid-cols-2 gap-1 max-h-28 overflow-y-auto rounded-md border bg-background p-1">
+                    {pipelineAssets.length === 0 ? (
+                      <p className="col-span-2 px-2 py-3 text-center text-[11px] text-muted-foreground">প্রথমে মোটর ও ভাল্ভ যুক্ত করুন</p>
+                    ) : pipelineAssets.map((a) => {
+                      const m = KIND_META[a.kind];
+                      const isSelectedPoint = drawPts.some(([lat, lng]) => Math.abs(lat - a.lat) < 0.000001 && Math.abs(lng - a.lng) < 0.000001);
+                      const disabled = (drawPts.length === 0 && a.kind !== "motor") || (drawPts.length > 0 && a.kind !== "valve") || isSelectedPoint;
+                      return (
+                        <button key={a.id} type="button" disabled={disabled} onClick={() => addPipelineAssetPoint(a)}
+                          className="min-w-0 rounded-md border px-2 py-1.5 text-left text-[11px] transition hover:bg-muted disabled:opacity-45 disabled:hover:bg-transparent"
+                          style={isSelectedPoint ? { borderColor: m.color, background: `${m.color}14` } : undefined}>
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <span className="h-2 w-2 rounded-full shrink-0" style={{ background: m.color }} />
+                            <span className="font-bold truncate">{a.label}</span>
+                          </span>
+                          <span className="block text-[10px] text-muted-foreground">{m.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                     <span>পয়েন্ট: {bn(drawPts.length)}</span>
                     <button onClick={() => setDrawPts((p) => p.slice(0, -1))}
@@ -509,7 +562,7 @@ const TILES = {
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attr: 'Imagery © <a href="https://www.esri.com">Esri</a>',
-    maxNativeZoom: 19,
+    maxNativeZoom: 17,
   },
   street: {
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -570,7 +623,7 @@ function LeafletMap({
   assets: Asset[];
   showLabels: boolean;
   onMapClick: (lat: number, lng: number) => void;
-  onSelect: (id: string) => void;
+  onSelect: (asset: Asset) => void;
   selected: string | null;
   flyTo: [number, number] | null;
   pipelines: Pipeline[];
@@ -584,8 +637,8 @@ function LeafletMap({
       <TileLayer key={layer} url={t.url} attribution={t.attr} maxNativeZoom={t.maxNativeZoom} maxZoom={22} />
       {layer === "satellite" && (
         <>
-          <TileLayer url={SATELLITE_ROADS.url} attribution={SATELLITE_ROADS.attr} maxNativeZoom={19} maxZoom={22} />
-          <TileLayer url={SATELLITE_LABELS.url} attribution={SATELLITE_LABELS.attr} maxNativeZoom={19} maxZoom={22} />
+          <TileLayer url={SATELLITE_ROADS.url} attribution={SATELLITE_ROADS.attr} maxNativeZoom={17} maxZoom={22} />
+          <TileLayer url={SATELLITE_LABELS.url} attribution={SATELLITE_LABELS.attr} maxNativeZoom={17} maxZoom={22} />
         </>
       )}
       <ClickHandler onClick={onMapClick} />
@@ -594,8 +647,18 @@ function LeafletMap({
       {/* Saved pipelines */}
       {pipelines.map((p) => (
         <Polyline key={p.id} positions={p.points} pathOptions={{ color: p.color, weight: 4, opacity: 0.85 }}>
-          <Tooltip sticky>
-            <span style={{ fontWeight: 700 }}>{p.label}</span>
+          <Tooltip permanent direction="center" className="!bg-transparent !border-0 !shadow-none !p-0">
+            <span style={{
+              background: "rgba(255,255,255,0.94)",
+              border: `2px solid ${p.color}`,
+              color: "#111827",
+              borderRadius: 999,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.28)",
+              fontSize: 11,
+              fontWeight: 800,
+              padding: "2px 8px",
+              whiteSpace: "nowrap",
+            }}>{p.label}</span>
           </Tooltip>
         </Polyline>
       ))}
@@ -615,7 +678,7 @@ function LeafletMap({
         const m = KIND_META[a.kind];
         return (
           <Marker key={a.id} position={[a.lat, a.lng]} icon={makeIcon(a.kind)}
-                  eventHandlers={{ click: () => onSelect(a.id) }}>
+                  eventHandlers={{ click: (e) => { e.originalEvent.stopPropagation(); onSelect(a); } }}>
             {showLabels && (
               <Tooltip
                 permanent
