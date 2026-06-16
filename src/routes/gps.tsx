@@ -562,7 +562,7 @@ const TILES = {
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attr: 'Imagery © <a href="https://www.esri.com">Esri</a>',
-    maxNativeZoom: 19,
+    maxNativeZoom: 18,
   },
   street: {
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -623,7 +623,7 @@ function LeafletMap({
   assets: Asset[];
   showLabels: boolean;
   onMapClick: (lat: number, lng: number) => void;
-  onSelect: (id: string) => void;
+  onSelect: (asset: Asset) => void;
   selected: string | null;
   flyTo: [number, number] | null;
   pipelines: Pipeline[];
@@ -668,7 +668,7 @@ function LeafletMap({
         const m = KIND_META[a.kind];
         return (
           <Marker key={a.id} position={[a.lat, a.lng]} icon={makeIcon(a.kind)}
-                  eventHandlers={{ click: () => onSelect(a.id) }}>
+                  eventHandlers={{ click: () => onSelect(a) }}>
             {showLabels && (
               <Tooltip
                 permanent
