@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X, Search, Eye, EyeOff, Globe, Spline, Undo2, CheckCircle2 } from "lucide-react";
+import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X, Search, Eye, EyeOff, Globe, Spline, Undo2, CheckCircle2, MousePointer2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -71,6 +71,7 @@ function GpsPage() {
   const [drawColor, setDrawColor] = useState(PIPELINE_COLORS[0]);
   const [savingPipe, setSavingPipe] = useState(false);
 
+  const pipelineAssets = useMemo(() => assets.filter((a) => a.kind === "motor" || a.kind === "valve"), [assets]);
 
   useEffect(() => {
     if (!user) return;
@@ -117,10 +118,38 @@ function GpsPage() {
   // Map click — routes to either pipeline draw or asset pending
   const handleMapClick = (lat: number, lng: number) => {
     if (drawMode) {
+      if (drawPts.length === 0) {
+        toast.error("প্রথমে একটি মোটর নির্বাচন করুন");
+        return;
+      }
       setDrawPts((p) => [...p, [lat, lng]]);
     } else {
       setPending({ lat, lng }); setLabel(""); setNotes("");
     }
+  };
+
+  const addPipelineAssetPoint = (asset: Asset) => {
+    if (!drawMode) {
+      setSelected(asset.id);
+      setFlyTo([asset.lat, asset.lng]);
+      return;
+    }
+    if (drawPts.length === 0 && asset.kind !== "motor") {
+      toast.error("পাইপলাইন মোটর থেকে শুরু করুন");
+      return;
+    }
+    if (drawPts.length > 0 && asset.kind !== "valve") {
+      toast.error("মোটরের পরে ভাল্ভ নির্বাচন করুন");
+      return;
+    }
+    const alreadyPicked = drawPts.some(([lat, lng]) => Math.abs(lat - asset.lat) < 0.000001 && Math.abs(lng - asset.lng) < 0.000001);
+    if (alreadyPicked) {
+      toast.error("এই পয়েন্টটি ইতিমধ্যে যুক্ত আছে");
+      return;
+    }
+    setSelected(asset.id);
+    setDrawPts((p) => [...p, [asset.lat, asset.lng]]);
+    toast.success(`${KIND_META[asset.kind].label} যুক্ত হয়েছে: ${asset.label}`);
   };
 
   const savePipeline = async () => {
