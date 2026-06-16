@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X, Search, Eye, EyeOff, Globe } from "lucide-react";
+import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X, Search, Eye, EyeOff, Globe, Spline, Undo2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
