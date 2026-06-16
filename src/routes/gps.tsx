@@ -63,6 +63,15 @@ function GpsPage() {
   const [searchBusy, setSearchBusy] = useState(false);
   const [searchResults, setSearchResults] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
 
+  // Pipelines
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [drawMode, setDrawMode] = useState(false);
+  const [drawPts, setDrawPts] = useState<[number, number][]>([]);
+  const [drawLabel, setDrawLabel] = useState("");
+  const [drawColor, setDrawColor] = useState(PIPELINE_COLORS[0]);
+  const [savingPipe, setSavingPipe] = useState(false);
+
+
   useEffect(() => {
     if (!user) return;
     (async () => {
