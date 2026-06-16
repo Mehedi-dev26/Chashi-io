@@ -430,7 +430,7 @@ function GpsPage() {
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, CircleMarker, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 
 const TILES = {
   satellite: {
