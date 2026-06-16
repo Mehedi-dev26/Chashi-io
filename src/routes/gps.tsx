@@ -631,13 +631,15 @@ function LeafletMap({
   const t = TILES[layer];
   return (
     <MapContainer center={CENTER} zoom={14} maxZoom={22} className="absolute inset-0 w-full h-full" scrollWheelZoom>
-      <TileLayer key={layer} url={t.url} attribution={t.attr} maxNativeZoom={t.maxNativeZoom} maxZoom={22} />
-      {layer === "satellite" && (
-        <>
-          <TileLayer url={SATELLITE_ROADS.url} attribution={SATELLITE_ROADS.attr} maxNativeZoom={17} maxZoom={22} />
-          <TileLayer url={SATELLITE_LABELS.url} attribution={SATELLITE_LABELS.attr} maxNativeZoom={17} maxZoom={22} />
-        </>
-      )}
+      <TileLayer
+        key={layer}
+        url={t.url}
+        attribution={t.attr}
+        subdomains={t.subdomains as unknown as string[]}
+        maxNativeZoom={t.maxNativeZoom}
+        maxZoom={22}
+      />
+
       <ClickHandler onClick={onMapClick} />
       <FlyTo to={flyTo} />
 
