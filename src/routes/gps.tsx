@@ -413,6 +413,79 @@ function GpsPage() {
             </CardContent>
           </Card>
 
+          {/* Pipelines */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Spline className="h-4 w-4" style={{ color: drawColor }} /> পাইপলাইন
+                </span>
+                <Badge variant="secondary" className="text-[10px]">{bn(pipelines.length)} টি</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 space-y-2">
+              {!drawMode ? (
+                <Button size="sm" className="w-full h-8 text-xs"
+                  onClick={() => { setDrawMode(true); setDrawPts([]); setPending(null); }}>
+                  <Spline className="h-3.5 w-3.5 mr-1" /> নতুন পাইপলাইন আঁকুন
+                </Button>
+              ) : (
+                <div className="rounded-lg border-2 p-2 space-y-2" style={{ borderColor: drawColor + "55" }}>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {PIPELINE_COLORS.map((c) => (
+                      <button key={c} onClick={() => setDrawColor(c)}
+                        className={`h-6 w-6 rounded-full transition ring-2 ${drawColor === c ? "ring-foreground scale-110" : "ring-transparent"}`}
+                        style={{ background: c }} />
+                    ))}
+                  </div>
+                  <Input value={drawLabel} onChange={(e) => setDrawLabel(e.target.value)}
+                    placeholder="পাইপলাইনের নাম" className="h-8 text-xs" />
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>পয়েন্ট: {bn(drawPts.length)}</span>
+                    <button onClick={() => setDrawPts((p) => p.slice(0, -1))}
+                      disabled={drawPts.length === 0}
+                      className="flex items-center gap-1 hover:text-foreground disabled:opacity-30">
+                      <Undo2 className="h-3 w-3" /> পূর্বাবস্থা
+                    </button>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <Button size="sm" className="flex-1 h-7 text-[11px]"
+                      disabled={drawPts.length < 2 || !drawLabel.trim() || savingPipe}
+                      onClick={savePipeline}>
+                      {savingPipe ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+                      সংরক্ষণ
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 text-[11px]"
+                      onClick={() => { setDrawMode(false); setDrawPts([]); setDrawLabel(""); }}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {pipelines.length === 0 ? (
+                  <p className="text-center text-[11px] text-muted-foreground py-3">
+                    এখনো কোনো পাইপলাইন আঁকা হয়নি
+                  </p>
+                ) : pipelines.map((p) => (
+                  <div key={p.id} className="group flex items-center gap-2 rounded-lg p-1.5 hover:bg-muted">
+                    <span className="h-3 w-3 rounded-full shrink-0" style={{ background: p.color, boxShadow: `0 0 0 2px ${p.color}33` }} />
+                    <button onClick={() => p.points[0] && setFlyTo(p.points[0])} className="flex-1 text-left min-w-0">
+                      <p className="text-xs font-semibold truncate">{p.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{bn(p.points.length)} পয়েন্ট</p>
+                    </button>
+                    <button onClick={() => deletePipeline(p.id)}
+                      className="opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-destructive/15 text-destructive">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+
           <Card>
             <CardContent className="p-3 text-xs space-y-1.5">
               <div className="flex items-center gap-2 text-success font-semibold"><Crosshair className="h-3.5 w-3.5" />GPS Lock · {bn(9)} স্যাটেলাইট</div>
