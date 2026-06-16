@@ -491,6 +491,7 @@ function FlyTo({ to }: { to: [number, number] | null }) {
 
 function LeafletMap({
   layer, assets, showLabels, onMapClick, onSelect, selected, flyTo,
+  pipelines, drawPts, drawColor, drawMode,
 }: {
   layer: "satellite" | "street" | "terrain";
   assets: Asset[];
@@ -499,6 +500,10 @@ function LeafletMap({
   onSelect: (id: string) => void;
   selected: string | null;
   flyTo: [number, number] | null;
+  pipelines: Pipeline[];
+  drawPts: [number, number][];
+  drawColor: string;
+  drawMode: boolean;
 }) {
   const t = TILES[layer];
   return (
@@ -512,6 +517,27 @@ function LeafletMap({
       )}
       <ClickHandler onClick={onMapClick} />
       <FlyTo to={flyTo} />
+
+      {/* Saved pipelines */}
+      {pipelines.map((p) => (
+        <Polyline key={p.id} positions={p.points} pathOptions={{ color: p.color, weight: 4, opacity: 0.85 }}>
+          <Tooltip sticky>
+            <span style={{ fontWeight: 700 }}>{p.label}</span>
+          </Tooltip>
+        </Polyline>
+      ))}
+
+      {/* Live drawing line */}
+      {drawMode && drawPts.length > 0 && (
+        <>
+          <Polyline positions={drawPts} pathOptions={{ color: drawColor, weight: 4, opacity: 0.9, dashArray: "6 6" }} />
+          {drawPts.map((pt, i) => (
+            <CircleMarker key={i} center={pt} radius={5}
+              pathOptions={{ color: "#fff", weight: 2, fillColor: drawColor, fillOpacity: 1 }} />
+          ))}
+        </>
+      )}
+
       {assets.map((a) => {
         const m = KIND_META[a.kind];
         return (
