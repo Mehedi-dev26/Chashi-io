@@ -382,15 +382,28 @@ const TILES = {
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attr: 'Imagery © <a href="https://www.esri.com">Esri</a>',
+    maxNativeZoom: 19,
   },
   street: {
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attr: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxNativeZoom: 19,
   },
   terrain: {
     url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
     attr: 'Map data: © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
+    maxNativeZoom: 17,
   },
+};
+
+// Place-name overlay for satellite view (roads, labels, boundaries)
+const SATELLITE_LABELS = {
+  url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+  attr: "Labels © Esri",
+};
+const SATELLITE_ROADS = {
+  url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
+  attr: "Transportation © Esri",
 };
 
 function makeIcon(kind: Kind) {
