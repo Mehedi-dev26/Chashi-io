@@ -431,7 +431,7 @@ function ClickHandler({ onClick }: { onClick: (lat: number, lng: number) => void
 
 function FlyTo({ to }: { to: [number, number] | null }) {
   const map = useMap();
-  useEffect(() => { if (to) map.flyTo(to, Math.max(map.getZoom(), 15), { duration: 1.2 }); }, [to, map]);
+  useEffect(() => { if (to) map.flyTo(to, Math.max(map.getZoom(), 18), { duration: 1.2 }); }, [to, map]);
   return null;
 }
 
@@ -448,8 +448,14 @@ function LeafletMap({
 }) {
   const t = TILES[layer];
   return (
-    <MapContainer center={CENTER} zoom={14} className="absolute inset-0 w-full h-full" scrollWheelZoom>
-      <TileLayer key={layer} url={t.url} attribution={t.attr} maxZoom={19} />
+    <MapContainer center={CENTER} zoom={14} maxZoom={22} className="absolute inset-0 w-full h-full" scrollWheelZoom>
+      <TileLayer key={layer} url={t.url} attribution={t.attr} maxNativeZoom={t.maxNativeZoom} maxZoom={22} />
+      {layer === "satellite" && (
+        <>
+          <TileLayer url={SATELLITE_ROADS.url} attribution={SATELLITE_ROADS.attr} maxNativeZoom={19} maxZoom={22} />
+          <TileLayer url={SATELLITE_LABELS.url} attribution={SATELLITE_LABELS.attr} maxNativeZoom={19} maxZoom={22} />
+        </>
+      )}
       <ClickHandler onClick={onMapClick} />
       <FlyTo to={flyTo} />
       {assets.map((a) => {
