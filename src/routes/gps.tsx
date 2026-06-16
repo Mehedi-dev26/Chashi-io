@@ -25,6 +25,9 @@ export const Route = createFileRoute("/gps")({
 type Kind = "field" | "valve" | "motor";
 type Asset = { id: string; user_id: string; kind: Kind; label: string; lat: number; lng: number; notes: string | null };
 type FilterKind = Kind | "all";
+type Pipeline = { id: string; user_id: string; label: string; color: string; points: [number, number][]; notes: string | null };
+
+const PIPELINE_COLORS = ["#0ea5e9", "#f97316", "#10b981", "#a855f7", "#ef4444", "#eab308"];
 
 const CENTER: [number, number] = [24.3745, 88.6042];
 
