@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X, Search, Eye, EyeOff, Globe } from "lucide-react";
+import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X, Search, Eye, EyeOff, Globe, Spline, Undo2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -25,6 +25,9 @@ export const Route = createFileRoute("/gps")({
 type Kind = "field" | "valve" | "motor";
 type Asset = { id: string; user_id: string; kind: Kind; label: string; lat: number; lng: number; notes: string | null };
 type FilterKind = Kind | "all";
+type Pipeline = { id: string; user_id: string; label: string; color: string; points: [number, number][]; notes: string | null };
+
+const PIPELINE_COLORS = ["#0ea5e9", "#f97316", "#10b981", "#a855f7", "#ef4444", "#eab308"];
 
 const CENTER: [number, number] = [24.3745, 88.6042];
 
@@ -60,15 +63,32 @@ function GpsPage() {
   const [searchBusy, setSearchBusy] = useState(false);
   const [searchResults, setSearchResults] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
 
+  // Pipelines
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [drawMode, setDrawMode] = useState(false);
+  const [drawPts, setDrawPts] = useState<[number, number][]>([]);
+  const [drawLabel, setDrawLabel] = useState("");
+  const [drawColor, setDrawColor] = useState(PIPELINE_COLORS[0]);
+  const [savingPipe, setSavingPipe] = useState(false);
+
+
   useEffect(() => {
     if (!user) return;
     (async () => {
       setLoadingAssets(true);
-      const { data, error } = await supabase
-        .from("gps_assets").select("*")
-        .eq("user_id", user.id).order("created_at", { ascending: false });
-      if (error) toast.error(error.message);
-      else setAssets((data ?? []) as Asset[]);
+      const [aRes, pRes] = await Promise.all([
+        supabase.from("gps_assets").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("gps_pipelines").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      ]);
+      if (aRes.error) toast.error(aRes.error.message);
+      else {
+        const list = (aRes.data ?? []) as Asset[];
+        setAssets(list);
+        const motor = list.find((a) => a.kind === "motor");
+        if (motor) setFlyTo([motor.lat, motor.lng]);
+      }
+      if (pRes.error) toast.error(pRes.error.message);
+      else setPipelines(((pRes.data ?? []) as any[]).map((p) => ({ ...p, points: p.points as [number, number][] })));
       setLoadingAssets(false);
     })();
   }, [user]);
@@ -92,6 +112,36 @@ function GpsPage() {
     if (error) return toast.error(error.message);
     setAssets((p) => p.filter((a) => a.id !== id));
     toast.success("মুছে ফেলা হয়েছে");
+  };
+
+  // Map click — routes to either pipeline draw or asset pending
+  const handleMapClick = (lat: number, lng: number) => {
+    if (drawMode) {
+      setDrawPts((p) => [...p, [lat, lng]]);
+    } else {
+      setPending({ lat, lng }); setLabel(""); setNotes("");
+    }
+  };
+
+  const savePipeline = async () => {
+    if (!user || drawPts.length < 2 || !drawLabel.trim()) return;
+    setSavingPipe(true);
+    const { data, error } = await supabase.from("gps_pipelines").insert({
+      user_id: user.id, label: drawLabel.trim(), color: drawColor,
+      points: drawPts as any, notes: null,
+    }).select().single();
+    setSavingPipe(false);
+    if (error) return toast.error(error.message);
+    setPipelines((p) => [{ ...(data as any), points: (data as any).points as [number, number][] }, ...p]);
+    toast.success(`পাইপলাইন সংরক্ষিত: ${drawLabel}`);
+    setDrawPts([]); setDrawLabel(""); setDrawMode(false);
+  };
+
+  const deletePipeline = async (id: string) => {
+    const { error } = await supabase.from("gps_pipelines").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    setPipelines((p) => p.filter((x) => x.id !== id));
+    toast.success("পাইপলাইন মুছে ফেলা হয়েছে");
   };
 
   const locate = () => {
@@ -172,11 +222,14 @@ function GpsPage() {
             {(["all", "field", "valve", "motor"] as FilterKind[]).map((k) => {
               const active = visibleKind === k;
               const m = k === "all" ? null : KIND_META[k];
+              const activeBg = m
+                ? m.color
+                : `linear-gradient(90deg, ${KIND_META.field.color} 0%, ${KIND_META.valve.color} 50%, ${KIND_META.motor.color} 100%)`;
               return (
                 <button key={k} onClick={() => setVisibleKind(k)}
                   className={`flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-bold transition-all ring-1 ${
                     active ? "text-white shadow-md ring-white/30" : "text-foreground ring-border bg-background hover:bg-muted"}`}
-                  style={active ? { background: m ? m.color : "hsl(var(--primary))" } : undefined}
+                  style={active ? { background: activeBg } : undefined}
                 >
                   {m ? <m.Icon className="h-3.5 w-3.5" /> : <Layers className="h-3.5 w-3.5" />}
                   {k === "all" ? `সব (${bn(assets.length)})` : `${m!.label} ${bn(counts[k as Kind])}`}
@@ -237,14 +290,24 @@ function GpsPage() {
                 layer={layer}
                 assets={shownAssets}
                 showLabels={showLabels}
-                onMapClick={(lat, lng) => { setPending({ lat, lng }); setLabel(""); setNotes(""); }}
+                onMapClick={handleMapClick}
                 onSelect={setSelected}
                 selected={selected}
                 flyTo={flyTo}
+                pipelines={pipelines}
+                drawPts={drawPts}
+                drawColor={drawColor}
+                drawMode={drawMode}
               />
             ) : (
               <div className="absolute inset-0 grid place-items-center text-muted-foreground text-sm gap-2">
                 <Loader2 className="h-5 w-5 animate-spin" /> মানচিত্র লোড হচ্ছে…
+              </div>
+            )}
+            {drawMode && (
+              <div className="absolute top-2 left-2 right-2 z-[400] rounded-lg px-3 py-2 bg-foreground/90 text-background text-xs font-semibold flex items-center gap-2 shadow-lg">
+                <Spline className="h-3.5 w-3.5" />
+                পাইপলাইন আঁকার মোড — মানচিত্রে ক্লিক করে পয়েন্ট যোগ করুন ({bn(drawPts.length)} টি)
               </div>
             )}
           </div>
@@ -350,6 +413,79 @@ function GpsPage() {
             </CardContent>
           </Card>
 
+          {/* Pipelines */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Spline className="h-4 w-4" style={{ color: drawColor }} /> পাইপলাইন
+                </span>
+                <Badge variant="secondary" className="text-[10px]">{bn(pipelines.length)} টি</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 space-y-2">
+              {!drawMode ? (
+                <Button size="sm" className="w-full h-8 text-xs"
+                  onClick={() => { setDrawMode(true); setDrawPts([]); setPending(null); }}>
+                  <Spline className="h-3.5 w-3.5 mr-1" /> নতুন পাইপলাইন আঁকুন
+                </Button>
+              ) : (
+                <div className="rounded-lg border-2 p-2 space-y-2" style={{ borderColor: drawColor + "55" }}>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {PIPELINE_COLORS.map((c) => (
+                      <button key={c} onClick={() => setDrawColor(c)}
+                        className={`h-6 w-6 rounded-full transition ring-2 ${drawColor === c ? "ring-foreground scale-110" : "ring-transparent"}`}
+                        style={{ background: c }} />
+                    ))}
+                  </div>
+                  <Input value={drawLabel} onChange={(e) => setDrawLabel(e.target.value)}
+                    placeholder="পাইপলাইনের নাম" className="h-8 text-xs" />
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>পয়েন্ট: {bn(drawPts.length)}</span>
+                    <button onClick={() => setDrawPts((p) => p.slice(0, -1))}
+                      disabled={drawPts.length === 0}
+                      className="flex items-center gap-1 hover:text-foreground disabled:opacity-30">
+                      <Undo2 className="h-3 w-3" /> পূর্বাবস্থা
+                    </button>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <Button size="sm" className="flex-1 h-7 text-[11px]"
+                      disabled={drawPts.length < 2 || !drawLabel.trim() || savingPipe}
+                      onClick={savePipeline}>
+                      {savingPipe ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+                      সংরক্ষণ
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 text-[11px]"
+                      onClick={() => { setDrawMode(false); setDrawPts([]); setDrawLabel(""); }}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {pipelines.length === 0 ? (
+                  <p className="text-center text-[11px] text-muted-foreground py-3">
+                    এখনো কোনো পাইপলাইন আঁকা হয়নি
+                  </p>
+                ) : pipelines.map((p) => (
+                  <div key={p.id} className="group flex items-center gap-2 rounded-lg p-1.5 hover:bg-muted">
+                    <span className="h-3 w-3 rounded-full shrink-0" style={{ background: p.color, boxShadow: `0 0 0 2px ${p.color}33` }} />
+                    <button onClick={() => p.points[0] && setFlyTo(p.points[0])} className="flex-1 text-left min-w-0">
+                      <p className="text-xs font-semibold truncate">{p.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{bn(p.points.length)} পয়েন্ট</p>
+                    </button>
+                    <button onClick={() => deletePipeline(p.id)}
+                      className="opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-destructive/15 text-destructive">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+
           <Card>
             <CardContent className="p-3 text-xs space-y-1.5">
               <div className="flex items-center gap-2 text-success font-semibold"><Crosshair className="h-3.5 w-3.5" />GPS Lock · {bn(9)} স্যাটেলাইট</div>
@@ -367,21 +503,34 @@ function GpsPage() {
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, CircleMarker, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 
 const TILES = {
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attr: 'Imagery © <a href="https://www.esri.com">Esri</a>',
+    maxNativeZoom: 19,
   },
   street: {
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attr: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxNativeZoom: 19,
   },
   terrain: {
     url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
     attr: 'Map data: © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
+    maxNativeZoom: 17,
   },
+};
+
+// Place-name overlay for satellite view (roads, labels, boundaries)
+const SATELLITE_LABELS = {
+  url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+  attr: "Labels © Esri",
+};
+const SATELLITE_ROADS = {
+  url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
+  attr: "Transportation © Esri",
 };
 
 function makeIcon(kind: Kind) {
@@ -409,12 +558,13 @@ function ClickHandler({ onClick }: { onClick: (lat: number, lng: number) => void
 
 function FlyTo({ to }: { to: [number, number] | null }) {
   const map = useMap();
-  useEffect(() => { if (to) map.flyTo(to, Math.max(map.getZoom(), 15), { duration: 1.2 }); }, [to, map]);
+  useEffect(() => { if (to) map.flyTo(to, Math.max(map.getZoom(), 18), { duration: 1.2 }); }, [to, map]);
   return null;
 }
 
 function LeafletMap({
   layer, assets, showLabels, onMapClick, onSelect, selected, flyTo,
+  pipelines, drawPts, drawColor, drawMode,
 }: {
   layer: "satellite" | "street" | "terrain";
   assets: Asset[];
@@ -423,13 +573,44 @@ function LeafletMap({
   onSelect: (id: string) => void;
   selected: string | null;
   flyTo: [number, number] | null;
+  pipelines: Pipeline[];
+  drawPts: [number, number][];
+  drawColor: string;
+  drawMode: boolean;
 }) {
   const t = TILES[layer];
   return (
-    <MapContainer center={CENTER} zoom={14} className="absolute inset-0 w-full h-full" scrollWheelZoom>
-      <TileLayer key={layer} url={t.url} attribution={t.attr} maxZoom={19} />
+    <MapContainer center={CENTER} zoom={14} maxZoom={22} className="absolute inset-0 w-full h-full" scrollWheelZoom>
+      <TileLayer key={layer} url={t.url} attribution={t.attr} maxNativeZoom={t.maxNativeZoom} maxZoom={22} />
+      {layer === "satellite" && (
+        <>
+          <TileLayer url={SATELLITE_ROADS.url} attribution={SATELLITE_ROADS.attr} maxNativeZoom={19} maxZoom={22} />
+          <TileLayer url={SATELLITE_LABELS.url} attribution={SATELLITE_LABELS.attr} maxNativeZoom={19} maxZoom={22} />
+        </>
+      )}
       <ClickHandler onClick={onMapClick} />
       <FlyTo to={flyTo} />
+
+      {/* Saved pipelines */}
+      {pipelines.map((p) => (
+        <Polyline key={p.id} positions={p.points} pathOptions={{ color: p.color, weight: 4, opacity: 0.85 }}>
+          <Tooltip sticky>
+            <span style={{ fontWeight: 700 }}>{p.label}</span>
+          </Tooltip>
+        </Polyline>
+      ))}
+
+      {/* Live drawing line */}
+      {drawMode && drawPts.length > 0 && (
+        <>
+          <Polyline positions={drawPts} pathOptions={{ color: drawColor, weight: 4, opacity: 0.9, dashArray: "6 6" }} />
+          {drawPts.map((pt, i) => (
+            <CircleMarker key={i} center={pt} radius={5}
+              pathOptions={{ color: "#fff", weight: 2, fillColor: drawColor, fillOpacity: 1 }} />
+          ))}
+        </>
+      )}
+
       {assets.map((a) => {
         const m = KIND_META[a.kind];
         return (

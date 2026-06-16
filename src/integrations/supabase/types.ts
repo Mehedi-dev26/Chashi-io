@@ -50,6 +50,39 @@ export type Database = {
         }
         Relationships: []
       }
+      gps_pipelines: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          label: string
+          notes: string | null
+          points: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          label: string
+          notes?: string | null
+          points: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          label?: string
+          notes?: string | null
+          points?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
