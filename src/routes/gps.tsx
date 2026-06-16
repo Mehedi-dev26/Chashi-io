@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X } from "lucide-react";
+import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X, Search, Eye, EyeOff, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -24,8 +24,9 @@ export const Route = createFileRoute("/gps")({
 
 type Kind = "field" | "valve" | "motor";
 type Asset = { id: string; user_id: string; kind: Kind; label: string; lat: number; lng: number; notes: string | null };
+type FilterKind = Kind | "all";
 
-const CENTER: [number, number] = [24.3745, 88.6042]; // Rajshahi / Barind
+const CENTER: [number, number] = [24.3745, 88.6042];
 
 const KIND_META: Record<Kind, { label: string; color: string; ring: string; Icon: typeof MapPin }> = {
   field: { label: "জমি",   color: "#10b981", ring: "shadow-emerald-500/40", Icon: Sprout },
@@ -42,6 +43,8 @@ function GpsPage() {
 
   const [layer, setLayer] = useState<"satellite" | "street" | "terrain">("satellite");
   const [pickKind, setPickKind] = useState<Kind>("field");
+  const [visibleKind, setVisibleKind] = useState<FilterKind>("all");
+  const [showLabels, setShowLabels] = useState(true);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loadingAssets, setLoadingAssets] = useState(true);
   const [pending, setPending] = useState<{ lat: number; lng: number } | null>(null);
@@ -50,6 +53,12 @@ function GpsPage() {
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<[number, number] | null>(null);
+
+  // Geocoder search
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
+  const [searchBusy, setSearchBusy] = useState(false);
+  const [searchResults, setSearchResults] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -94,11 +103,34 @@ function GpsPage() {
     );
   };
 
+  const runSearch = async (q: string) => {
+    if (!q.trim()) return;
+    setSearchBusy(true);
+    try {
+      const r = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=6&q=${encodeURIComponent(q)}`,
+        { headers: { "Accept-Language": "bn,en" } },
+      );
+      const j = await r.json();
+      setSearchResults(j);
+      if (!j.length) toast.error("কোনো ফলাফল পাওয়া যায়নি");
+    } catch {
+      toast.error("সার্চ ব্যর্থ হয়েছে");
+    } finally {
+      setSearchBusy(false);
+    }
+  };
+
   const counts = useMemo(() => ({
     field: assets.filter((a) => a.kind === "field").length,
     valve: assets.filter((a) => a.kind === "valve").length,
     motor: assets.filter((a) => a.kind === "motor").length,
   }), [assets]);
+
+  const shownAssets = useMemo(
+    () => visibleKind === "all" ? assets : assets.filter((a) => a.kind === visibleKind),
+    [assets, visibleKind],
+  );
 
   return (
     <DashboardLayout
@@ -118,6 +150,7 @@ function GpsPage() {
     >
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <Card className="overflow-hidden">
+          {/* Toolbar */}
           <div className="px-4 pt-3 pb-2 flex items-center gap-2 flex-wrap border-b">
             <span className="text-xs font-bold text-muted-foreground">যোগ করুন:</span>
             {(Object.keys(KIND_META) as Kind[]).map((k) => {
@@ -133,16 +166,77 @@ function GpsPage() {
                 </button>
               );
             })}
-            <span className="ml-auto text-[11px] text-muted-foreground">
-              মানচিত্রে ক্লিক করে নতুন <b className="text-foreground">{KIND_META[pickKind].label}</b> পিন বসান
-            </span>
+
+            <span className="w-px h-6 bg-border mx-1" />
+            <span className="text-xs font-bold text-muted-foreground">দেখান:</span>
+            {(["all", "field", "valve", "motor"] as FilterKind[]).map((k) => {
+              const active = visibleKind === k;
+              const m = k === "all" ? null : KIND_META[k];
+              return (
+                <button key={k} onClick={() => setVisibleKind(k)}
+                  className={`flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-bold transition-all ring-1 ${
+                    active ? "text-white shadow-md ring-white/30" : "text-foreground ring-border bg-background hover:bg-muted"}`}
+                  style={active ? { background: m ? m.color : "hsl(var(--primary))" } : undefined}
+                >
+                  {m ? <m.Icon className="h-3.5 w-3.5" /> : <Layers className="h-3.5 w-3.5" />}
+                  {k === "all" ? `সব (${bn(assets.length)})` : `${m!.label} ${bn(counts[k as Kind])}`}
+                </button>
+              );
+            })}
+
+            <div className="ml-auto flex items-center gap-2">
+              <Button size="sm" variant="outline" className="h-8" onClick={() => setShowLabels((v) => !v)}>
+                {showLabels ? <Eye className="h-3.5 w-3.5 mr-1" /> : <EyeOff className="h-3.5 w-3.5 mr-1" />}
+                নাম
+              </Button>
+              <Button size="sm" variant={searchOpen ? "default" : "outline"} className="h-8"
+                onClick={() => setSearchOpen((v) => !v)}>
+                <Search className="h-3.5 w-3.5 mr-1" />জায়গা খুঁজুন
+              </Button>
+            </div>
           </div>
+
+          {/* Search panel */}
+          {searchOpen && (
+            <div className="px-4 py-3 border-b bg-muted/30 space-y-2">
+              <form onSubmit={(e) => { e.preventDefault(); runSearch(searchQ); }} className="flex gap-2">
+                <div className="relative flex-1">
+                  <Globe className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)}
+                    placeholder="শহর, গ্রাম, ঠিকানা বা স্থান লিখুন (যেমন: রাজশাহী, বরেন্দ্র)"
+                    className="pl-8 h-9" autoFocus />
+                </div>
+                <Button type="submit" size="sm" className="h-9" disabled={searchBusy || !searchQ.trim()}>
+                  {searchBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                </Button>
+                <Button type="button" size="sm" variant="ghost" className="h-9"
+                  onClick={() => { setSearchOpen(false); setSearchResults([]); setSearchQ(""); }}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </form>
+              {searchResults.length > 0 && (
+                <div className="rounded-lg border bg-background max-h-56 overflow-y-auto divide-y">
+                  {searchResults.map((r, i) => (
+                    <button key={i} className="w-full text-left px-3 py-2 hover:bg-muted text-xs flex items-start gap-2"
+                      onClick={() => {
+                        setFlyTo([parseFloat(r.lat), parseFloat(r.lon)]);
+                        toast.success("মানচিত্র সরানো হচ্ছে…");
+                      }}>
+                      <MapPin className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+                      <span className="flex-1">{r.display_name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="relative aspect-[16/10] bg-muted">
             {mounted && !authLoading ? (
               <LeafletMap
                 layer={layer}
-                assets={assets}
+                assets={shownAssets}
+                showLabels={showLabels}
                 onMapClick={(lat, lng) => { setPending({ lat, lng }); setLabel(""); setNotes(""); }}
                 onSelect={setSelected}
                 selected={selected}
@@ -172,6 +266,26 @@ function GpsPage() {
                 <p className="text-[11px] font-mono text-muted-foreground">
                   📍 {pending.lat.toFixed(6)}, {pending.lng.toFixed(6)}
                 </p>
+
+                <div>
+                  <p className="text-[11px] font-bold text-muted-foreground mb-1.5">ধরন নির্বাচন করুন</p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {(Object.keys(KIND_META) as Kind[]).map((k) => {
+                      const m = KIND_META[k];
+                      const active = pickKind === k;
+                      return (
+                        <button key={k} type="button" onClick={() => setPickKind(k)}
+                          className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg text-[11px] font-bold transition-all ring-2 ${
+                            active ? "text-white shadow-md ring-white/40" : "text-foreground ring-border bg-background hover:bg-muted"}`}
+                          style={active ? { background: m.color } : undefined}
+                        >
+                          <m.Icon className="h-4 w-4" /> {m.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <Input placeholder="নাম (যেমন: উত্তর জমি)" value={label} onChange={(e) => setLabel(e.target.value)} autoFocus />
                 <Textarea placeholder="নোট (ঐচ্ছিক)" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
                 <div className="flex gap-2">
@@ -187,8 +301,7 @@ function GpsPage() {
             <Card>
               <CardContent className="p-3 text-xs text-muted-foreground flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                মানচিত্রের যেকোনো স্থানে <b className="mx-1 text-foreground">click</b> করে নতুন
-                <b className="mx-1 text-foreground">{KIND_META[pickKind].label}</b> পিন যোগ করুন। উপরের চিপ থেকে ধরন পরিবর্তন করতে পারেন।
+                মানচিত্রের যেকোনো স্থানে <b className="mx-1 text-foreground">click</b> করে নতুন পিন যোগ করুন। ফর্মেই ধরন (জমি/ভাল্ভ/মোটর) বদলানো যাবে।
               </CardContent>
             </Card>
           )}
@@ -254,7 +367,7 @@ function GpsPage() {
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 
 const TILES = {
   satellite: {
@@ -301,10 +414,11 @@ function FlyTo({ to }: { to: [number, number] | null }) {
 }
 
 function LeafletMap({
-  layer, assets, onMapClick, onSelect, selected, flyTo,
+  layer, assets, showLabels, onMapClick, onSelect, selected, flyTo,
 }: {
   layer: "satellite" | "street" | "terrain";
   assets: Asset[];
+  showLabels: boolean;
   onMapClick: (lat: number, lng: number) => void;
   onSelect: (id: string) => void;
   selected: string | null;
@@ -316,21 +430,48 @@ function LeafletMap({
       <TileLayer key={layer} url={t.url} attribution={t.attr} maxZoom={19} />
       <ClickHandler onClick={onMapClick} />
       <FlyTo to={flyTo} />
-      {assets.map((a) => (
-        <Marker key={a.id} position={[a.lat, a.lng]} icon={makeIcon(a.kind)}
-                eventHandlers={{ click: () => onSelect(a.id) }}>
-          <Popup>
-            <div className="text-xs">
-              <p className="font-bold text-sm" style={{ color: KIND_META[a.kind].color }}>
-                {KIND_META[a.kind].label} · {a.label}
-              </p>
-              <p className="font-mono text-[10px] opacity-70">{a.lat.toFixed(6)}, {a.lng.toFixed(6)}</p>
-              {a.notes && <p className="mt-1">{a.notes}</p>}
-              {selected === a.id && <p className="mt-1 text-[10px] opacity-60">✓ নির্বাচিত</p>}
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+      {assets.map((a) => {
+        const m = KIND_META[a.kind];
+        return (
+          <Marker key={a.id} position={[a.lat, a.lng]} icon={makeIcon(a.kind)}
+                  eventHandlers={{ click: () => onSelect(a.id) }}>
+            {showLabels && (
+              <Tooltip
+                permanent
+                direction="top"
+                offset={[0, -32]}
+                className="!bg-transparent !border-0 !shadow-none !p-0"
+              >
+                <span
+                  style={{
+                    background: m.color,
+                    color: "#fff",
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.45), 0 0 0 2px rgba(255,255,255,0.9)",
+                    whiteSpace: "nowrap",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {a.label}
+                </span>
+              </Tooltip>
+            )}
+            <Popup>
+              <div className="text-xs">
+                <p className="font-bold text-sm" style={{ color: m.color }}>
+                  {m.label} · {a.label}
+                </p>
+                <p className="font-mono text-[10px] opacity-70">{a.lat.toFixed(6)}, {a.lng.toFixed(6)}</p>
+                {a.notes && <p className="mt-1">{a.notes}</p>}
+                {selected === a.id && <p className="mt-1 text-[10px] opacity-60">✓ নির্বাচিত</p>}
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
     </MapContainer>
   );
 }
