@@ -76,17 +76,19 @@ function GpsPage() {
     if (!user) return;
     (async () => {
       setLoadingAssets(true);
-      const { data, error } = await supabase
-        .from("gps_assets").select("*")
-        .eq("user_id", user.id).order("created_at", { ascending: false });
-      if (error) toast.error(error.message);
+      const [aRes, pRes] = await Promise.all([
+        supabase.from("gps_assets").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("gps_pipelines").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      ]);
+      if (aRes.error) toast.error(aRes.error.message);
       else {
-        const list = (data ?? []) as Asset[];
+        const list = (aRes.data ?? []) as Asset[];
         setAssets(list);
-        // Auto-focus on main motor when assets first load
         const motor = list.find((a) => a.kind === "motor");
         if (motor) setFlyTo([motor.lat, motor.lng]);
       }
+      if (pRes.error) toast.error(pRes.error.message);
+      else setPipelines(((pRes.data ?? []) as any[]).map((p) => ({ ...p, points: p.points as [number, number][] })));
       setLoadingAssets(false);
     })();
   }, [user]);
@@ -110,6 +112,36 @@ function GpsPage() {
     if (error) return toast.error(error.message);
     setAssets((p) => p.filter((a) => a.id !== id));
     toast.success("মুছে ফেলা হয়েছে");
+  };
+
+  // Map click — routes to either pipeline draw or asset pending
+  const handleMapClick = (lat: number, lng: number) => {
+    if (drawMode) {
+      setDrawPts((p) => [...p, [lat, lng]]);
+    } else {
+      setPending({ lat, lng }); setLabel(""); setNotes("");
+    }
+  };
+
+  const savePipeline = async () => {
+    if (!user || drawPts.length < 2 || !drawLabel.trim()) return;
+    setSavingPipe(true);
+    const { data, error } = await supabase.from("gps_pipelines").insert({
+      user_id: user.id, label: drawLabel.trim(), color: drawColor,
+      points: drawPts as any, notes: null,
+    }).select().single();
+    setSavingPipe(false);
+    if (error) return toast.error(error.message);
+    setPipelines((p) => [{ ...(data as any), points: (data as any).points as [number, number][] }, ...p]);
+    toast.success(`পাইপলাইন সংরক্ষিত: ${drawLabel}`);
+    setDrawPts([]); setDrawLabel(""); setDrawMode(false);
+  };
+
+  const deletePipeline = async (id: string) => {
+    const { error } = await supabase.from("gps_pipelines").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    setPipelines((p) => p.filter((x) => x.id !== id));
+    toast.success("পাইপলাইন মুছে ফেলা হয়েছে");
   };
 
   const locate = () => {
