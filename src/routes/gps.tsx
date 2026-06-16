@@ -320,7 +320,7 @@ function GpsPage() {
                 assets={shownAssets}
                 showLabels={showLabels}
                 onMapClick={handleMapClick}
-                onSelect={setSelected}
+                onSelect={drawMode ? addPipelineAssetPoint : (asset) => setSelected(asset.id)}
                 selected={selected}
                 flyTo={flyTo}
                 pipelines={pipelines}
@@ -456,10 +456,14 @@ function GpsPage() {
               {!drawMode ? (
                 <Button size="sm" className="w-full h-8 text-xs"
                   onClick={() => { setDrawMode(true); setDrawPts([]); setPending(null); }}>
-                  <Spline className="h-3.5 w-3.5 mr-1" /> নতুন পাইপলাইন আঁকুন
+                  <Spline className="h-3.5 w-3.5 mr-1" /> মোটর থেকে পাইপলাইন যুক্ত করুন
                 </Button>
               ) : (
                 <div className="rounded-lg border-2 p-2 space-y-2" style={{ borderColor: drawColor + "55" }}>
+                  <div className="rounded-md bg-muted/60 px-2 py-1.5 text-[11px] text-muted-foreground flex items-start gap-1.5">
+                    <MousePointer2 className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>{drawPts.length === 0 ? "প্রথমে নিচের তালিকা থেকে মোটর নির্বাচন করুন, এরপর এক বা একাধিক ভাল্ভ নির্বাচন করুন।" : "এখন ভাল্ভ নির্বাচন করুন; প্রয়োজনে মানচিত্রে ক্লিক করে মাঝের বাঁক-পয়েন্ট যোগ করা যাবে।"}</span>
+                  </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {PIPELINE_COLORS.map((c) => (
                       <button key={c} onClick={() => setDrawColor(c)}
@@ -469,6 +473,26 @@ function GpsPage() {
                   </div>
                   <Input value={drawLabel} onChange={(e) => setDrawLabel(e.target.value)}
                     placeholder="পাইপলাইনের নাম" className="h-8 text-xs" />
+                  <div className="grid grid-cols-2 gap-1 max-h-28 overflow-y-auto rounded-md border bg-background p-1">
+                    {pipelineAssets.length === 0 ? (
+                      <p className="col-span-2 px-2 py-3 text-center text-[11px] text-muted-foreground">প্রথমে মোটর ও ভাল্ভ যুক্ত করুন</p>
+                    ) : pipelineAssets.map((a) => {
+                      const m = KIND_META[a.kind];
+                      const isSelectedPoint = drawPts.some(([lat, lng]) => Math.abs(lat - a.lat) < 0.000001 && Math.abs(lng - a.lng) < 0.000001);
+                      const disabled = (drawPts.length === 0 && a.kind !== "motor") || (drawPts.length > 0 && a.kind !== "valve") || isSelectedPoint;
+                      return (
+                        <button key={a.id} type="button" disabled={disabled} onClick={() => addPipelineAssetPoint(a)}
+                          className="min-w-0 rounded-md border px-2 py-1.5 text-left text-[11px] transition hover:bg-muted disabled:opacity-45 disabled:hover:bg-transparent"
+                          style={isSelectedPoint ? { borderColor: m.color, background: `${m.color}14` } : undefined}>
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <span className="h-2 w-2 rounded-full shrink-0" style={{ background: m.color }} />
+                            <span className="font-bold truncate">{a.label}</span>
+                          </span>
+                          <span className="block text-[10px] text-muted-foreground">{m.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                     <span>পয়েন্ট: {bn(drawPts.length)}</span>
                     <button onClick={() => setDrawPts((p) => p.slice(0, -1))}
