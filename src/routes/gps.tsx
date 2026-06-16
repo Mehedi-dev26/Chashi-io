@@ -562,7 +562,7 @@ const TILES = {
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attr: 'Imagery © <a href="https://www.esri.com">Esri</a>',
-    maxNativeZoom: 18,
+    maxNativeZoom: 17,
   },
   street: {
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -637,8 +637,8 @@ function LeafletMap({
       <TileLayer key={layer} url={t.url} attribution={t.attr} maxNativeZoom={t.maxNativeZoom} maxZoom={22} />
       {layer === "satellite" && (
         <>
-          <TileLayer url={SATELLITE_ROADS.url} attribution={SATELLITE_ROADS.attr} maxNativeZoom={18} maxZoom={22} />
-          <TileLayer url={SATELLITE_LABELS.url} attribution={SATELLITE_LABELS.attr} maxNativeZoom={18} maxZoom={22} />
+          <TileLayer url={SATELLITE_ROADS.url} attribution={SATELLITE_ROADS.attr} maxNativeZoom={17} maxZoom={22} />
+          <TileLayer url={SATELLITE_LABELS.url} attribution={SATELLITE_LABELS.attr} maxNativeZoom={17} maxZoom={22} />
         </>
       )}
       <ClickHandler onClick={onMapClick} />
