@@ -68,7 +68,13 @@ function GpsPage() {
         .from("gps_assets").select("*")
         .eq("user_id", user.id).order("created_at", { ascending: false });
       if (error) toast.error(error.message);
-      else setAssets((data ?? []) as Asset[]);
+      else {
+        const list = (data ?? []) as Asset[];
+        setAssets(list);
+        // Auto-focus on main motor when assets first load
+        const motor = list.find((a) => a.kind === "motor");
+        if (motor) setFlyTo([motor.lat, motor.lng]);
+      }
       setLoadingAssets(false);
     })();
   }, [user]);
