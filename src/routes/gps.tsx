@@ -637,8 +637,8 @@ function LeafletMap({
       <TileLayer key={layer} url={t.url} attribution={t.attr} maxNativeZoom={t.maxNativeZoom} maxZoom={22} />
       {layer === "satellite" && (
         <>
-          <TileLayer url={SATELLITE_ROADS.url} attribution={SATELLITE_ROADS.attr} maxNativeZoom={19} maxZoom={22} />
-          <TileLayer url={SATELLITE_LABELS.url} attribution={SATELLITE_LABELS.attr} maxNativeZoom={19} maxZoom={22} />
+          <TileLayer url={SATELLITE_ROADS.url} attribution={SATELLITE_ROADS.attr} maxNativeZoom={18} maxZoom={22} />
+          <TileLayer url={SATELLITE_LABELS.url} attribution={SATELLITE_LABELS.attr} maxNativeZoom={18} maxZoom={22} />
         </>
       )}
       <ClickHandler onClick={onMapClick} />
@@ -647,8 +647,18 @@ function LeafletMap({
       {/* Saved pipelines */}
       {pipelines.map((p) => (
         <Polyline key={p.id} positions={p.points} pathOptions={{ color: p.color, weight: 4, opacity: 0.85 }}>
-          <Tooltip sticky>
-            <span style={{ fontWeight: 700 }}>{p.label}</span>
+          <Tooltip permanent direction="center" className="!bg-transparent !border-0 !shadow-none !p-0">
+            <span style={{
+              background: "rgba(255,255,255,0.94)",
+              border: `2px solid ${p.color}`,
+              color: "#111827",
+              borderRadius: 999,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.28)",
+              fontSize: 11,
+              fontWeight: 800,
+              padding: "2px 8px",
+              whiteSpace: "nowrap",
+            }}>{p.label}</span>
           </Tooltip>
         </Polyline>
       ))}
@@ -668,7 +678,7 @@ function LeafletMap({
         const m = KIND_META[a.kind];
         return (
           <Marker key={a.id} position={[a.lat, a.lng]} icon={makeIcon(a.kind)}
-                  eventHandlers={{ click: () => onSelect(a) }}>
+                  eventHandlers={{ click: (e) => { e.originalEvent.stopPropagation(); onSelect(a); } }}>
             {showLabels && (
               <Tooltip
                 permanent
