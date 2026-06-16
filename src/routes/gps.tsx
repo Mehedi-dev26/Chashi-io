@@ -172,11 +172,14 @@ function GpsPage() {
             {(["all", "field", "valve", "motor"] as FilterKind[]).map((k) => {
               const active = visibleKind === k;
               const m = k === "all" ? null : KIND_META[k];
+              const activeBg = m
+                ? m.color
+                : `linear-gradient(90deg, ${KIND_META.field.color} 0%, ${KIND_META.valve.color} 50%, ${KIND_META.motor.color} 100%)`;
               return (
                 <button key={k} onClick={() => setVisibleKind(k)}
                   className={`flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-bold transition-all ring-1 ${
                     active ? "text-white shadow-md ring-white/30" : "text-foreground ring-border bg-background hover:bg-muted"}`}
-                  style={active ? { background: m ? m.color : "hsl(var(--primary))" } : undefined}
+                  style={active ? { background: activeBg } : undefined}
                 >
                   {m ? <m.Icon className="h-3.5 w-3.5" /> : <Layers className="h-3.5 w-3.5" />}
                   {k === "all" ? `সব (${bn(assets.length)})` : `${m!.label} ${bn(counts[k as Kind])}`}
