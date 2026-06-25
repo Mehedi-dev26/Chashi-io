@@ -40,6 +40,7 @@ export const Route = createFileRoute("/api/public/telemetry")({
             current: body.current != null ? Number(body.current) : null,
             runtime_sec: body.runtimeSec != null ? Number(body.runtimeSec) : null,
             rssi: body.rssi != null ? Number(body.rssi) : null,
+            tds_ppm: body.tdsPpm != null ? Number(body.tdsPpm) : null,
             updated_at: new Date().toISOString(),
           };
 
