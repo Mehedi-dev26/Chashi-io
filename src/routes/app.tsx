@@ -22,14 +22,14 @@ export const Route = createFileRoute("/app")({
 });
 
 function Dashboard() {
-  const { zones, motor, activity, toggleValve, toggleMotor } = useIrrigationData();
+  const { zones, motor, metrics, activity, toggleValve, toggleMotor } = useIrrigationData();
   return (
     <DashboardLayout
       title="কেন্দ্রীয় পরিচালন কেন্দ্র · BMDA স্মার্ট ইরিগেশন প্ল্যাটফর্ম"
-      subtitle="৭টি সেচ জোন · ৩২.৬ হেক্টর কৃষিজমি · IoT-নিয়ন্ত্রিত ভাল্ভ, পাম্প ও সেন্সর নেটওয়ার্ক"
+      subtitle="রিয়েল-টাইম সেন্সর ডেটা · IoT-নিয়ন্ত্রিত ভাল্ভ, পাম্প ও নেটওয়ার্ক"
     >
       <div className="stagger space-y-5">
-        <StatsCards zones={zones} motor={motor} />
+        <StatsCards zones={zones} motor={motor} metrics={metrics} />
         <QuickActions />
         <FieldMap zones={zones} onToggle={toggleValve} />
         <div className="grid lg:grid-cols-3 gap-5">
