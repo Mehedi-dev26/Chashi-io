@@ -574,11 +574,24 @@ const char* WIFI_SSID = "YOUR_WIFI"; // মাস্টারের সাথে
 
 function HardwarePage() {
   const [copied, setCopied] = useState<string | null>(null);
+  // ✅ Auto-capture current origin so the firmware always points to whichever
+  //    domain (Vercel default, custom domain, Lovable preview) the user is on.
+  const [serverHost, setServerHost] = useState<string>(
+    "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app"
+  );
+  useEffect(() => {
+    if (typeof window !== "undefined") setServerHost(window.location.origin);
+  }, []);
+
+  const masterCode = buildMasterCode(serverHost);
+  const subCode = buildSubCode(serverHost);
+
   const copy = async (id: string, text: string) => {
     await navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 1500);
   };
+
 
   return (
     <DashboardLayout
