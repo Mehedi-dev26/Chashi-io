@@ -3,11 +3,12 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   Cpu, Droplets, Sun, Thermometer, Waves, Zap, Cable, CircuitBoard, Wifi,
   Code2, Wrench, ShieldCheck, Copy, CheckCheck, Network, Radio, Server, Plug,
-  FlaskConical, RotateCw,
+  FlaskConical, RotateCw, Globe, ArrowRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
+
 
 export const Route = createFileRoute("/hardware")({
   head: () => ({ meta: [{ title: "হার্ডওয়্যার গাইড · BMDA স্মার্ট সেচ" }] }),
@@ -44,28 +45,83 @@ const masterDevices = [
   { icon: ShieldCheck, name: "TP4056 + ১৮৬৫০",                      role: "ESP32 ব্যাকআপ ব্যাটারি",            pin: "VIN",              price: "৩৫০ ৳" },
 ];
 
-/* ---------------- MASTER PIN-BY-PIN WIRING ---------------- */
-const masterWiring = [
-  { from: "ESP32 GPIO 25",      to: "Relay Module IN",       note: "মেইন পাম্প রিলে (Active-LOW)" },
-  { from: "ESP32 5V",           to: "Relay Module VCC",      note: "রিলে কয়েল পাওয়ার" },
-  { from: "ESP32 GND",          to: "Relay Module GND",      note: "কমন গ্রাউন্ড" },
-  { from: "Relay COM",          to: "৬V অ্যাডাপ্টার +V",      note: "পাম্প পজিটিভ লাইন" },
-  { from: "Relay NO",           to: "৬V পাম্প (+)",           note: "Normally Open — মোটরে কারেন্ট" },
-  { from: "৬V পাম্প (−)",        to: "৬V অ্যাডাপ্টার −V",      note: "পাম্প রিটার্ন লাইন" },
-  { from: "HC-SR04 VCC",        to: "ESP32 5V",              note: "আল্ট্রাসনিক পাওয়ার" },
-  { from: "HC-SR04 GND",        to: "ESP32 GND",             note: "—" },
-  { from: "HC-SR04 Trig",       to: "ESP32 GPIO 5",          note: "ট্রিগার পালস আউট" },
-  { from: "HC-SR04 Echo",       to: "ESP32 GPIO 18",         note: "1kΩ + 2kΩ ভোল্টেজ ডিভাইডার" },
-  { from: "DHT22 VCC",          to: "ESP32 3.3V",            note: "10kΩ পুল-আপ DATA→VCC" },
-  { from: "DHT22 DATA",         to: "ESP32 GPIO 4",          note: "একতারা ডিজিটাল বাস" },
-  { from: "DHT22 GND",          to: "ESP32 GND",             note: "—" },
-  { from: "OLED VCC",           to: "ESP32 3.3V",            note: "SSD1306 ০.৯৬ ইঞ্চি" },
-  { from: "OLED GND",           to: "ESP32 GND",             note: "—" },
-  { from: "OLED SDA",           to: "ESP32 GPIO 21",         note: "I2C ডেটা লাইন" },
-  { from: "OLED SCL",           to: "ESP32 GPIO 22",         note: "I2C ক্লক লাইন" },
-  { from: "৬V অ্যাডাপ্টার −V",    to: "ESP32 GND",             note: "⚠️ কমন গ্রাউন্ড আবশ্যক (পাম্প ও ESP32)" },
-  { from: "ESP32 USB (5V)",      to: "—",                     note: "ESP32 আলাদা USB/পাওয়ার ব্যাংক দিয়ে চালান" },
+/* ---------------- MASTER PIN-BY-PIN WIRING (grouped by device) ---------------- */
+type WirePair = { mcu: string; dev: string; note?: string };
+type DeviceWiring = {
+  device: string;
+  icon: typeof Cpu;
+  color: string;          // tailwind text/border accent
+  grad: string;           // header gradient
+  desc: string;
+  pairs: WirePair[];
+};
+
+const masterDeviceWiring: DeviceWiring[] = [
+  {
+    device: "OLED ০.৯৬\" SSD1306 (I2C)",
+    icon: CircuitBoard,
+    color: "sky",
+    grad: "from-sky-500 to-cyan-500",
+    desc: "বুট লোগো ও লাইভ ডেটা ডিসপ্লে · I2C ঠিকানা 0x3C",
+    pairs: [
+      { mcu: "3V3",     dev: "VCC", note: "৩.৩V পাওয়ার" },
+      { mcu: "GND",     dev: "GND", note: "কমন গ্রাউন্ড" },
+      { mcu: "GPIO 21", dev: "SDA", note: "I2C ডেটা" },
+      { mcu: "GPIO 22", dev: "SCL", note: "I2C ক্লক" },
+    ],
+  },
+  {
+    device: "DHT22 (তাপমাত্রা + আর্দ্রতা)",
+    icon: Thermometer,
+    color: "emerald",
+    grad: "from-emerald-500 to-teal-500",
+    desc: "DATA ↔ VCC এর মাঝে ১০kΩ পুল-আপ রেজিস্টর লাগান",
+    pairs: [
+      { mcu: "3V3",    dev: "VCC (Pin 1)",  note: "১০kΩ pull-up → DATA" },
+      { mcu: "GPIO 4", dev: "DATA (Pin 2)", note: "ওয়ান-ওয়্যার ডিজিটাল" },
+      { mcu: "GND",    dev: "GND (Pin 4)",  note: "—" },
+    ],
+  },
+  {
+    device: "HC-SR04 আল্ট্রাসনিক (ট্যাঙ্ক জলস্তর)",
+    icon: Waves,
+    color: "violet",
+    grad: "from-violet-500 to-fuchsia-500",
+    desc: "Echo পিন থেকে ESP32-এ যাওয়ার আগে 1kΩ + 2kΩ ভোল্টেজ ডিভাইডার লাগান",
+    pairs: [
+      { mcu: "5V (VIN)", dev: "VCC",  note: "সেন্সর ৫V-এ ভালো কাজ করে" },
+      { mcu: "GND",      dev: "GND",  note: "—" },
+      { mcu: "GPIO 5",   dev: "Trig", note: "১০µs ট্রিগার পালস" },
+      { mcu: "GPIO 18",  dev: "Echo", note: "⚠️ 1kΩ+2kΩ ডিভাইডার আবশ্যক" },
+    ],
+  },
+  {
+    device: "১-চ্যানেল রিলে মডিউল (৫V)",
+    icon: Zap,
+    color: "amber",
+    grad: "from-amber-500 to-orange-500",
+    desc: "Active-LOW রিলে — GPIO LOW দিলে কয়েল on হয় ও NO-COM short হয়",
+    pairs: [
+      { mcu: "5V (VIN)", dev: "VCC", note: "রিলে কয়েল পাওয়ার" },
+      { mcu: "GND",      dev: "GND", note: "কমন গ্রাউন্ড" },
+      { mcu: "GPIO 25",  dev: "IN",  note: "কন্ট্রোল সিগনাল (Active-LOW)" },
+    ],
+  },
+  {
+    device: "মেইন মোটর · ৬V Ultra-Quiet Pump",
+    icon: Droplets,
+    color: "rose",
+    grad: "from-rose-500 to-pink-500",
+    desc: "পাম্পের পাওয়ার ESP32 থেকে আসে না — আলাদা ৬V অ্যাডাপ্টার লাগে; শুধু GND শেয়ার্ড",
+    pairs: [
+      { mcu: "Relay NO",   dev: "Pump (+)",       note: "Normally-Open আউটপুট" },
+      { mcu: "Relay COM",  dev: "৬V Adapter +V",  note: "অ্যাডাপ্টারের পজিটিভ লাইন" },
+      { mcu: "—",          dev: "Pump (−) → Adapter −V", note: "পাম্প রিটার্ন" },
+      { mcu: "ESP32 GND",  dev: "Adapter −V",     note: "⚠️ কমন গ্রাউন্ড আবশ্যক" },
+    ],
+  },
 ];
+
 
 const subDevices = [
   { icon: Radio,        name: "ESP8266 NodeMCU v3",       role: "সাব-নোড MCU (WiFi)",                pin: "—",            price: "৩৫০ ৳" },
@@ -79,7 +135,8 @@ const subDevices = [
 const subTotalPerNode = "১,৪৮০ ৳";
 
 /* ---------------- MASTER FIRMWARE ---------------- */
-const masterCode = `/**
+const buildMasterCode = (serverHost: string) => `/**
+
  *  BMDA Smart Irrigation — MASTER NODE (ESP32)
  *  স্থান : পাম্প হাউস
  *  পাম্প : ৬V Ultra-Quiet Fractional Submersible Pump
@@ -108,7 +165,8 @@ const masterCode = `/**
 const char* WIFI_SSID   = "YOUR_WIFI";
 const char* WIFI_PASS   = "YOUR_PASSWORD";
 // স্থায়ী dev URL — publish না করলেও কাজ করবে।
-const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
+const char* SERVER_HOST = "${serverHost}";
+
 const char* DEVICE_ID   = "MASTER-01";
 const char* ZONE_ID     = "PUMP-HOUSE";
 // ========================
@@ -359,7 +417,8 @@ void loop() {
 }`;
 
 /* ---------------- SUB-NODE FIRMWARE ---------------- */
-const subCode = `/**
+const buildSubCode = (serverHost: string) => `/**
+
  *  BMDA Smart Irrigation — SUB NODE (ESP8266 NodeMCU)
  *  স্থান : জমিতে — প্রতিটি জোনে একটি
  *  সেন্সর: TDS sensor (Gravity/generic) → মাটির আর্দ্রতা %
@@ -379,7 +438,7 @@ const subCode = `/**
 // ====== EDIT THESE ======
 const char* WIFI_SSID   = "YOUR_WIFI";
 const char* WIFI_PASS   = "YOUR_PASSWORD";
-const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
+const char* SERVER_HOST = "${serverHost}";
 const char* DEVICE_ID   = "SUB-01";    // প্রতিটি sub-node-এর অনন্য নাম
 const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 // ========================
@@ -515,11 +574,24 @@ const char* WIFI_SSID = "YOUR_WIFI"; // মাস্টারের সাথে
 
 function HardwarePage() {
   const [copied, setCopied] = useState<string | null>(null);
+  // ✅ Auto-capture current origin so the firmware always points to whichever
+  //    domain (Vercel default, custom domain, Lovable preview) the user is on.
+  const [serverHost, setServerHost] = useState<string>(
+    "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app"
+  );
+  useEffect(() => {
+    if (typeof window !== "undefined") setServerHost(window.location.origin);
+  }, []);
+
+  const masterCode = buildMasterCode(serverHost);
+  const subCode = buildSubCode(serverHost);
+
   const copy = async (id: string, text: string) => {
     await navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 1500);
   };
+
 
   return (
     <DashboardLayout
@@ -543,7 +615,7 @@ function HardwarePage() {
               <p className="text-[11px] text-muted-foreground mb-3">স্থান: পাম্প হাউস · একটিই থাকবে</p>
               <ul className="text-xs space-y-1.5 text-foreground/80">
                 <li>• মেইন মোটর রিলে নিয়ন্ত্রণ</li>
-                <li>• R385 ১২V DC পাম্প (১.৮ L/min auto)</li>
+                <li>• ৬V Ultra-Quiet পাম্প (~২.০ L/min auto)</li>
                 <li>• HC-SR04 ট্যাঙ্ক জলস্তর</li>
                 <li>• DHT22 তাপ ও আর্দ্রতা</li>
                 <li>• OLED স্ট্যাটাস ডিসপ্লে</li>
@@ -639,6 +711,23 @@ function HardwarePage() {
           </div>
         </div>
 
+        {/* AUTO-CAPTURED SERVER URL BANNER */}
+        <div className="rounded-2xl p-5 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 text-white shadow-lg ring-1 ring-white/25 border-2 border-white/15">
+          <div className="flex items-start gap-3">
+            <div className="h-10 w-10 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm shrink-0">
+              <Globe className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] uppercase tracking-wider font-bold opacity-95">অটো-ক্যাপচারড সার্ভার URL</p>
+              <p className="text-sm font-extrabold mt-0.5">নিচের ফার্মওয়্যারে আপনি এখন যে domain-এ আছেন, সেটিই স্বয়ংক্রিয়ভাবে বসানো হয়েছে</p>
+              <p className="font-mono text-xs md:text-sm bg-black/25 rounded-lg px-3 py-2 mt-2 break-all">{serverHost}</p>
+              <p className="text-[11px] mt-2 opacity-90 leading-relaxed">
+                Vercel default domain, custom domain, বা Lovable preview — যেখান থেকেই এই পেজ খুলবেন, ESP32/ESP8266 কোডের <code className="bg-black/30 px-1 rounded">SERVER_HOST</code> সেই URL-এ আপডেট হয়ে যাবে। কপি করার আগে নিশ্চিত হোন আপনি সঠিক production domain-এ আছেন।
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* MASTER firmware */}
         <div className="glass-card rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -659,69 +748,73 @@ function HardwarePage() {
           </pre>
         </div>
 
-        {/* MASTER WIRING / CONNECTION DIAGRAM */}
+        {/* MASTER WIRING — Professional per-device cards */}
         <div className="glass-card rounded-2xl p-5 border-2 border-amber-400/40 shadow-md shadow-amber-500/10 ring-1 ring-amber-300/20">
           <div className="flex items-center gap-2 mb-1">
             <Plug className="h-5 w-5 text-amber-500" />
-            <h2 className="text-base font-extrabold">মাস্টার নোড — পিন-বাই-পিন কানেকশন ডায়াগ্রাম</h2>
+            <h2 className="text-base font-extrabold">মাস্টার নোড — পিন-বাই-পিন কানেকশন</h2>
           </div>
-          <p className="text-xs text-muted-foreground mb-4">
-            ESP32 DevKit V1 থেকে প্রতিটি কম্পোনেন্টের সঠিক তার-সংযোগ। ব্রেডবোর্ডে বসানোর সময় এই টেবিল ফলো করুন — ভুল পিনে লাগালে কাজ করবে না।
+          <p className="text-xs text-muted-foreground mb-5">
+            প্রতিটি ডিভাইসের জন্য আলাদা কার্ড। প্রতিটি সারিতে দেখানো আছে ESP32-এর কোন পিন থেকে ডিভাইসের কোন পিনে যাবে।
           </p>
 
-          <div className="grid lg:grid-cols-2 gap-4">
-            {/* Wiring table */}
-            <div className="overflow-x-auto rounded-xl border border-amber-400/30">
-              <table className="w-full text-xs">
-                <thead className="bg-amber-500/10">
-                  <tr className="text-left text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                    <th className="py-2 px-3">থেকে (From)</th>
-                    <th className="py-2 px-3">যাবে (To)</th>
-                    <th className="py-2 px-3 hidden md:table-cell">নোট</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {masterWiring.map((w, i) => (
-                    <tr key={i} className="border-t border-border/40 hover:bg-amber-500/5">
-                      <td className="py-2 px-3 font-mono font-bold text-primary">{w.from}</td>
-                      <td className="py-2 px-3 font-mono font-bold text-chart-2">{w.to}</td>
-                      <td className="py-2 px-3 text-muted-foreground hidden md:table-cell">{w.note}</td>
-                    </tr>
+          <div className="grid md:grid-cols-2 gap-4">
+            {masterDeviceWiring.map((dev) => (
+              <div
+                key={dev.device}
+                className="rounded-2xl border-2 border-border bg-card/40 overflow-hidden hover-lift"
+              >
+                {/* Header: ESP32 → Device */}
+                <div className={`bg-gradient-to-r ${dev.grad} text-white px-4 py-3`}>
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm shrink-0">
+                      <dev.icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-95">
+                        <span>ESP32 DevKit V1</span>
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="truncate">{dev.device}</span>
+                      </div>
+                      <p className="text-[10px] opacity-85 leading-snug mt-0.5">{dev.desc}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pin pair rows */}
+                <div className="divide-y divide-border/60">
+                  {/* Column headers */}
+                  <div className="grid grid-cols-[1fr_auto_1fr] gap-2 px-4 py-2 bg-muted/40 text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                    <span>ESP32 পিন</span>
+                    <span className="text-center">↔</span>
+                    <span className="text-right">ডিভাইস পিন</span>
+                  </div>
+                  {dev.pairs.map((p, i) => (
+                    <div key={i} className="px-4 py-2.5">
+                      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                        <span className="font-mono text-xs font-extrabold text-primary truncate">{p.mcu}</span>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="font-mono text-xs font-extrabold text-chart-2 text-right truncate">{p.dev}</span>
+                      </div>
+                      {p.note && (
+                        <p className="text-[10.5px] text-muted-foreground mt-1 leading-snug">{p.note}</p>
+                      )}
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* ASCII / visual diagram */}
-            <div className="rounded-xl bg-foreground/95 text-background p-4 text-[11px] font-mono overflow-x-auto leading-relaxed">
-{`            ┌──────────────────────────────┐
-            │         ESP32 DevKit V1       │
-            │                               │
-   3.3V ────┤ 3V3              GPIO 21 ├──── SDA  ┐
-    GND ─┬──┤ GND              GPIO 22 ├──── SCL  ├─→ OLED 0.96"
-         │  │                  GPIO  4 ├──── DATA──→ DHT22 (10kΩ pull-up)
-         │  │                  GPIO  5 ├──── Trig ──→ HC-SR04
-         │  │                  GPIO 18 ├──── Echo ←── HC-SR04 (1k+2k divider)
-         │  │                  GPIO 25 ├──── IN   ──→ Relay  ──→ R385 12V Pump
-         │  │     VIN  ←─── +12V SMPS  │
-         │  │     GND  ←─── −12V SMPS ─┘
-         └──── কমন গ্রাউন্ড (সমস্ত ডিভাইস)
-
-   ⚡ পাম্প লুপ:  +12V SMPS → Relay COM → Relay NO → Pump (+)
-                  Pump (−) → −12V SMPS  (ESP32-এর সাথে ground share করতে হবে)
-`}
-            </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* legend cards */}
-          <div className="grid sm:grid-cols-3 gap-2 mt-4 text-xs">
+          <div className="grid sm:grid-cols-3 gap-2 mt-5 text-xs">
             <div className="rounded-lg glass-panel p-3 border border-rose-400/30">
               <p className="font-extrabold text-rose-500">⚠️ ভোল্টেজ ডিভাইডার</p>
               <p className="text-[11px] text-muted-foreground mt-1">HC-SR04 Echo ৫V আউট দেয় — সরাসরি GPIO 18-এ দিলে ESP32 পুড়বে। 1kΩ + 2kΩ ডিভাইডার ব্যবহার করুন।</p>
             </div>
             <div className="rounded-lg glass-panel p-3 border border-amber-400/30">
               <p className="font-extrabold text-amber-500">⚡ কমন গ্রাউন্ড</p>
-              <p className="text-[11px] text-muted-foreground mt-1">SMPS-এর GND, ESP32-এর GND, রিলের GND — সব একসাথে যুক্ত না থাকলে রিলে ট্রিগার হবে না।</p>
+              <p className="text-[11px] text-muted-foreground mt-1">৬V অ্যাডাপ্টার GND, ESP32 GND, রিলে GND — সব একসাথে যুক্ত না থাকলে রিলে ট্রিগার হবে না।</p>
             </div>
             <div className="rounded-lg glass-panel p-3 border border-emerald-400/30">
               <p className="font-extrabold text-emerald-500">✓ ফ্লাইব্যাক ডায়োড</p>
@@ -729,6 +822,8 @@ function HardwarePage() {
             </div>
           </div>
         </div>
+
+
 
 
         {/* SUB section */}
