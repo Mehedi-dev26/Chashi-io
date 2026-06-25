@@ -2,10 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ZonesGrid } from "@/components/dashboard/ZonesGrid";
 import { useIrrigationData } from "@/hooks/useIrrigationData";
-import { Droplets, Plus, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { Droplets, Plus, Trash2, X, Cpu } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
+
+type AvailableNode = { device_id: string; label: string; zone_id: string | null };
 
 export const Route = createFileRoute("/zones")({
   head: () => ({ meta: [{ title: "সেচ জোন · BMDA স্মার্ট সেচ" }] }),
@@ -15,19 +18,34 @@ export const Route = createFileRoute("/zones")({
 function ZonesPage() {
   const { zones, toggleValve, addField, deleteField } = useIrrigationData();
   const [openAdd, setOpenAdd] = useState(false);
-  const [form, setForm] = useState({ zone_id: "", nameBn: "", area: 1, crop: "Rice" });
+  const [form, setForm] = useState({ zone_id: "", nameBn: "", area: 1, crop: "Rice", valveNodeId: "" });
+  const [availableNodes, setAvailableNodes] = useState<AvailableNode[]>([]);
   const irrigating = zones.filter((z) => z.valveOpen).length;
   const alerts = zones.filter((z) => z.status === "alert").length;
   const validMoisture = zones.filter((z) => z.soilMoisture > 0);
   const avgMoisture = validMoisture.length ? validMoisture.reduce((s, z) => s + z.soilMoisture, 0) / validMoisture.length : 0;
 
+  useEffect(() => {
+    if (!openAdd) return;
+    supabase.from("field_nodes").select("device_id,label,zone_id").is("zone_id", null).then(({ data }) => {
+      setAvailableNodes((data ?? []) as AvailableNode[]);
+    });
+  }, [openAdd]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.zone_id || !form.nameBn) return;
-    await addField(form);
-    setForm({ zone_id: "", nameBn: "", area: 1, crop: "Rice" });
+    await addField({
+      zone_id: form.zone_id,
+      nameBn: form.nameBn,
+      area: form.area,
+      crop: form.crop,
+      valveNodeId: form.valveNodeId || null,
+    });
+    setForm({ zone_id: "", nameBn: "", area: 1, crop: "Rice", valveNodeId: "" });
     setOpenAdd(false);
   };
+
 
   return (
     <DashboardLayout
