@@ -438,7 +438,7 @@ const buildSubCode = (serverHost: string) => `/**
 // ====== EDIT THESE ======
 const char* WIFI_SSID   = "YOUR_WIFI";
 const char* WIFI_PASS   = "YOUR_PASSWORD";
-const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
+const char* SERVER_HOST = "${serverHost}";
 const char* DEVICE_ID   = "SUB-01";    // প্রতিটি sub-node-এর অনন্য নাম
 const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 // ========================
