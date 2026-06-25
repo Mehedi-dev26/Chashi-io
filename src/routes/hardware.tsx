@@ -572,17 +572,21 @@ const char* WIFI_SSID = "YOUR_WIFI"; // মাস্টারের সাথে
 // ৪. Arduino IDE → Upload → ৫ সেকেন্ডের মধ্যে dashboard-এ লাইভ।
 // (মাস্টার কখনো ডুপ্লিকেট হবে না — পুরো নেটওয়ার্কে একটিই থাকবে)`;
 
+// ⚙️ Backend (server routes like /api/public/telemetry) runs ONLY on the
+//    Lovable Cloud Worker. Vercel hosts the static frontend only — POSTs to
+//    the Vercel domain return 405. Always pin firmware to the stable Lovable
+//    backend URL, regardless of which domain the user is viewing this page from.
+const BACKEND_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
+
 function HardwarePage() {
   const [copied, setCopied] = useState<string | null>(null);
-  // ✅ Auto-capture current origin so the firmware always points to whichever
-  //    domain (Vercel default, custom domain, Lovable preview) the user is on.
-  const [serverHost, setServerHost] = useState<string>(
-    "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app"
-  );
+  const [viewOrigin, setViewOrigin] = useState<string>("");
   useEffect(() => {
-    if (typeof window !== "undefined") setServerHost(window.location.origin);
+    if (typeof window !== "undefined") setViewOrigin(window.location.origin);
   }, []);
 
+  // Firmware ALWAYS targets the Lovable backend (where server routes live).
+  const serverHost = BACKEND_HOST;
   const masterCode = buildMasterCode(serverHost);
   const subCode = buildSubCode(serverHost);
 
@@ -591,6 +595,10 @@ function HardwarePage() {
     setCopied(id);
     setTimeout(() => setCopied(null), 1500);
   };
+
+  const originMismatch = Boolean(viewOrigin) && !viewOrigin.includes("lovable.app");
+
+
 
 
   return (
