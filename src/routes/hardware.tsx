@@ -219,7 +219,7 @@ bool          systemOnline  = false;       // ✅ ব্যাকএন্ডে
 unsigned long motorStartMs  = 0;
 unsigned long motorTotalMs  = 0;            // মোট রানটাইম (ms)
 unsigned long lastSend      = 0;
-const unsigned long SEND_INTERVAL = 5000;
+const unsigned long SEND_INTERVAL = 2000;   // ⚡ 2s — snappy dashboard sync
 
 // Button debounce state
 int  lastBtnOnState  = HIGH;
@@ -237,42 +237,16 @@ void oledCenter(const String& s, int y, int sz = 1) {
   oled.print(s);
 }
 
-// 🆕 নতুন বুট অ্যানিমেশন — শুধু "Develop by Mehedi Ahsan" branding
+// 🆕 মিনিমাল বুট — শুধু "Develop by Mehedi Ahsan"
 void bootAnimation() {
-  // ফেজ ১ : টাইটেল ফেড-ইন
-  for (int i = 0; i <= 4; i++) {
-    oled.clearDisplay();
-    oled.setTextColor(SSD1306_WHITE);
-    oled.drawRoundRect(2, 2, OLED_W - 4, OLED_H - 4, 4, SSD1306_WHITE);
-    oledCenter("SMART", 10, 2);
-    oledCenter("IRRIGATION", 28, 2);
-    oled.display();
-    delay(150);
-  }
-  delay(500);
-
-  // ফেজ ২ : ডেভেলপার ক্রেডিট
   oled.clearDisplay();
-  oled.drawRoundRect(2, 2, OLED_W - 4, OLED_H - 4, 4, SSD1306_WHITE);
-  oledCenter("Develop by", 14, 1);
-  oledCenter("Mehedi Ahsan", 30, 2);
-  oled.drawFastHLine(20, 50, OLED_W - 40, SSD1306_WHITE);
-  oledCenter("v1.0", 54, 1);
+  oled.setTextColor(SSD1306_WHITE);
+  oledCenter("Develop by", 18, 1);
+  oledCenter("Mehedi Ahsan", 34, 2);
   oled.display();
   delay(1800);
-
-  // ফেজ ৩ : প্রোগ্রেস বার (system booting)
-  for (int p = 0; p <= 100; p += 4) {
-    oled.clearDisplay();
-    oledCenter("Initializing", 6, 1);
-    oledCenter("system...", 18, 1);
-    oled.drawRoundRect(14, 38, 100, 12, 3, SSD1306_WHITE);
-    oled.fillRoundRect(16, 40, p * 96 / 100, 8, 2, SSD1306_WHITE);
-    oledCenter(String(p) + "%", 54, 1);
-    oled.display();
-    delay(22);
-  }
-  delay(300);
+  oled.clearDisplay();
+  oled.display();
 }
 
 String fmtRuntime(unsigned long ms) {
