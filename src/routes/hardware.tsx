@@ -45,28 +45,83 @@ const masterDevices = [
   { icon: ShieldCheck, name: "TP4056 + ১৮৬৫০",                      role: "ESP32 ব্যাকআপ ব্যাটারি",            pin: "VIN",              price: "৩৫০ ৳" },
 ];
 
-/* ---------------- MASTER PIN-BY-PIN WIRING ---------------- */
-const masterWiring = [
-  { from: "ESP32 GPIO 25",      to: "Relay Module IN",       note: "মেইন পাম্প রিলে (Active-LOW)" },
-  { from: "ESP32 5V",           to: "Relay Module VCC",      note: "রিলে কয়েল পাওয়ার" },
-  { from: "ESP32 GND",          to: "Relay Module GND",      note: "কমন গ্রাউন্ড" },
-  { from: "Relay COM",          to: "৬V অ্যাডাপ্টার +V",      note: "পাম্প পজিটিভ লাইন" },
-  { from: "Relay NO",           to: "৬V পাম্প (+)",           note: "Normally Open — মোটরে কারেন্ট" },
-  { from: "৬V পাম্প (−)",        to: "৬V অ্যাডাপ্টার −V",      note: "পাম্প রিটার্ন লাইন" },
-  { from: "HC-SR04 VCC",        to: "ESP32 5V",              note: "আল্ট্রাসনিক পাওয়ার" },
-  { from: "HC-SR04 GND",        to: "ESP32 GND",             note: "—" },
-  { from: "HC-SR04 Trig",       to: "ESP32 GPIO 5",          note: "ট্রিগার পালস আউট" },
-  { from: "HC-SR04 Echo",       to: "ESP32 GPIO 18",         note: "1kΩ + 2kΩ ভোল্টেজ ডিভাইডার" },
-  { from: "DHT22 VCC",          to: "ESP32 3.3V",            note: "10kΩ পুল-আপ DATA→VCC" },
-  { from: "DHT22 DATA",         to: "ESP32 GPIO 4",          note: "একতারা ডিজিটাল বাস" },
-  { from: "DHT22 GND",          to: "ESP32 GND",             note: "—" },
-  { from: "OLED VCC",           to: "ESP32 3.3V",            note: "SSD1306 ০.৯৬ ইঞ্চি" },
-  { from: "OLED GND",           to: "ESP32 GND",             note: "—" },
-  { from: "OLED SDA",           to: "ESP32 GPIO 21",         note: "I2C ডেটা লাইন" },
-  { from: "OLED SCL",           to: "ESP32 GPIO 22",         note: "I2C ক্লক লাইন" },
-  { from: "৬V অ্যাডাপ্টার −V",    to: "ESP32 GND",             note: "⚠️ কমন গ্রাউন্ড আবশ্যক (পাম্প ও ESP32)" },
-  { from: "ESP32 USB (5V)",      to: "—",                     note: "ESP32 আলাদা USB/পাওয়ার ব্যাংক দিয়ে চালান" },
+/* ---------------- MASTER PIN-BY-PIN WIRING (grouped by device) ---------------- */
+type WirePair = { mcu: string; dev: string; note?: string };
+type DeviceWiring = {
+  device: string;
+  icon: typeof Cpu;
+  color: string;          // tailwind text/border accent
+  grad: string;           // header gradient
+  desc: string;
+  pairs: WirePair[];
+};
+
+const masterDeviceWiring: DeviceWiring[] = [
+  {
+    device: "OLED ০.৯৬\" SSD1306 (I2C)",
+    icon: CircuitBoard,
+    color: "sky",
+    grad: "from-sky-500 to-cyan-500",
+    desc: "বুট লোগো ও লাইভ ডেটা ডিসপ্লে · I2C ঠিকানা 0x3C",
+    pairs: [
+      { mcu: "3V3",     dev: "VCC", note: "৩.৩V পাওয়ার" },
+      { mcu: "GND",     dev: "GND", note: "কমন গ্রাউন্ড" },
+      { mcu: "GPIO 21", dev: "SDA", note: "I2C ডেটা" },
+      { mcu: "GPIO 22", dev: "SCL", note: "I2C ক্লক" },
+    ],
+  },
+  {
+    device: "DHT22 (তাপমাত্রা + আর্দ্রতা)",
+    icon: Thermometer,
+    color: "emerald",
+    grad: "from-emerald-500 to-teal-500",
+    desc: "DATA ↔ VCC এর মাঝে ১০kΩ পুল-আপ রেজিস্টর লাগান",
+    pairs: [
+      { mcu: "3V3",    dev: "VCC (Pin 1)",  note: "১০kΩ pull-up → DATA" },
+      { mcu: "GPIO 4", dev: "DATA (Pin 2)", note: "ওয়ান-ওয়্যার ডিজিটাল" },
+      { mcu: "GND",    dev: "GND (Pin 4)",  note: "—" },
+    ],
+  },
+  {
+    device: "HC-SR04 আল্ট্রাসনিক (ট্যাঙ্ক জলস্তর)",
+    icon: Waves,
+    color: "violet",
+    grad: "from-violet-500 to-fuchsia-500",
+    desc: "Echo পিন থেকে ESP32-এ যাওয়ার আগে 1kΩ + 2kΩ ভোল্টেজ ডিভাইডার লাগান",
+    pairs: [
+      { mcu: "5V (VIN)", dev: "VCC",  note: "সেন্সর ৫V-এ ভালো কাজ করে" },
+      { mcu: "GND",      dev: "GND",  note: "—" },
+      { mcu: "GPIO 5",   dev: "Trig", note: "১০µs ট্রিগার পালস" },
+      { mcu: "GPIO 18",  dev: "Echo", note: "⚠️ 1kΩ+2kΩ ডিভাইডার আবশ্যক" },
+    ],
+  },
+  {
+    device: "১-চ্যানেল রিলে মডিউল (৫V)",
+    icon: Zap,
+    color: "amber",
+    grad: "from-amber-500 to-orange-500",
+    desc: "Active-LOW রিলে — GPIO LOW দিলে কয়েল on হয় ও NO-COM short হয়",
+    pairs: [
+      { mcu: "5V (VIN)", dev: "VCC", note: "রিলে কয়েল পাওয়ার" },
+      { mcu: "GND",      dev: "GND", note: "কমন গ্রাউন্ড" },
+      { mcu: "GPIO 25",  dev: "IN",  note: "কন্ট্রোল সিগনাল (Active-LOW)" },
+    ],
+  },
+  {
+    device: "মেইন মোটর · ৬V Ultra-Quiet Pump",
+    icon: Droplets,
+    color: "rose",
+    grad: "from-rose-500 to-pink-500",
+    desc: "পাম্পের পাওয়ার ESP32 থেকে আসে না — আলাদা ৬V অ্যাডাপ্টার লাগে; শুধু GND শেয়ার্ড",
+    pairs: [
+      { mcu: "Relay NO",   dev: "Pump (+)",       note: "Normally-Open আউটপুট" },
+      { mcu: "Relay COM",  dev: "৬V Adapter +V",  note: "অ্যাডাপ্টারের পজিটিভ লাইন" },
+      { mcu: "—",          dev: "Pump (−) → Adapter −V", note: "পাম্প রিটার্ন" },
+      { mcu: "ESP32 GND",  dev: "Adapter −V",     note: "⚠️ কমন গ্রাউন্ড আবশ্যক" },
+    ],
+  },
 ];
+
 
 const subDevices = [
   { icon: Radio,        name: "ESP8266 NodeMCU v3",       role: "সাব-নোড MCU (WiFi)",                pin: "—",            price: "৩৫০ ৳" },
