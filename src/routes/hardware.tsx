@@ -3,11 +3,12 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   Cpu, Droplets, Sun, Thermometer, Waves, Zap, Cable, CircuitBoard, Wifi,
   Code2, Wrench, ShieldCheck, Copy, CheckCheck, Network, Radio, Server, Plug,
-  FlaskConical, RotateCw,
+  FlaskConical, RotateCw, Globe, ArrowRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
+
 
 export const Route = createFileRoute("/hardware")({
   head: () => ({ meta: [{ title: "হার্ডওয়্যার গাইড · BMDA স্মার্ট সেচ" }] }),
