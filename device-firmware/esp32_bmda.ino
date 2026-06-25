@@ -20,7 +20,7 @@
 // ====== EDIT THESE ======
 const char* WIFI_SSID  = "YOUR_WIFI_NAME";
 const char* WIFI_PASS  = "YOUR_WIFI_PASSWORD";
-const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2.lovable.app";
+const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
 const char* DEVICE_ID  = "ESP32-NODE-01";
 const char* ZONE_ID    = "Z-01";
 // ========================
