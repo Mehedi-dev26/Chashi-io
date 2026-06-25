@@ -361,29 +361,41 @@ void loop() {
 const subCode = `/**
  *  BMDA Smart Irrigation — SUB NODE (ESP8266 NodeMCU)
  *  স্থান : জমিতে — প্রতিটি জোনে একটি
- *  কাজ  : মাটির আর্দ্রতা ও আলো পড়া, জোন ভাল্ভ খোলা/বন্ধ করা,
- *         মাস্টারের সিদ্ধান্ত অনুযায়ী মোটর চালু করার অনুরোধ পাঠানো।
+ *  সেন্সর: TDS sensor (Gravity/generic) → মাটির আর্দ্রতা %
+ *         LDR → দিন/রাত
+ *  অ্যাকচুয়েটর: SG90 Servo Motor → পানির লাইন on/off (০°=বন্ধ, ৯০°=খোলা)
+ *  কাজ  : প্রতি ৫ সেকেন্ডে heartbeat + dashboard থেকে valve কমান্ড গ্রহণ।
  *
  *  Board    : NodeMCU 1.0 (ESP-12E Module)
- *  Libraries: ESP8266WiFi, ESP8266HTTPClient, ArduinoJson
+ *  Libraries: ESP8266WiFi, ESP8266HTTPClient, ArduinoJson, Servo
  */
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecureBearSSL.h>
 #include <ArduinoJson.h>
+#include <Servo.h>
 
 // ====== EDIT THESE ======
 const char* WIFI_SSID   = "YOUR_WIFI";
 const char* WIFI_PASS   = "YOUR_PASSWORD";
-// স্থায়ী dev URL — publish না করলেও কাজ করবে।
 const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
-const char* DEVICE_ID   = "SUB-Z01";   // প্রতিটি sub-node-এর অনন্য নাম
+const char* DEVICE_ID   = "SUB-01";    // প্রতিটি sub-node-এর অনন্য নাম
 const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 // ========================
 
-#define PIN_SOIL    A0     // ক্যাপাসিটিভ সয়েল
+// ---- Pins ----
+#define PIN_TDS     A0     // TDS sensor analog (ESP8266-এ একটাই ADC)
 #define PIN_LDR     D5     // LDR digital
-#define PIN_VALVE   D1     // জোন রিলে
+#define PIN_SERVO   D2     // SG90 servo PWM (GPIO4)
+
+// ---- TDS reference voltage (NodeMCU ADC 0..1023 → 0..3.3V via onboard divider) ----
+const float VREF = 3.3;
+const float ADC_MAX = 1023.0;
+
+// ---- Servo ----
+Servo valveServo;
+const int SERVO_CLOSED = 0;
+const int SERVO_OPEN   = 90;
 
 bool valveOpen = false;
 unsigned long lastSend = 0;
@@ -391,14 +403,34 @@ const unsigned long SEND_INTERVAL = 5000;
 
 void setValve(bool on) {
   valveOpen = on;
-  digitalWrite(PIN_VALVE, on ? LOW : HIGH);   // ACTIVE-LOW
-  Serial.printf("[%s] VALVE %s\\n", ZONE_ID, on ? "OPEN" : "CLOSED");
+  valveServo.write(on ? SERVO_OPEN : SERVO_CLOSED);
+  Serial.printf("[%s] SERVO → %s (%d°)\\n", ZONE_ID, on ? "OPEN" : "CLOSED", on ? SERVO_OPEN : SERVO_CLOSED);
 }
 
-float readSoilPct() {
-  int raw = analogRead(PIN_SOIL);             // 0..1023
-  // dry≈800, wet≈300 — নিজের সেন্সর ক্যালিব্রেট করুন
-  float pct = (800 - raw) * 100.0 / (800 - 300);
+// ---- TDS → soil moisture conversion ----
+// raw ADC → voltage → (with temp comp.) → TDS ppm → mapped to moisture %
+// dry মাটি = কম conductivity = কম ppm; ভেজা মাটি = বেশি conductivity = বেশি ppm
+float readTdsPpm(float tempC = 25.0) {
+  // ৩০টি স্যাম্পল গড় — noise কমায়
+  long sum = 0;
+  for (int i = 0; i < 30; i++) { sum += analogRead(PIN_TDS); delay(2); }
+  float avg = sum / 30.0;
+  float voltage = avg * VREF / ADC_MAX;
+  float compCoef = 1.0 + 0.02 * (tempC - 25.0);
+  float compV = voltage / compCoef;
+  // Gravity TDS standard polynomial
+  float tds = (133.42 * compV * compV * compV
+             - 255.86 * compV * compV
+             + 857.39 * compV) * 0.5;
+  if (tds < 0) tds = 0;
+  return tds;
+}
+
+float ppmToMoisturePct(float ppm) {
+  // ক্যালিব্রেশন: dry ≈ 0 ppm, saturated ≈ 1000 ppm (নিজের মাটিতে ক্যালিব্রেট করুন)
+  const float PPM_DRY = 0.0;
+  const float PPM_WET = 1000.0;
+  float pct = (ppm - PPM_DRY) * 100.0 / (PPM_WET - PPM_DRY);
   if (pct < 0) pct = 0; if (pct > 100) pct = 100;
   return pct;
 }
@@ -411,28 +443,31 @@ void connectWifi() {
 }
 
 void sendTelemetry() {
-  float soil = readSoilPct();
-  bool  dayLight = digitalRead(PIN_LDR) == LOW;   // LOW = আলো আছে
+  float ppm  = readTdsPpm(25.0);
+  float soil = ppmToMoisturePct(ppm);
+  bool  dayLight = digitalRead(PIN_LDR) == LOW;
 
   JsonDocument doc;
   doc["deviceId"]     = DEVICE_ID;
   doc["zoneId"]       = ZONE_ID;
   doc["role"]         = "sub";
   doc["soilMoisture"] = soil;
+  doc["tdsPpm"]       = ppm;
   doc["ldr"]          = dayLight ? 85 : 10;
   doc["valveOpen"]    = valveOpen;
   doc["rssi"]         = WiFi.RSSI();
 
   String body; serializeJson(doc, body);
   BearSSL::WiFiClientSecure client;
-  client.setInsecure();                              // dev demo — সহজ TLS, cert validate করে না
+  client.setInsecure();
   HTTPClient http;
   http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
   http.addHeader("Content-Type", "application/json");
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
-  Serial.printf("[%s] POST %d  soil=%.0f%% day=%d\\n", ZONE_ID, code, soil, dayLight);
+  Serial.printf("[%s] POST %d  ppm=%.0f soil=%.0f%% valve=%d\\n",
+                ZONE_ID, code, ppm, soil, valveOpen);
 
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
@@ -446,10 +481,14 @@ void sendTelemetry() {
 
 void setup() {
   Serial.begin(115200);
-  pinMode(PIN_VALVE, OUTPUT);
-  digitalWrite(PIN_VALVE, HIGH);
   pinMode(PIN_LDR, INPUT);
+  valveServo.attach(PIN_SERVO);
+  setValve(false);              // boot হলে valve বন্ধ থাকবে
   connectWifi();
+  // ✅ Boot heartbeat — dashboard সাথে সাথে এই sub-node-কে ONLINE দেখবে
+  Serial.println("[SUB] System online — sending boot heartbeat");
+  sendTelemetry();
+  lastSend = millis();
 }
 
 void loop() {
