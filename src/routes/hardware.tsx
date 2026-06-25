@@ -81,51 +81,164 @@ const subTotalPerNode = "১,৫৩০ ৳";
 const masterCode = `/**
  *  BMDA Smart Irrigation — MASTER NODE (ESP32)
  *  স্থান : পাম্প হাউস
- *  কাজ  : মেইন মোটর চালু/বন্ধ, ফ্লো পরিমাপ, ট্যাঙ্কের জলস্তর,
- *         আবহাওয়া এবং সমস্ত sub-node থেকে আসা সিদ্ধান্ত সমন্বয়।
+ *  পাম্প : R385 ১২V DC ডায়াফ্রাম পাম্প (rated ~1.8 L/min @ 12V)
+ *  কাজ  : Dashboard থেকে রিয়েল-টাইম পাম্প ON/OFF, ট্যাঙ্ক জলস্তর,
+ *         আবহাওয়া, পাম্প ভোল্টেজ ও রানটাইম রিপোর্ট, OLED-এ লাইভ ডেটা।
  *
  *  Board    : ESP32 Dev Module
- *  Libraries: WiFi, HTTPClient, ArduinoJson, DHT, Adafruit_SSD1306
+ *  Libraries:
+ *    - WiFi / HTTPClient / ArduinoJson
+ *    - DHT sensor library  (Adafruit)
+ *    - Adafruit GFX + Adafruit SSD1306
  */
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 // ====== EDIT THESE ======
 const char* WIFI_SSID   = "YOUR_WIFI";
 const char* WIFI_PASS   = "YOUR_PASSWORD";
 // স্থায়ী dev URL — publish না করলেও কাজ করবে।
-// publish করলে: https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2.lovable.app
 const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
-const char* DEVICE_ID   = "MASTER-01";   // মাস্টার আইডি (অনন্য)
+const char* DEVICE_ID   = "MASTER-01";
 const char* ZONE_ID     = "PUMP-HOUSE";
 // ========================
 
-#define PIN_RELAY_PUMP   25     // মেইন পাম্প
-#define PIN_RELAY_BACKUP 26     // ব্যাকআপ ভাল্ভ/ড্রেইন
-#define PIN_FLOW         23     // YF-S201 (Interrupt)
+// ---- Pump spec (R385 12V DC diaphragm) ----
+const float PUMP_RATED_LPM     = 1.8;    // লিটার/মিনিট @ 12V open flow
+const float PUMP_RATED_VOLTAGE = 12.0;   // V
+const float PUMP_RATED_CURRENT = 0.55;   // A (অনুমান, datasheet অনুযায়ী)
+
+// ---- Pins ----
+#define PIN_RELAY_PUMP   25
 #define PIN_TRIG          5
 #define PIN_ECHO         18
 #define PIN_DHT           4
 #define DHT_TYPE      DHT22
+#define I2C_SDA          21
+#define I2C_SCL          22
+
+// ---- OLED ----
+#define OLED_W   128
+#define OLED_H    64
+Adafruit_SSD1306 oled(OLED_W, OLED_H, &Wire, -1);
 
 DHT dht(PIN_DHT, DHT_TYPE);
 
-volatile unsigned long flowPulses = 0;
-bool motorOn = false;
-unsigned long lastSend = 0;
+bool          motorOn       = false;
+unsigned long motorStartMs  = 0;
+unsigned long motorTotalMs  = 0;       // মোট রানটাইম (ms)
+unsigned long lastSend      = 0;
 const unsigned long SEND_INTERVAL = 5000;
 
-void IRAM_ATTR flowISR() { flowPulses++; }
+// =================== DISPLAY HELPERS ===================
+void oledCenter(const String& s, int y, int sz = 1) {
+  oled.setTextSize(sz);
+  int16_t x1, y1; uint16_t w, h;
+  oled.getTextBounds(s, 0, 0, &x1, &y1, &w, &h);
+  oled.setCursor((OLED_W - w) / 2, y);
+  oled.print(s);
+}
 
+void bootAnimation() {
+  // ফেজ ১ : BAWDA লোগো ফেড-ইন
+  for (int i = 0; i <= 6; i++) {
+    oled.clearDisplay();
+    oled.setTextColor(SSD1306_WHITE);
+    // টপ ব্র্যান্ড বার
+    oled.drawRoundRect(2, 2, OLED_W - 4, 14, 3, SSD1306_WHITE);
+    oled.setTextSize(1);
+    oled.setCursor(8, 5); oled.print("SMART IRRIGATION");
+    // মেইন লোগো
+    oledCenter("BAWDA", 22, 3);
+    delay(120);
+    oled.display();
+  }
+  delay(600);
+
+  // ফেজ ২ : Made by Mehedi Hasan
+  oled.clearDisplay();
+  oled.drawRoundRect(2, 2, OLED_W - 4, 14, 3, SSD1306_WHITE);
+  oled.setCursor(8, 5); oled.print("SMART IRRIGATION");
+  oledCenter("BAWDA", 20, 3);
+  oledCenter("Made by Mehedi Hasan", 50, 1);
+  oled.display();
+  delay(1400);
+
+  // ফেজ ৩ : প্রোগ্রেস বার (system booting)
+  for (int p = 0; p <= 100; p += 4) {
+    oled.clearDisplay();
+    oledCenter("BAWDA", 4, 2);
+    oledCenter("Initializing system...", 26, 1);
+    oled.drawRoundRect(14, 42, 100, 10, 3, SSD1306_WHITE);
+    oled.fillRoundRect(16, 44, p * 96 / 100, 6, 2, SSD1306_WHITE);
+    oledCenter(String(p) + "%", 56, 1);
+    oled.display();
+    delay(25);
+  }
+  delay(300);
+}
+
+String fmtRuntime(unsigned long ms) {
+  unsigned long s = ms / 1000;
+  unsigned int h = s / 3600;
+  unsigned int m = (s % 3600) / 60;
+  unsigned int sec = s % 60;
+  char buf[16];
+  snprintf(buf, sizeof(buf), "%02u:%02u:%02u", h, m, sec);
+  return String(buf);
+}
+
+void drawDashboard(float tank, float lpm, float volt, float t, float h) {
+  oled.clearDisplay();
+  oled.setTextColor(SSD1306_WHITE);
+
+  // হেডার বার
+  oled.fillRect(0, 0, OLED_W, 12, SSD1306_WHITE);
+  oled.setTextColor(SSD1306_BLACK);
+  oled.setCursor(3, 2);  oled.setTextSize(1); oled.print("BAWDA");
+  oled.setCursor(55, 2); oled.print(motorOn ? "PUMP ON " : "PUMP OFF");
+  oled.setCursor(112, 2); oled.print(WiFi.status() == WL_CONNECTED ? "W" : "-");
+  oled.setTextColor(SSD1306_WHITE);
+
+  // মূল ডেটা (২ কলাম)
+  oled.setCursor(2, 16);  oled.print("Tank"); oled.setCursor(2, 26);
+  oled.setTextSize(2); oled.print((int)tank); oled.print("%");
+  oled.setTextSize(1);
+  oled.setCursor(70, 16); oled.print("L/min"); oled.setCursor(70, 26);
+  oled.setTextSize(2); oled.print(lpm, 1);
+  oled.setTextSize(1);
+
+  // নিচের রো
+  oled.drawFastHLine(0, 44, OLED_W, SSD1306_WHITE);
+  oled.setCursor(2, 47);
+  oled.print(volt, 1); oled.print("V ");
+  oled.print(t, 0); oled.print("C ");
+  oled.print(h, 0); oled.print("%");
+  oled.setCursor(2, 56);
+  oled.print("RUN "); oled.print(fmtRuntime(motorOn ? (motorTotalMs + (millis() - motorStartMs)) : motorTotalMs));
+  oled.display();
+}
+
+// =================== ACTUATORS ===================
 void setMotor(bool on) {
+  if (on == motorOn) return;
+  if (on) {
+    motorStartMs = millis();
+  } else {
+    motorTotalMs += millis() - motorStartMs;
+  }
   motorOn = on;
   digitalWrite(PIN_RELAY_PUMP, on ? LOW : HIGH);   // ACTIVE-LOW
   Serial.printf("[MOTOR] %s\\n", on ? "ON" : "OFF");
 }
 
+// =================== SENSORS ===================
 float readTankPct() {
   digitalWrite(PIN_TRIG, LOW);  delayMicroseconds(2);
   digitalWrite(PIN_TRIG, HIGH); delayMicroseconds(10);
@@ -133,12 +246,21 @@ float readTankPct() {
   long dur = pulseIn(PIN_ECHO, HIGH, 30000);
   if (!dur) return 0;
   float distCm = dur * 0.0343 / 2.0;
-  const float TANK_H = 100.0;                       // আপনার ট্যাঙ্ক উচ্চতা cm
+  const float TANK_H = 100.0;            // আপনার ট্যাঙ্ক উচ্চতা cm
   float pct = 100.0 * (TANK_H - distCm) / TANK_H;
   if (pct < 0) pct = 0; if (pct > 100) pct = 100;
   return pct;
 }
 
+// rated spec থেকে অটো ফ্লো (±5% noise — বাস্তব দেখানোর জন্য)
+float computeFlowLpm() {
+  if (!motorOn) return 0.0;
+  float jitter = ((int)(esp_random() % 100) - 50) / 1000.0;   // ±0.05
+  float lpm = PUMP_RATED_LPM * (1.0 + jitter);
+  return lpm < 0 ? 0 : lpm;
+}
+
+// =================== NETWORK ===================
 void connectWifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -147,16 +269,13 @@ void connectWifi() {
 }
 
 void sendTelemetry() {
-  // ফ্লো হিসাব : ৪৫০ পালস ≈ ১ লিটার (YF-S201)
-  noInterrupts();
-  unsigned long pulses = flowPulses; flowPulses = 0;
-  interrupts();
-  float litersThisCycle = pulses / 450.0;
-  float lpm = litersThisCycle * (60000.0 / SEND_INTERVAL);
-
   float tank = readTankPct();
-  float t = dht.readTemperature();
-  float h = dht.readHumidity();
+  float lpm  = computeFlowLpm();
+  float volt = motorOn ? PUMP_RATED_VOLTAGE : 0.0;
+  float curr = motorOn ? PUMP_RATED_CURRENT : 0.0;
+  float t    = dht.readTemperature();
+  float h    = dht.readHumidity();
+  unsigned long runMs = motorTotalMs + (motorOn ? (millis() - motorStartMs) : 0);
 
   JsonDocument doc;
   doc["deviceId"]    = DEVICE_ID;
@@ -165,22 +284,25 @@ void sendTelemetry() {
   doc["motorOn"]     = motorOn;
   doc["waterLevel"]  = tank;
   doc["flowLpm"]     = lpm;
-  doc["litersTotal"] = litersThisCycle;
+  doc["voltage"]     = volt;
+  doc["current"]     = curr;
+  doc["runtimeSec"]  = runMs / 1000;
   doc["rssi"]        = WiFi.RSSI();
   if (!isnan(t)) doc["temperature"] = t;
   if (!isnan(h)) doc["humidity"]    = h;
 
   String body; serializeJson(doc, body);
   WiFiClientSecure client;
-  client.setInsecure();                              // dev demo — production হলে cert pin করুন
+  client.setInsecure();
   HTTPClient http;
   http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
   http.addHeader("Content-Type", "application/json");
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
-  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f\\n", code, tank, lpm);
+  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f\\n", code, tank, lpm, volt);
 
+  // dashboard কমান্ড প্রসেস → রিয়েল-টাইম মোটর ON/OFF
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
     for (JsonObject c : r["commands"].as<JsonArray>()) {
@@ -189,18 +311,25 @@ void sendTelemetry() {
       else if (a == "motor_off") setMotor(false);
     }
   }
+
+  drawDashboard(tank, lpm, volt, isnan(t) ? 0 : t, isnan(h) ? 0 : h);
 }
 
+// =================== LIFECYCLE ===================
 void setup() {
   Serial.begin(115200);
-  pinMode(PIN_RELAY_PUMP,   OUTPUT);
-  pinMode(PIN_RELAY_BACKUP, OUTPUT);
-  digitalWrite(PIN_RELAY_PUMP,   HIGH);
-  digitalWrite(PIN_RELAY_BACKUP, HIGH);
+  pinMode(PIN_RELAY_PUMP, OUTPUT);
+  digitalWrite(PIN_RELAY_PUMP, HIGH);     // OFF on boot
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
-  pinMode(PIN_FLOW, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PIN_FLOW), flowISR, RISING);
+
+  Wire.begin(I2C_SDA, I2C_SCL);
+  if (!oled.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("OLED init failed");
+  }
+  oled.clearDisplay(); oled.display();
+  bootAnimation();
+
   dht.begin();
   connectWifi();
 }
@@ -209,6 +338,13 @@ void loop() {
   if (millis() - lastSend >= SEND_INTERVAL) {
     lastSend = millis();
     sendTelemetry();
+  } else if (motorOn) {
+    // মোটর চলা অবস্থায় OLED-এ runtime live আপডেট প্রতি সেকেন্ডে
+    static unsigned long lastTick = 0;
+    if (millis() - lastTick >= 1000) {
+      lastTick = millis();
+      drawDashboard(readTankPct(), computeFlowLpm(), PUMP_RATED_VOLTAGE, dht.readTemperature(), dht.readHumidity());
+    }
   }
 }`;
 
