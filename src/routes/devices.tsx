@@ -1,146 +1,237 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Cpu, Wifi, WifiOff, Plus, Copy, CheckCircle2, Battery, Signal, Trash2 } from "lucide-react";
+import { Cpu, Wifi, WifiOff, Plus, Trash2, Droplets, Sun, Signal, Power, FlaskConical, Activity, Sprout } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/devices")({
   head: () => ({ meta: [{ title: "ডিভাইস নেটওয়ার্ক · BMDA" }] }),
   component: DevicesPage,
 });
 
-type Device = {
-  id: string; name: string; zone: string; ip: string;
-  online: boolean; rssi: number; battery: number; firmware: string; lastSeen: string;
-  sensors: string[];
+type FieldNode = { id: string; device_id: string; zone_id: string; label: string; notes: string | null };
+type Telemetry = {
+  zone_id: string; device_id: string; soil_moisture: number | null; tds_ppm: number | null;
+  ldr: number | null; valve_open: boolean | null; temperature: number | null; humidity: number | null;
+  rssi: number | null; updated_at: string;
 };
 
-const seed: Device[] = [
-  { id: "ESP-001", name: "উত্তর মাস্টার", zone: "Z-01", ip: "192.168.1.21", online: true, rssi: -54, battery: 92, firmware: "v2.6.1", lastSeen: "এইমাত্র", sensors: ["Soil", "Water", "DHT22", "Valve"] },
-  { id: "ESP-002", name: "উত্তর নোড B", zone: "Z-02", ip: "192.168.1.22", online: true, rssi: -68, battery: 78, firmware: "v2.6.1", lastSeen: "২ সেকেন্ড", sensors: ["Soil", "LDR", "Valve"] },
-  { id: "ESP-003", name: "পূর্ব নোড", zone: "Z-03", ip: "192.168.1.23", online: true, rssi: -72, battery: 65, firmware: "v2.6.0", lastSeen: "৫ সেকেন্ড", sensors: ["Soil", "Water", "Valve"] },
-  { id: "ESP-004", name: "কেন্দ্রীয় নোড", zone: "Z-04", ip: "192.168.1.24", online: false, rssi: -90, battery: 12, firmware: "v2.5.8", lastSeen: "১৫ মিনিট", sensors: ["Soil", "Rain", "Valve"] },
-  { id: "ESP-005", name: "দক্ষিণ মাস্টার", zone: "Z-05", ip: "192.168.1.25", online: true, rssi: -61, battery: 88, firmware: "v2.6.1", lastSeen: "১ সেকেন্ড", sensors: ["Soil", "Water", "DHT22", "NPK", "Valve"] },
-  { id: "ESP-006", name: "পাম্প কন্ট্রোলার", zone: "PUMP", ip: "192.168.1.10", online: true, rssi: -48, battery: 100, firmware: "v2.6.1", lastSeen: "এইমাত্র", sensors: ["Relay×4", "Voltage", "Current"] },
-];
+const ONLINE_MS = 15000;
+const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
-const FIRMWARE_SNIPPET = `// ১. এই ৩টি লাইন বদলান:
-const char* WIFI_SSID = "আপনার_WIFI";
-const char* WIFI_PASS = "আপনার_পাসওয়ার্ড";
-const char* DEVICE_ID = "ESP-007";        // ← নতুন ID দিন
-const char* ZONE_ID   = "Z-08";           // ← যে জোনে বসাবেন
-const char* API_URL   = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2.lovable.app/api/public/telemetry";
-
-// ২. Arduino IDE → Board: ESP32 Dev Module → Upload
-// ৩. Serial Monitor (115200 baud) — "Connected ✓" দেখলে এই page-এ auto add হবে`;
+const ago = (iso: string) => {
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 5) return "এইমাত্র";
+  if (s < 60) return `${bn(s)} সেকেন্ড`;
+  if (s < 3600) return `${bn(Math.floor(s / 60))} মিনিট`;
+  return `${bn(Math.floor(s / 3600))} ঘণ্টা`;
+};
 
 function DevicesPage() {
-  const [devices, setDevices] = useState<Device[]>(seed);
+  const { user } = useAuth();
+  const [nodes, setNodes] = useState<FieldNode[]>([]);
+  const [tele, setTele] = useState<Record<string, Telemetry>>({});
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ id: "", name: "", zone: "" });
+  const [form, setForm] = useState({ device_id: "", label: "", zone_id: "", notes: "" });
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [, tick] = useState(0);
 
-  const add = () => {
-    if (!form.id || !form.name) { toast.error("ID ও নাম প্রয়োজন"); return; }
-    setDevices(d => [...d, {
-      id: form.id, name: form.name, zone: form.zone || "—",
-      ip: `192.168.1.${20 + d.length}`, online: false, rssi: -100,
-      battery: 100, firmware: "v2.6.1", lastSeen: "pending", sensors: ["Soil", "Valve"],
-    }]);
-    toast.success(`${form.id} pending registration — ESP32-এ firmware flash করুন`);
-    setOpen(false); setForm({ id: "", name: "", zone: "" });
+  // tick every 3s so "ago" + online indicator refresh
+  useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 3000); return () => clearInterval(t); }, []);
+
+  // load nodes
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("field_nodes").select("*").order("created_at").then(({ data }) => {
+      if (data) setNodes(data as FieldNode[]);
+    });
+  }, [user]);
+
+  // realtime telemetry
+  useEffect(() => {
+    supabase.from("device_telemetry").select("*").then(({ data }) => {
+      if (data) setTele(Object.fromEntries((data as Telemetry[]).map((t) => [t.zone_id, t])));
+    });
+    const ch = supabase.channel("devices_live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "device_telemetry" },
+        (payload) => {
+          const row = payload.new as Telemetry;
+          if (row?.zone_id) setTele((p) => ({ ...p, [row.zone_id]: row }));
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  const add = async () => {
+    if (!user) { toast.error("আগে লগইন করুন"); return; }
+    if (!form.device_id || !form.label || !form.zone_id) { toast.error("Device ID, নাম ও জোন প্রয়োজন"); return; }
+    const { error } = await supabase.from("field_nodes").insert({ ...form, user_id: user.id });
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${form.device_id} যোগ হলো — ESP8266-এ firmware flash করুন`);
+    setOpen(false);
+    const { data } = await supabase.from("field_nodes").select("*").order("created_at");
+    if (data) setNodes(data as FieldNode[]);
+    setForm({ device_id: "", label: "", zone_id: "", notes: "" });
   };
 
-  const remove = (id: string) => { setDevices(d => d.filter(x => x.id !== id)); toast.info(`${id} মুছে ফেলা হলো`); };
+  const remove = async (id: string, device_id: string) => {
+    const { error } = await supabase.from("field_nodes").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    setNodes((p) => p.filter((n) => n.id !== id));
+    toast.info(`${device_id} মুছে ফেলা হলো`);
+  };
 
-  const online = devices.filter(d => d.online).length;
+  const toggleValve = async (n: FieldNode) => {
+    const t = tele[n.zone_id];
+    const online = t && Date.now() - new Date(t.updated_at).getTime() < ONLINE_MS;
+    if (!online) { toast.error(`${n.device_id} অফলাইন — কমান্ড পাঠানো যাবে না`); return; }
+    if (!user) return;
+    const target = !t?.valve_open;
+    setPending((p) => ({ ...p, [n.device_id]: true }));
+    const { error } = await supabase.from("device_commands").insert({
+      device_id: n.device_id, zone_id: n.zone_id,
+      action: target ? "valve_open" : "valve_close", issued_by: user.id,
+    });
+    setPending((p) => ({ ...p, [n.device_id]: false }));
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${n.device_id} ভাল্ভ ${target ? "খোলার" : "বন্ধের"} কমান্ড পাঠানো হলো`);
+  };
+
+  const online = nodes.filter((n) => {
+    const t = tele[n.zone_id];
+    return t && Date.now() - new Date(t.updated_at).getTime() < ONLINE_MS;
+  }).length;
 
   return (
     <DashboardLayout
       title="ডিভাইস · নেটওয়ার্ক"
-      subtitle={`${online}/${devices.length} অনলাইন · ESP32 mesh`}
+      subtitle={`${bn(online)}/${bn(nodes.length)} অনলাইন · রিয়েল-টাইম sub-node নিয়ন্ত্রণ`}
       actions={
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1"/>নতুন ডিভাইস</Button></DialogTrigger>
+          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />নতুন সাব-নোড</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>নতুন ESP32 ডিভাইস যোগ করুন</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>নতুন ESP8266 সাব-নোড যোগ করুন</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <div><Label>Device ID</Label><Input value={form.id} onChange={e => setForm({...form, id: e.target.value})} placeholder="ESP-007"/></div>
-              <div><Label>নাম</Label><Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="দক্ষিণ নোড C"/></div>
-              <div><Label>জোন</Label><Input value={form.zone} onChange={e => setForm({...form, zone: e.target.value})} placeholder="Z-08"/></div>
+              <div><Label>Device ID</Label><Input value={form.device_id} onChange={(e) => setForm({ ...form, device_id: e.target.value })} placeholder="SUB-01" /></div>
+              <div><Label>নাম</Label><Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="উত্তর জমির নোড" /></div>
+              <div><Label>জোন ID</Label><Input value={form.zone_id} onChange={(e) => setForm({ ...form, zone_id: e.target.value })} placeholder="Z-01" /></div>
+              <div><Label>নোট (ঐচ্ছিক)</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
+              <p className="text-[11px] text-muted-foreground">যোগ করার পর Hardware পেজ থেকে sub-node code copy করে Device ID + Zone বদলে ESP8266-এ upload করুন।</p>
             </div>
             <DialogFooter><Button onClick={add}>যোগ করুন</Button></DialogFooter>
           </DialogContent>
         </Dialog>
       }
     >
-      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {devices.map((d, i) => (
-            <Card key={d.id} className="overflow-hidden animate-fade-in hover:shadow-lg transition-shadow" style={{ animationDelay: `${i * 50}ms` }}>
-              <div className={`h-1 ${d.online ? "bg-gradient-to-r from-success to-chart-2" : "bg-destructive/60"}`}/>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`h-10 w-10 rounded-lg grid place-items-center ${d.online ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
-                      <Cpu className="h-5 w-5"/>
-                    </div>
-                    <div>
-                      <p className="font-mono text-xs text-muted-foreground">{d.id}</p>
-                      <p className="font-semibold text-sm leading-tight">{d.name}</p>
-                    </div>
-                  </div>
-                  <Badge variant={d.online ? "default" : "destructive"} className="gap-1">
-                    {d.online ? <Wifi className="h-3 w-3"/> : <WifiOff className="h-3 w-3"/>}
-                    {d.online ? "Live" : "Offline"}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <div><p className="text-muted-foreground">জোন</p><p className="font-semibold">{d.zone}</p></div>
-                  <div><p className="text-muted-foreground flex items-center gap-1"><Signal className="h-3 w-3"/>RSSI</p><p className="font-semibold">{d.rssi}dBm</p></div>
-                  <div><p className="text-muted-foreground flex items-center gap-1"><Battery className="h-3 w-3"/>ব্যাটারি</p><p className={`font-semibold ${d.battery < 20 ? "text-destructive" : ""}`}>{d.battery}%</p></div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {d.sensors.map(s => <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>)}
-                </div>
-                <div className="mt-3 pt-3 border-t flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span>{d.firmware} · {d.ip}</span>
-                  <button onClick={() => remove(d.id)} className="text-destructive hover:underline"><Trash2 className="h-3 w-3"/></button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <Card className="self-start sticky top-4">
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Plus className="h-4 w-4"/>নতুন device কীভাবে add করব?</CardTitle></CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <ol className="space-y-2 list-decimal list-inside text-muted-foreground">
-              <li>ESP32 + sensor wire করুন (Pin map → Settings)</li>
-              <li>Arduino IDE-তে firmware খুলুন (<code className="text-xs bg-muted px-1 rounded">device-firmware/esp32_bmda.ino</code>)</li>
-              <li>নিচের ৩টি লাইন বদলান</li>
-              <li>Board: <b>ESP32 Dev Module</b> → Upload</li>
-              <li>উপরে "নতুন ডিভাইস" button → ID লিখুন</li>
-              <li>Serial Monitor-এ "✓ Registered" দেখলে কাজ শেষ</li>
-            </ol>
-            <div className="relative">
-              <pre className="text-[10px] bg-muted p-3 rounded-md overflow-x-auto leading-relaxed">{FIRMWARE_SNIPPET}</pre>
-              <button onClick={() => { navigator.clipboard.writeText(FIRMWARE_SNIPPET); toast.success("কপি হয়েছে"); }}
-                className="absolute top-2 right-2 p-1.5 rounded bg-background border hover:bg-accent">
-                <Copy className="h-3 w-3"/>
-              </button>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-success">
-              <CheckCircle2 className="h-4 w-4"/> একসাথে ৫০+ ESP32 সমর্থিত
-            </div>
+      {nodes.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="p-10 text-center space-y-3">
+            <Cpu className="h-12 w-12 mx-auto text-muted-foreground" />
+            <h3 className="font-bold text-lg">এখনো কোনো sub-node যোগ করা হয়নি</h3>
+            <p className="text-sm text-muted-foreground">উপরে "নতুন সাব-নোড" বোতাম থেকে শুরু করুন। প্রতিটি sub-node মাটির TDS sensor দিয়ে আর্দ্রতা পরিমাপ করবে এবং servo motor দিয়ে পানির লাইন on/off করবে।</p>
           </CardContent>
         </Card>
-      </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {nodes.map((n, i) => {
+            const t = tele[n.zone_id];
+            const online = !!(t && Date.now() - new Date(t.updated_at).getTime() < ONLINE_MS);
+            const moisture = t?.soil_moisture ?? 0;
+            const tds = t?.tds_ppm ?? 0;
+            const valveOpen = !!t?.valve_open;
+            return (
+              <Card key={n.id} className="overflow-hidden animate-fade-in hover:shadow-lg transition-all" style={{ animationDelay: `${i * 40}ms` }}>
+                <div className={`h-1 ${online ? "bg-gradient-to-r from-emerald-500 to-teal-500" : "bg-rose-500/60"}`} />
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`h-10 w-10 rounded-lg grid place-items-center shrink-0 ${online ? "bg-emerald-500/15 text-emerald-600" : "bg-rose-500/15 text-rose-600"}`}>
+                        <Cpu className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-mono text-[10px] text-muted-foreground">{n.device_id} · {n.zone_id}</p>
+                        <p className="font-semibold text-sm leading-tight truncate">{n.label}</p>
+                      </div>
+                    </div>
+                    <Badge variant={online ? "default" : "destructive"} className="gap-1 shrink-0">
+                      {online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                      {online ? "LIVE" : "OFFLINE"}
+                    </Badge>
+                  </div>
+
+                  {/* Live readings */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="rounded-lg p-2.5 bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow shadow-sky-500/30">
+                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><Sprout className="h-3 w-3" />আর্দ্রতা</div>
+                      <p className="mt-1 text-xl font-extrabold">{bn(moisture.toFixed(0))}<span className="text-xs">%</span></p>
+                    </div>
+                    <div className="rounded-lg p-2.5 bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow shadow-amber-500/30">
+                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><FlaskConical className="h-3 w-3" />TDS</div>
+                      <p className="mt-1 text-xl font-extrabold">{bn(tds.toFixed(0))}<span className="text-xs"> ppm</span></p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1 text-[10px] mb-3">
+                    <div className="text-center p-1.5 rounded bg-muted/40">
+                      <Sun className="h-3 w-3 mx-auto text-muted-foreground" />
+                      <p className="font-semibold">{bn((t?.ldr ?? 0).toFixed(0))}%</p>
+                    </div>
+                    <div className="text-center p-1.5 rounded bg-muted/40">
+                      <Activity className="h-3 w-3 mx-auto text-muted-foreground" />
+                      <p className="font-semibold">{t?.temperature != null ? `${bn(t.temperature.toFixed(0))}°` : "—"}</p>
+                    </div>
+                    <div className="text-center p-1.5 rounded bg-muted/40">
+                      <Signal className="h-3 w-3 mx-auto text-muted-foreground" />
+                      <p className="font-semibold">{t?.rssi != null ? bn(t.rssi.toFixed(0)) : "—"}</p>
+                    </div>
+                  </div>
+
+                  {/* Servo valve toggle */}
+                  <button
+                    onClick={() => toggleValve(n)}
+                    disabled={!online || pending[n.device_id]}
+                    className={`w-full rounded-lg py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                      !online ? "bg-muted text-muted-foreground cursor-not-allowed"
+                      : valveOpen ? "bg-gradient-to-r from-rose-500 to-red-600 text-white shadow shadow-rose-500/30 hover:scale-[1.02]"
+                      : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow shadow-emerald-500/30 hover:scale-[1.02]"
+                    }`}
+                  >
+                    <Droplets className="h-4 w-4" />
+                    {pending[n.device_id] ? "পাঠানো হচ্ছে…" : valveOpen ? "Servo বন্ধ করুন" : "Servo খুলুন"}
+                    {online && valveOpen && <span className="h-2 w-2 rounded-full bg-white animate-pulse" />}
+                  </button>
+
+                  <div className="mt-3 pt-3 border-t flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>{t ? `শেষ heartbeat: ${ago(t.updated_at)} আগে` : "ডেটা পাওয়া যায়নি"}</span>
+                    <button onClick={() => remove(n.id, n.device_id)} className="text-destructive hover:text-rose-600">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      <Card className="mt-6">
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Power className="h-4 w-4" />কীভাবে কাজ করে?</CardTitle></CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-2">
+          <p>• প্রতিটি sub-node (ESP8266) প্রতি ৫ সেকেন্ডে heartbeat পাঠায় → আপনি এখানে লাইভ ডেটা দেখেন।</p>
+          <p>• <b className="text-foreground">TDS sensor</b> (Gravity TDS / generic) থেকে raw analog পড়া → temperature compensation → মাটির আর্দ্রতা শতাংশে রূপান্তর।</p>
+          <p>• <b className="text-foreground">Servo motor (SG90)</b> দিয়ে পানির লাইন on/off — solenoid valve-এর সাশ্রয়ী বিকল্প। ০° = বন্ধ, ৯০° = খোলা।</p>
+          <p>• <b className="text-foreground">Online check</b>: heartbeat ১৫ সেকেন্ডের বেশি না এলে নোড offline দেখানো হয়, valve বোতাম disable হয়ে যায়।</p>
+        </CardContent>
+      </Card>
     </DashboardLayout>
   );
 }
