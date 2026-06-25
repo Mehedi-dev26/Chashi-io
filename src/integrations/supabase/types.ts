@@ -58,6 +58,7 @@ export type Database = {
           rssi: number | null
           runtime_sec: number | null
           soil_moisture: number | null
+          tds_ppm: number | null
           temperature: number | null
           updated_at: string
           valve_open: boolean | null
@@ -75,6 +76,7 @@ export type Database = {
           rssi?: number | null
           runtime_sec?: number | null
           soil_moisture?: number | null
+          tds_ppm?: number | null
           temperature?: number | null
           updated_at?: string
           valve_open?: boolean | null
@@ -92,11 +94,45 @@ export type Database = {
           rssi?: number | null
           runtime_sec?: number | null
           soil_moisture?: number | null
+          tds_ppm?: number | null
           temperature?: number | null
           updated_at?: string
           valve_open?: boolean | null
           voltage?: number | null
           water_level?: number | null
+          zone_id?: string
+        }
+        Relationships: []
+      }
+      field_nodes: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          label: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          label: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          label?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
           zone_id?: string
         }
         Relationships: []
