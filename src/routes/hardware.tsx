@@ -471,6 +471,11 @@ void setup() {
   pinMode(PIN_BTN_ON,  INPUT_PULLUP);
   pinMode(PIN_BTN_OFF, INPUT_PULLUP);
 
+  // 🆕 অনলাইন স্ট্যাটাস LED (built-in blue, GPIO 2)
+  pinMode(PIN_LED_ONLINE, OUTPUT);
+  digitalWrite(PIN_LED_ONLINE, LOW);
+
+
   Wire.begin(I2C_SDA, I2C_SCL);
   if (!oled.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println("OLED init failed");
