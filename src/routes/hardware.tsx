@@ -120,7 +120,21 @@ const masterDeviceWiring: DeviceWiring[] = [
       { mcu: "ESP32 GND",  dev: "Adapter −V",     note: "⚠️ কমন গ্রাউন্ড আবশ্যক" },
     ],
   },
+  {
+    device: "🆕 ম্যানুয়াল পুশ বাটন (২টি · ON / OFF)",
+    icon: Plug,
+    color: "indigo",
+    grad: "from-indigo-500 to-purple-500",
+    desc: "INPUT_PULLUP মোড — একপাশ GPIO, অন্যপাশ GND; চাপলে পিন LOW হবে। প্রেস হলেই dashboard-এ instant সিঙ্ক হয়।",
+    pairs: [
+      { mcu: "GPIO 32", dev: "Button-ON pin 1",  note: "মোটর ON বাটন" },
+      { mcu: "GND",     dev: "Button-ON pin 2",  note: "—" },
+      { mcu: "GPIO 33", dev: "Button-OFF pin 1", note: "মোটর OFF বাটন" },
+      { mcu: "GND",     dev: "Button-OFF pin 2", note: "—" },
+    ],
+  },
 ];
+
 
 
 const subDevices = [
