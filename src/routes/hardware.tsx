@@ -202,6 +202,10 @@ const float PUMP_RATED_CURRENT = 0.20;
 // 🆕 Manual push buttons (INPUT_PULLUP → press = LOW)
 #define PIN_BTN_ON        32
 #define PIN_BTN_OFF       33
+// 🆕 অনলাইন ইন্ডিকেটর LED — ESP32 DevKit-এর built-in নীল LED (GPIO 2)
+//    সিস্টেম online হলে blink করবে, offline হলে নিভে থাকবে।
+#define PIN_LED_ONLINE     2
+
 
 // ---- OLED ----
 #define OLED_W   128
@@ -467,6 +471,11 @@ void setup() {
   pinMode(PIN_BTN_ON,  INPUT_PULLUP);
   pinMode(PIN_BTN_OFF, INPUT_PULLUP);
 
+  // 🆕 অনলাইন স্ট্যাটাস LED (built-in blue, GPIO 2)
+  pinMode(PIN_LED_ONLINE, OUTPUT);
+  digitalWrite(PIN_LED_ONLINE, LOW);
+
+
   Wire.begin(I2C_SDA, I2C_SCL);
   if (!oled.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println("OLED init failed");
@@ -483,8 +492,26 @@ void setup() {
   lastSend = millis();
 }
 
+// 🆕 অনলাইন LED ব্লিঙ্ক হ্যান্ডলার — non-blocking
+//   • systemOnline == true  → ৫০০ms interval-এ blink
+//   • systemOnline == false → সম্পূর্ণ নিভে থাকে
+void updateOnlineLed() {
+  static unsigned long lastToggle = 0;
+  static bool ledState = false;
+  if (systemOnline) {
+    if (millis() - lastToggle >= 500) {
+      lastToggle = millis();
+      ledState = !ledState;
+      digitalWrite(PIN_LED_ONLINE, ledState ? HIGH : LOW);
+    }
+  } else {
+    if (ledState) { ledState = false; digitalWrite(PIN_LED_ONLINE, LOW); }
+  }
+}
+
 void loop() {
   pollButtons();                           // ⬅ প্রতিটি লুপে বাটন চেক
+  updateOnlineLed();                       // ⬅ নীল LED অনলাইন ইন্ডিকেটর
 
   if (millis() - lastSend >= SEND_INTERVAL) {
     lastSend = millis();
@@ -499,6 +526,7 @@ void loop() {
     }
   }
 }`;
+
 
 
 /* ---------------- SUB-NODE FIRMWARE ---------------- */
