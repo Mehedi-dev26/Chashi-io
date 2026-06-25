@@ -711,6 +711,23 @@ function HardwarePage() {
           </div>
         </div>
 
+        {/* AUTO-CAPTURED SERVER URL BANNER */}
+        <div className="rounded-2xl p-5 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 text-white shadow-lg ring-1 ring-white/25 border-2 border-white/15">
+          <div className="flex items-start gap-3">
+            <div className="h-10 w-10 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm shrink-0">
+              <Globe className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] uppercase tracking-wider font-bold opacity-95">অটো-ক্যাপচারড সার্ভার URL</p>
+              <p className="text-sm font-extrabold mt-0.5">নিচের ফার্মওয়্যারে আপনি এখন যে domain-এ আছেন, সেটিই স্বয়ংক্রিয়ভাবে বসানো হয়েছে</p>
+              <p className="font-mono text-xs md:text-sm bg-black/25 rounded-lg px-3 py-2 mt-2 break-all">{serverHost}</p>
+              <p className="text-[11px] mt-2 opacity-90 leading-relaxed">
+                Vercel default domain, custom domain, বা Lovable preview — যেখান থেকেই এই পেজ খুলবেন, ESP32/ESP8266 কোডের <code className="bg-black/30 px-1 rounded">SERVER_HOST</code> সেই URL-এ আপডেট হয়ে যাবে। কপি করার আগে নিশ্চিত হোন আপনি সঠিক production domain-এ আছেন।
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* MASTER firmware */}
         <div className="glass-card rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -731,69 +748,73 @@ function HardwarePage() {
           </pre>
         </div>
 
-        {/* MASTER WIRING / CONNECTION DIAGRAM */}
+        {/* MASTER WIRING — Professional per-device cards */}
         <div className="glass-card rounded-2xl p-5 border-2 border-amber-400/40 shadow-md shadow-amber-500/10 ring-1 ring-amber-300/20">
           <div className="flex items-center gap-2 mb-1">
             <Plug className="h-5 w-5 text-amber-500" />
-            <h2 className="text-base font-extrabold">মাস্টার নোড — পিন-বাই-পিন কানেকশন ডায়াগ্রাম</h2>
+            <h2 className="text-base font-extrabold">মাস্টার নোড — পিন-বাই-পিন কানেকশন</h2>
           </div>
-          <p className="text-xs text-muted-foreground mb-4">
-            ESP32 DevKit V1 থেকে প্রতিটি কম্পোনেন্টের সঠিক তার-সংযোগ। ব্রেডবোর্ডে বসানোর সময় এই টেবিল ফলো করুন — ভুল পিনে লাগালে কাজ করবে না।
+          <p className="text-xs text-muted-foreground mb-5">
+            প্রতিটি ডিভাইসের জন্য আলাদা কার্ড। প্রতিটি সারিতে দেখানো আছে ESP32-এর কোন পিন থেকে ডিভাইসের কোন পিনে যাবে।
           </p>
 
-          <div className="grid lg:grid-cols-2 gap-4">
-            {/* Wiring table */}
-            <div className="overflow-x-auto rounded-xl border border-amber-400/30">
-              <table className="w-full text-xs">
-                <thead className="bg-amber-500/10">
-                  <tr className="text-left text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                    <th className="py-2 px-3">থেকে (From)</th>
-                    <th className="py-2 px-3">যাবে (To)</th>
-                    <th className="py-2 px-3 hidden md:table-cell">নোট</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {masterWiring.map((w, i) => (
-                    <tr key={i} className="border-t border-border/40 hover:bg-amber-500/5">
-                      <td className="py-2 px-3 font-mono font-bold text-primary">{w.from}</td>
-                      <td className="py-2 px-3 font-mono font-bold text-chart-2">{w.to}</td>
-                      <td className="py-2 px-3 text-muted-foreground hidden md:table-cell">{w.note}</td>
-                    </tr>
+          <div className="grid md:grid-cols-2 gap-4">
+            {masterDeviceWiring.map((dev) => (
+              <div
+                key={dev.device}
+                className="rounded-2xl border-2 border-border bg-card/40 overflow-hidden hover-lift"
+              >
+                {/* Header: ESP32 → Device */}
+                <div className={`bg-gradient-to-r ${dev.grad} text-white px-4 py-3`}>
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm shrink-0">
+                      <dev.icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-95">
+                        <span>ESP32 DevKit V1</span>
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="truncate">{dev.device}</span>
+                      </div>
+                      <p className="text-[10px] opacity-85 leading-snug mt-0.5">{dev.desc}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pin pair rows */}
+                <div className="divide-y divide-border/60">
+                  {/* Column headers */}
+                  <div className="grid grid-cols-[1fr_auto_1fr] gap-2 px-4 py-2 bg-muted/40 text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                    <span>ESP32 পিন</span>
+                    <span className="text-center">↔</span>
+                    <span className="text-right">ডিভাইস পিন</span>
+                  </div>
+                  {dev.pairs.map((p, i) => (
+                    <div key={i} className="px-4 py-2.5">
+                      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                        <span className="font-mono text-xs font-extrabold text-primary truncate">{p.mcu}</span>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="font-mono text-xs font-extrabold text-chart-2 text-right truncate">{p.dev}</span>
+                      </div>
+                      {p.note && (
+                        <p className="text-[10.5px] text-muted-foreground mt-1 leading-snug">{p.note}</p>
+                      )}
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* ASCII / visual diagram */}
-            <div className="rounded-xl bg-foreground/95 text-background p-4 text-[11px] font-mono overflow-x-auto leading-relaxed">
-{`            ┌──────────────────────────────┐
-            │         ESP32 DevKit V1       │
-            │                               │
-   3.3V ────┤ 3V3              GPIO 21 ├──── SDA  ┐
-    GND ─┬──┤ GND              GPIO 22 ├──── SCL  ├─→ OLED 0.96"
-         │  │                  GPIO  4 ├──── DATA──→ DHT22 (10kΩ pull-up)
-         │  │                  GPIO  5 ├──── Trig ──→ HC-SR04
-         │  │                  GPIO 18 ├──── Echo ←── HC-SR04 (1k+2k divider)
-         │  │                  GPIO 25 ├──── IN   ──→ Relay  ──→ R385 12V Pump
-         │  │     VIN  ←─── +12V SMPS  │
-         │  │     GND  ←─── −12V SMPS ─┘
-         └──── কমন গ্রাউন্ড (সমস্ত ডিভাইস)
-
-   ⚡ পাম্প লুপ:  +12V SMPS → Relay COM → Relay NO → Pump (+)
-                  Pump (−) → −12V SMPS  (ESP32-এর সাথে ground share করতে হবে)
-`}
-            </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* legend cards */}
-          <div className="grid sm:grid-cols-3 gap-2 mt-4 text-xs">
+          <div className="grid sm:grid-cols-3 gap-2 mt-5 text-xs">
             <div className="rounded-lg glass-panel p-3 border border-rose-400/30">
               <p className="font-extrabold text-rose-500">⚠️ ভোল্টেজ ডিভাইডার</p>
               <p className="text-[11px] text-muted-foreground mt-1">HC-SR04 Echo ৫V আউট দেয় — সরাসরি GPIO 18-এ দিলে ESP32 পুড়বে। 1kΩ + 2kΩ ডিভাইডার ব্যবহার করুন।</p>
             </div>
             <div className="rounded-lg glass-panel p-3 border border-amber-400/30">
               <p className="font-extrabold text-amber-500">⚡ কমন গ্রাউন্ড</p>
-              <p className="text-[11px] text-muted-foreground mt-1">SMPS-এর GND, ESP32-এর GND, রিলের GND — সব একসাথে যুক্ত না থাকলে রিলে ট্রিগার হবে না।</p>
+              <p className="text-[11px] text-muted-foreground mt-1">৬V অ্যাডাপ্টার GND, ESP32 GND, রিলে GND — সব একসাথে যুক্ত না থাকলে রিলে ট্রিগার হবে না।</p>
             </div>
             <div className="rounded-lg glass-panel p-3 border border-emerald-400/30">
               <p className="font-extrabold text-emerald-500">✓ ফ্লাইব্যাক ডায়োড</p>
@@ -801,6 +822,8 @@ function HardwarePage() {
             </div>
           </div>
         </div>
+
+
 
 
         {/* SUB section */}
