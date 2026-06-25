@@ -279,18 +279,17 @@ export const assignNodeToField = async (deviceId: string, zoneId: string | null)
 const toggleValve = async (id: string) => {
   const zone = state.zones.find((z) => z.id === id);
   if (!zone) return;
+  if (!zone.hasNode) { toast.error(`${id}-এ কোনো sub-node সংযুক্ত নেই — Devices পেজ থেকে assign করুন`); return; }
+  if (!zone.online) { toast.error(`${id}-এর sub-node অফলাইন — ভাল্ভ নিয়ন্ত্রণ করা যাবে না`); return; }
   const target = !zone.valveOpen;
-  // send hardware command
+  const deviceId = zone.valveNodeId!;
   const { data: u } = await supabase.auth.getUser();
   const { error } = await supabase.from("device_commands").insert({
-    device_id: `SUB-${id}`, zone_id: id,
+    device_id: deviceId, zone_id: id,
     action: target ? "valve_open" : "valve_close",
     issued_by: u.user?.id ?? null,
   });
-  if (error && !error.message.includes("check")) {
-    // fall back to optimistic update if FK/check error
-    console.warn(error);
-  }
+  if (error) { toast.error("কমান্ড পাঠানো ব্যর্থ: " + error.message); return; }
   // optimistic UI
   const zones = state.zones.map((z) => z.id === id ? { ...z, valveOpen: target, status: target ? "irrigating" as const : "idle" as const } : z);
   setState({ ...state, zones });
