@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   Cpu, Droplets, Sun, Thermometer, Waves, Zap, Cable, CircuitBoard, Wifi,
-  Code2, Wrench, ShieldCheck, Copy, CheckCheck, Network, Radio, Server,
+  Code2, Wrench, ShieldCheck, Copy, CheckCheck, Network, Radio, Server, Plug,
 } from "lucide-react";
 import { useState } from "react";
 
