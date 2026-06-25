@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MotorPanel } from "@/components/dashboard/MotorPanel";
 import { useIrrigationData } from "@/hooks/useIrrigationData";
-import { Gauge, Zap, Timer, ShieldCheck, Wrench, Activity, Brain, Power } from "lucide-react";
+import { Gauge, Zap, Timer, ShieldCheck, Wrench, Activity, Brain, Power, Droplets, Wifi, WifiOff, Sprout, Waves } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/motor")({
 type ShutoffLog = { time: string; reason: string; level: number; mode: "auto" | "manual" };
 
 function MotorPage() {
-  const { zones, motor, toggleMotor } = useIrrigationData();
+  const { zones, motor, toggleMotor, toggleValve } = useIrrigationData();
 
   // === AI Auto-Shutoff State ===
   const [aiEnabled, setAiEnabled] = useState(true);
