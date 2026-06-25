@@ -399,13 +399,9 @@ void sendTelemetry() {
       if (before != motorOn) motorChanged = true;
     }
   }
-  // ⚡ যদি কমান্ডে মোটর state বদলায়, সাথে সাথে আরেকটা telemetry পাঠাও
-  //     যাতে dashboard <১ সেকেন্ডে নিশ্চিতকরণ পায়।
-  if (motorChanged) {
-    delay(50);
-    sendTelemetryConfirm();
-    return;
-  }
+  // ⚡ মোটর state বদলালে পরের লুপেই আবার POST হবে (lastSend=0)
+  //    → dashboard <১ সেকেন্ডে কনফার্মেশন পায়।
+  if (motorChanged) lastSend = 0;
 
   drawDashboard(tank, lpm, volt, curr, isnan(t) ? 0 : t, isnan(h) ? 0 : h);
 }
