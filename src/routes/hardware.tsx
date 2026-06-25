@@ -417,7 +417,8 @@ void loop() {
 }`;
 
 /* ---------------- SUB-NODE FIRMWARE ---------------- */
-const subCode = `/**
+const buildSubCode = (serverHost: string) => `/**
+
  *  BMDA Smart Irrigation — SUB NODE (ESP8266 NodeMCU)
  *  স্থান : জমিতে — প্রতিটি জোনে একটি
  *  সেন্সর: TDS sensor (Gravity/generic) → মাটির আর্দ্রতা %
