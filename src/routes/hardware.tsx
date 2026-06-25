@@ -34,13 +34,36 @@ export const Route = createFileRoute("/hardware")({
 
 const masterDevices = [
   { icon: Cpu,         name: "ESP32 DevKit V1",          role: "মাস্টার কন্ট্রোলার",                pin: "—",                price: "৬৫০ ৳" },
-  { icon: Zap,         name: "২-চ্যানেল রিলে (১০A)",     role: "মেইন পাম্প + ব্যাকআপ",              pin: "GPIO 25 / 26",     price: "২৫০ ৳" },
-  { icon: Waves,       name: "YF-S201 ফ্লো সেন্সর",      role: "উত্তোলিত পানি পরিমাপ",              pin: "GPIO 23 (INT)",    price: "৪৫০ ৳" },
+  { icon: Zap,         name: "১-চ্যানেল রিলে (১০A)",      role: "মেইন পাম্প নিয়ন্ত্রণ",              pin: "GPIO 25",          price: "১৫০ ৳" },
+  { icon: Droplets,    name: "R385 ১২V DC ডায়াফ্রাম পাম্প", role: "মেইন ওয়াটার পাম্প (১.৮ L/min)",     pin: "রিলে আউট",         price: "৫৫০ ৳" },
   { icon: Waves,       name: "HC-SR04 আল্ট্রাসনিক",      role: "ট্যাঙ্ক/রিজার্ভয়ার জলস্তর",        pin: "Trig 5 · Echo 18", price: "১৮০ ৳" },
   { icon: Thermometer, name: "DHT22",                    role: "তাপমাত্রা ও আর্দ্রতা",              pin: "GPIO 4",           price: "৩৫০ ৳" },
-  { icon: CircuitBoard,name: "OLED ০.৯৬\" SSD1306",       role: "লোকাল স্ট্যাটাস ডিসপ্লে",          pin: "I2C 21/22",        price: "৩২০ ৳" },
+  { icon: CircuitBoard,name: "OLED ০.৯৬\" SSD1306 (I2C)",  role: "বুট লোগো + লাইভ ডেটা ডিসপ্লে",     pin: "SDA 21 · SCL 22",  price: "৩২০ ৳" },
   { icon: Zap,         name: "১২V ৫A SMPS",              role: "মেইন পাওয়ার সাপ্লাই",              pin: "VIN",              price: "৬৫০ ৳" },
   { icon: ShieldCheck, name: "TP4056 + ১৮৬৫০",           role: "ব্যাকআপ ব্যাটারি",                  pin: "VBAT",             price: "৩৫০ ৳" },
+];
+
+/* ---------------- MASTER PIN-BY-PIN WIRING ---------------- */
+const masterWiring = [
+  { from: "ESP32 GPIO 25",      to: "Relay Module IN",       note: "মেইন পাম্প রিলে (Active-LOW)" },
+  { from: "ESP32 5V",           to: "Relay Module VCC",      note: "রিলে কয়েল পাওয়ার" },
+  { from: "ESP32 GND",          to: "Relay Module GND",      note: "কমন গ্রাউন্ড" },
+  { from: "Relay COM",          to: "১২V SMPS +V",            note: "পাম্প পজিটিভ লাইন" },
+  { from: "Relay NO",           to: "R385 পাম্প (+)",         note: "Normally Open — মোটরে কারেন্ট" },
+  { from: "R385 পাম্প (−)",      to: "১২V SMPS −V (GND)",     note: "পাম্প রিটার্ন লাইন" },
+  { from: "HC-SR04 VCC",        to: "ESP32 5V",              note: "আল্ট্রাসনিক পাওয়ার" },
+  { from: "HC-SR04 GND",        to: "ESP32 GND",             note: "—" },
+  { from: "HC-SR04 Trig",       to: "ESP32 GPIO 5",          note: "ট্রিগার পালস আউট" },
+  { from: "HC-SR04 Echo",       to: "ESP32 GPIO 18",         note: "1kΩ + 2kΩ ভোল্টেজ ডিভাইডার" },
+  { from: "DHT22 VCC",          to: "ESP32 3.3V",            note: "10kΩ পুল-আপ DATA→VCC" },
+  { from: "DHT22 DATA",         to: "ESP32 GPIO 4",          note: "একতারা ডিজিটাল বাস" },
+  { from: "DHT22 GND",          to: "ESP32 GND",             note: "—" },
+  { from: "OLED VCC",           to: "ESP32 3.3V",            note: "SSD1306 ০.৯৬ ইঞ্চি" },
+  { from: "OLED GND",           to: "ESP32 GND",             note: "—" },
+  { from: "OLED SDA",           to: "ESP32 GPIO 21",         note: "I2C ডেটা লাইন" },
+  { from: "OLED SCL",           to: "ESP32 GPIO 22",         note: "I2C ক্লক লাইন" },
+  { from: "১২V SMPS −V",         to: "ESP32 GND",             note: "⚠️ কমন গ্রাউন্ড আবশ্যক" },
+  { from: "১২V SMPS +V → VIN",   to: "ESP32 VIN",             note: "অনবোর্ড রেগুলেটর → 3.3V" },
 ];
 
 const subDevices = [
