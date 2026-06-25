@@ -202,9 +202,14 @@ const float PUMP_RATED_CURRENT = 0.20;
 // 🆕 Manual push buttons (INPUT_PULLUP → press = LOW)
 #define PIN_BTN_ON        32
 #define PIN_BTN_OFF       33
-// 🆕 অনলাইন ইন্ডিকেটর LED — ESP32 DevKit-এর built-in নীল LED (GPIO 2)
-//    সিস্টেম online হলে blink করবে, offline হলে নিভে থাকবে।
-#define PIN_LED_ONLINE     2
+// 🆕 অনলাইন ইন্ডিকেটর LED
+//    ESP32 DevKit-এ built-in নীল LED সাধারণত GPIO 2 অথবা GPIO 22-এ থাকে।
+//    আপনার বোর্ডে অন্য পিন হলে এখানে বদলান। বাইরে আলাদা LED-ও যোগ করতে
+//    পারেন — GPIO → 220Ω → LED অ্যানোড → GND।
+//    LED_ACTIVE_HIGH = true  → HIGH দিলে LED জ্বলবে (বেশিরভাগ বোর্ড)
+//    LED_ACTIVE_HIGH = false → LOW দিলে LED জ্বলবে (কিছু বোর্ডে built-in inverted)
+#define PIN_LED_ONLINE        2
+#define LED_ACTIVE_HIGH    true
 
 
 // ---- OLED ----
@@ -471,20 +476,26 @@ void setup() {
   lastSend = millis();
 }
 
-// 🆕 অনলাইন LED ব্লিঙ্ক হ্যান্ডলার — non-blocking
-//   • systemOnline == true  → ৫০০ms interval-এ blink
-//   • systemOnline == false → সম্পূর্ণ নিভে থাকে
+// 🆕 অনলাইন LED ইন্ডিকেটর — non-blocking
+//   WiFi off                  → LED নিভে থাকবে
+//   WiFi on কিন্তু POST 200 না  → ১s slow blink (WiFi আছে, ব্যাকএন্ড reach নাই)
+//   WiFi on + ব্যাকএন্ড online → ২৫০ms fast blink ("সিস্টেম লাইভ" সংকেত)
+inline void ledWrite(bool on) {
+  digitalWrite(PIN_LED_ONLINE, (LED_ACTIVE_HIGH ? on : !on) ? HIGH : LOW);
+}
 void updateOnlineLed() {
   static unsigned long lastToggle = 0;
   static bool ledState = false;
-  if (systemOnline) {
-    if (millis() - lastToggle >= 500) {
-      lastToggle = millis();
-      ledState = !ledState;
-      digitalWrite(PIN_LED_ONLINE, ledState ? HIGH : LOW);
-    }
-  } else {
-    if (ledState) { ledState = false; digitalWrite(PIN_LED_ONLINE, LOW); }
+  bool wifi = (WiFi.status() == WL_CONNECTED);
+  if (!wifi) {
+    if (ledState) { ledState = false; ledWrite(false); }
+    return;
+  }
+  unsigned long interval = systemOnline ? 250UL : 1000UL;
+  if (millis() - lastToggle >= interval) {
+    lastToggle = millis();
+    ledState = !ledState;
+    ledWrite(ledState);
   }
 }
 
