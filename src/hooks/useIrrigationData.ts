@@ -17,6 +17,8 @@ export type FieldZone = {
   polygon: string;
   online: boolean;
   lastSeen: number | null;
+  valveNodeId: string | null;   // device_id of linked sub-node (if any)
+  hasNode: boolean;
 };
 
 export type MotorState = {
