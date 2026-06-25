@@ -58,7 +58,13 @@ export function ZonesGrid({ zones, onToggle }: { zones: FieldZone[]; onToggle: (
                 </div>
                 <button
                   onClick={() => onToggle(z.id)}
-                  className={`h-7 w-12 rounded-full relative transition shrink-0 ring-1 ring-white/30 ${z.valveOpen ? `${accent.on} shadow-md` : "bg-muted border border-border"}`}
+                  disabled={!z.hasNode || !z.online}
+                  title={!z.hasNode ? "কোনো sub-node নেই" : !z.online ? "Sub-node অফলাইন" : ""}
+                  className={`h-7 w-12 rounded-full relative transition shrink-0 ring-1 ring-white/30 ${
+                    !z.hasNode || !z.online ? "bg-muted opacity-60 cursor-not-allowed border border-border"
+                    : z.valveOpen ? `${accent.on} shadow-md`
+                    : "bg-muted border border-border"
+                  }`}
                   aria-label="ভাল্ভ টগল"
                 >
                   <span

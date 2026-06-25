@@ -17,6 +17,8 @@ export type FieldZone = {
   polygon: string;
   online: boolean;
   lastSeen: number | null;
+  valveNodeId: string | null;   // device_id of linked sub-node (if any)
+  hasNode: boolean;
 };
 
 export type MotorState = {
@@ -64,7 +66,7 @@ export const PUMP_SPEC = {
 };
 
 // fallback default zones (only used if user has none in DB and seed fails)
-const defaultZones: Omit<FieldZone, "online" | "lastSeen">[] = [
+const defaultZones: Omit<FieldZone, "online" | "lastSeen" | "valveNodeId" | "hasNode">[] = [
   { id: "Z-01", name: "North Field A", nameBn: "উত্তর জমি A", area: 4.2, waterLevel: 0, soilMoisture: 0, status: "idle", valveOpen: false, cropType: "Rice", x: 22, y: 22, polygon: "6,6 38,4 40,32 8,34" },
   { id: "Z-02", name: "North Field B", nameBn: "উত্তর জমি B", area: 3.6, waterLevel: 0, soilMoisture: 0, status: "idle", valveOpen: false, cropType: "Wheat", x: 56, y: 18, polygon: "42,4 76,6 74,30 42,32" },
   { id: "Z-03", name: "East Field",    nameBn: "পূর্ব জমি",   area: 5.1, waterLevel: 0, soilMoisture: 0, status: "idle", valveOpen: false, cropType: "Rice", x: 84, y: 26, polygon: "78,6 96,8 96,42 76,40" },
@@ -75,10 +77,10 @@ const defaultZones: Omit<FieldZone, "online" | "lastSeen">[] = [
 ];
 
 let state: Store = {
-  zones: defaultZones.map((z) => ({ ...z, online: false, lastSeen: null })),
+  zones: defaultZones.map((z) => ({ ...z, online: false, lastSeen: null, valveNodeId: null, hasNode: false })),
   motor: {
     id: PUMP_SPEC.device_id,
-    name: "৬V Ultra-Quiet Fractional Pump (১২০ L/H)",
+    name: "মেইন মোটর · BMDA Master",
     isOn: false, online: false, lastSeen: null,
     pressure: 0, flowRate: 0, voltage: 0, current: 0, runtime: 0, health: 0,
   },
@@ -178,7 +180,7 @@ if (typeof window !== "undefined") {
 }
 
 // ---------- DB-driven field load + actions ----------
-type FieldRow = { zone_id: string; name: string; name_bn: string; area_acres: number; crop_type: string; x: number; y: number; polygon: string };
+type FieldRow = { zone_id: string; name: string; name_bn: string; area_acres: number; crop_type: string; x: number; y: number; polygon: string; valve_node_id: string | null };
 
 const loadFields = async () => {
   const { data: u } = await supabase.auth.getUser();
@@ -202,6 +204,8 @@ const loadFields = async () => {
     waterLevel: 0, soilMoisture: 0, status: "idle", valveOpen: false,
     cropType: r.crop_type, x: Number(r.x), y: Number(r.y), polygon: r.polygon,
     online: false, lastSeen: null,
+    valveNodeId: r.valve_node_id ?? null,
+    hasNode: !!r.valve_node_id,
   }));
   setState({ ...state, zones, metrics: { ...state.metrics, totalNodes: zones.length } });
 
@@ -209,6 +213,7 @@ const loadFields = async () => {
   const { data: tel } = await supabase.from("device_telemetry").select("*");
   (tel ?? []).forEach((t) => applyTelemetry(t as TelemetryRow));
 };
+
 
 const loadAiActivity = async () => {
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
@@ -222,15 +227,21 @@ const loadAiActivity = async () => {
   setState({ ...state, metrics: { ...state.metrics, aiActivity: pct } });
 };
 
-export const addField = async (input: { zone_id: string; nameBn: string; area: number; crop: string }) => {
+export const addField = async (input: { zone_id: string; nameBn: string; area: number; crop: string; valveNodeId?: string | null }) => {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) { toast.error("লগইন প্রয়োজন"); return; }
   const { error } = await supabase.from("fields").insert({
     user_id: u.user.id, zone_id: input.zone_id, name: input.zone_id,
     name_bn: input.nameBn, area_acres: input.area, crop_type: input.crop,
     x: 50, y: 50, polygon: "20,20 60,20 60,60 20,60",
+    valve_node_id: input.valveNodeId ?? null,
   });
   if (error) { toast.error("যোগ করা যায়নি: " + error.message); return; }
+
+  // Link sub-node to this zone if selected
+  if (input.valveNodeId) {
+    await supabase.from("field_nodes").update({ zone_id: input.zone_id }).eq("device_id", input.valveNodeId);
+  }
   toast.success(`জমি ${input.zone_id} যোগ হয়েছে`);
   await loadFields();
 };
@@ -238,27 +249,47 @@ export const addField = async (input: { zone_id: string; nameBn: string; area: n
 export const deleteField = async (zone_id: string) => {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) return;
+  // unlink any sub-node first
+  await supabase.from("field_nodes").update({ zone_id: null }).eq("zone_id", zone_id);
   const { error } = await supabase.from("fields").delete().eq("user_id", u.user.id).eq("zone_id", zone_id);
   if (error) { toast.error("মুছে ফেলা যায়নি"); return; }
   toast.success(`${zone_id} মুছে ফেলা হয়েছে`);
   await loadFields();
 };
 
+export const assignNodeToField = async (deviceId: string, zoneId: string | null) => {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return;
+  // Unlink previous field that referenced this node
+  await supabase.from("fields").update({ valve_node_id: null }).eq("user_id", u.user.id).eq("valve_node_id", deviceId);
+  // Update node
+  const { error: ne } = await supabase.from("field_nodes").update({ zone_id: zoneId }).eq("device_id", deviceId);
+  if (ne) { toast.error(ne.message); return; }
+  // Link new field
+  if (zoneId) {
+    await supabase.from("fields").update({ valve_node_id: deviceId }).eq("user_id", u.user.id).eq("zone_id", zoneId);
+    toast.success(`${deviceId} → ${zoneId} যুক্ত হলো`);
+  } else {
+    toast.info(`${deviceId} unassign করা হলো`);
+  }
+  await loadFields();
+};
+
+
 const toggleValve = async (id: string) => {
   const zone = state.zones.find((z) => z.id === id);
   if (!zone) return;
+  if (!zone.hasNode) { toast.error(`${id}-এ কোনো sub-node সংযুক্ত নেই — Devices পেজ থেকে assign করুন`); return; }
+  if (!zone.online) { toast.error(`${id}-এর sub-node অফলাইন — ভাল্ভ নিয়ন্ত্রণ করা যাবে না`); return; }
   const target = !zone.valveOpen;
-  // send hardware command
+  const deviceId = zone.valveNodeId!;
   const { data: u } = await supabase.auth.getUser();
   const { error } = await supabase.from("device_commands").insert({
-    device_id: `SUB-${id}`, zone_id: id,
+    device_id: deviceId, zone_id: id,
     action: target ? "valve_open" : "valve_close",
     issued_by: u.user?.id ?? null,
   });
-  if (error && !error.message.includes("check")) {
-    // fall back to optimistic update if FK/check error
-    console.warn(error);
-  }
+  if (error) { toast.error("কমান্ড পাঠানো ব্যর্থ: " + error.message); return; }
   // optimistic UI
   const zones = state.zones.map((z) => z.id === id ? { ...z, valveOpen: target, status: target ? "irrigating" as const : "idle" as const } : z);
   setState({ ...state, zones });
@@ -307,5 +338,5 @@ function useBootstrap() {
 export function useIrrigationData() {
   useBootstrap();
   const snap = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  return { ...snap, toggleValve, toggleMotor, addField, deleteField, reloadFields: loadFields };
+  return { ...snap, toggleValve, toggleMotor, addField, deleteField, assignNodeToField, reloadFields: loadFields };
 }
