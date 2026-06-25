@@ -65,6 +65,7 @@ const masterCode = `/**
  *  Libraries: WiFi, HTTPClient, ArduinoJson, DHT, Adafruit_SSD1306
  */
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
@@ -72,7 +73,9 @@ const masterCode = `/**
 // ====== EDIT THESE ======
 const char* WIFI_SSID   = "YOUR_WIFI";
 const char* WIFI_PASS   = "YOUR_PASSWORD";
-const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2.lovable.app";
+// স্থায়ী dev URL — publish না করলেও কাজ করবে।
+// publish করলে: https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2.lovable.app
+const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
 const char* DEVICE_ID   = "MASTER-01";   // মাস্টার আইডি (অনন্য)
 const char* ZONE_ID     = "PUMP-HOUSE";
 // ========================
@@ -145,8 +148,10 @@ void sendTelemetry() {
   if (!isnan(h)) doc["humidity"]    = h;
 
   String body; serializeJson(doc, body);
+  WiFiClientSecure client;
+  client.setInsecure();                              // dev demo — production হলে cert pin করুন
   HTTPClient http;
-  http.begin(String(SERVER_HOST) + "/api/public/telemetry");
+  http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
   http.addHeader("Content-Type", "application/json");
   int code = http.POST(body);
   String resp = http.getString();
@@ -196,13 +201,14 @@ const subCode = `/**
  */
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
-#include <WiFiClient.h>
+#include <WiFiClientSecureBearSSL.h>
 #include <ArduinoJson.h>
 
 // ====== EDIT THESE ======
 const char* WIFI_SSID   = "YOUR_WIFI";
 const char* WIFI_PASS   = "YOUR_PASSWORD";
-const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2.lovable.app";
+// স্থায়ী dev URL — publish না করলেও কাজ করবে।
+const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
 const char* DEVICE_ID   = "SUB-Z01";   // প্রতিটি sub-node-এর অনন্য নাম
 const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 // ========================
@@ -250,7 +256,8 @@ void sendTelemetry() {
   doc["rssi"]         = WiFi.RSSI();
 
   String body; serializeJson(doc, body);
-  WiFiClient client;
+  BearSSL::WiFiClientSecure client;
+  client.setInsecure();                              // dev demo — সহজ TLS, cert validate করে না
   HTTPClient http;
   http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
   http.addHeader("Content-Type", "application/json");
