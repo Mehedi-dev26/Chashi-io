@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MotorPanel } from "@/components/dashboard/MotorPanel";
 import { useIrrigationData } from "@/hooks/useIrrigationData";
-import { Gauge, Zap, Timer, ShieldCheck, Wrench, Activity, Brain, Power } from "lucide-react";
+import { Gauge, Zap, Timer, ShieldCheck, Wrench, Activity, Brain, Power, Droplets, Wifi, WifiOff, Sprout, Waves } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/motor")({
 type ShutoffLog = { time: string; reason: string; level: number; mode: "auto" | "manual" };
 
 function MotorPage() {
-  const { zones, motor, toggleMotor } = useIrrigationData();
+  const { zones, motor, toggleMotor, toggleValve } = useIrrigationData();
 
   // === AI Auto-Shutoff State ===
   const [aiEnabled, setAiEnabled] = useState(true);
@@ -99,6 +99,110 @@ function MotorPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* === Sub-Nodes Live Control === */}
+        <div className="glass-card rounded-2xl p-5 relative overflow-hidden">
+          <div className="absolute -top-8 -left-8 h-40 w-40 bg-chart-2/15 blur-3xl rounded-full" />
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-4 relative">
+            <div className="flex items-center gap-2.5">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 grid place-items-center shadow-lg">
+                <Sprout className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-extrabold">ফিল্ড সাব-নোড নিয়ন্ত্রণ</h2>
+                <p className="text-xs text-muted-foreground">প্রতিটি জমির ভাল্ভ চালু/বন্ধ · TDS-ভিত্তিক মাটির আর্দ্রতা · derived পানির স্তর (real-time)।</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="px-2.5 py-1 rounded-full bg-success/15 text-success font-bold flex items-center gap-1">
+                <Wifi className="h-3 w-3" /> অনলাইন {bn(zones.filter(z => z.online).length)}
+              </span>
+              <span className="px-2.5 py-1 rounded-full bg-muted text-muted-foreground font-bold flex items-center gap-1">
+                <WifiOff className="h-3 w-3" /> অফলাইন {bn(zones.filter(z => z.hasNode && !z.online).length)}
+              </span>
+            </div>
+          </div>
+
+          {zones.filter(z => z.hasNode).length === 0 ? (
+            <div className="rounded-xl glass-panel p-6 text-center relative">
+              <Sprout className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+              <p className="text-sm font-semibold mb-1">কোনো সাব-নোড সংযুক্ত নেই</p>
+              <p className="text-xs text-muted-foreground">Devices পেজ থেকে নোডগুলো জমির সাথে assign করুন।</p>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 relative">
+              {zones.filter(z => z.hasNode).map((z) => {
+                const sm = Math.round(z.soilMoisture);
+                const wl = Math.round(z.waterLevel);
+                const status = sm < 25 ? { tone: "alert", label: "শুষ্ক", color: "var(--color-destructive)" }
+                             : sm > 75 ? { tone: "saturated", label: "সম্পৃক্ত", color: "var(--color-chart-2)" }
+                             : { tone: "optimal", label: "উপযুক্ত", color: "var(--color-success)" };
+                const canToggle = z.online;
+                return (
+                  <div key={z.id} className="rounded-2xl border-2 bg-card/70 backdrop-blur p-4 transition-all hover:shadow-lg"
+                       style={{ borderColor: z.valveOpen ? "color-mix(in oklab, var(--color-success) 50%, transparent)" : "color-mix(in oklab, var(--color-border) 100%, transparent)" }}>
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-mono text-muted-foreground">{z.id}</p>
+                        <p className="text-sm font-extrabold truncate">{z.nameBn}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{z.cropType} · {bn(z.area)} একর</p>
+                      </div>
+                      <span className={`h-2.5 w-2.5 rounded-full ${z.online ? "bg-success animate-pulse" : "bg-muted-foreground/40"}`}
+                            title={z.online ? "অনলাইন" : "অফলাইন"} />
+                    </div>
+
+                    {/* Soil Moisture */}
+                    <div className="mb-2.5">
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className="flex items-center gap-1 text-muted-foreground font-semibold">
+                          <Sprout className="h-3 w-3" /> মাটির আর্দ্রতা (TDS)
+                        </span>
+                        <span className="font-mono font-bold">{bn(sm)}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full transition-all"
+                             style={{ width: `${sm}%`, background: "linear-gradient(90deg, var(--color-warning), var(--color-success))" }} />
+                      </div>
+                    </div>
+
+                    {/* Derived Water Level */}
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className="flex items-center gap-1 text-muted-foreground font-semibold">
+                          <Waves className="h-3 w-3" /> পানির স্তর (derived)
+                        </span>
+                        <span className="font-mono font-bold">{bn(wl)}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full transition-all"
+                             style={{ width: `${wl}%`, background: "linear-gradient(90deg, var(--color-chart-2), var(--color-primary))" }} />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: `${status.color}22`, color: status.color }}>
+                        ● {status.label}
+                      </span>
+                      <button
+                        onClick={() => toggleValve(z.id)}
+                        disabled={!canToggle}
+                        className={`h-8 px-3 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                          !canToggle ? "bg-muted text-muted-foreground/60 cursor-not-allowed" :
+                          z.valveOpen
+                            ? "bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-md hover:shadow-lg"
+                            : "bg-gradient-to-r from-emerald-500 to-sky-500 text-white shadow-md hover:shadow-lg"
+                        }`}
+                      >
+                        <Droplets className="h-3 w-3" />
+                        {!canToggle ? "অফলাইন" : z.valveOpen ? "বন্ধ করুন" : "চালু করুন"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="glass-card rounded-2xl p-5">

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X, Search, Eye, EyeOff, Globe, Spline, Undo2, CheckCircle2, MousePointer2 } from "lucide-react";
+import { Crosshair, Layers, Locate, MapPin, Sprout, Gauge, Power, Trash2, Loader2, Save, X, Search, Eye, EyeOff, Globe, Spline, Undo2, CheckCircle2, MousePointer2, RefreshCw, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -73,26 +73,35 @@ function GpsPage() {
 
   const pipelineAssets = useMemo(() => assets.filter((a) => a.kind === "motor" || a.kind === "valve"), [assets]);
 
-  useEffect(() => {
+  const reloadAll = async (silent = false) => {
     if (!user) return;
-    (async () => {
-      setLoadingAssets(true);
-      const [aRes, pRes] = await Promise.all([
-        supabase.from("gps_assets").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("gps_pipelines").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      ]);
-      if (aRes.error) toast.error(aRes.error.message);
-      else {
-        const list = (aRes.data ?? []) as Asset[];
-        setAssets(list);
-        const motor = list.find((a) => a.kind === "motor");
-        if (motor) setFlyTo([motor.lat, motor.lng]);
-      }
-      if (pRes.error) toast.error(pRes.error.message);
-      else setPipelines(((pRes.data ?? []) as any[]).map((p) => ({ ...p, points: p.points as [number, number][] })));
-      setLoadingAssets(false);
-    })();
-  }, [user]);
+    setLoadingAssets(true);
+    const [aRes, pRes] = await Promise.all([
+      supabase.from("gps_assets").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("gps_pipelines").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+    ]);
+    if (aRes.error) {
+      console.error("[gps] assets load failed:", aRes.error);
+      toast.error("সম্পদ লোড ব্যর্থ: " + aRes.error.message);
+    } else {
+      const list = (aRes.data ?? []) as Asset[];
+      setAssets(list);
+      const motor = list.find((a) => a.kind === "motor");
+      const firstField = list.find((a) => a.kind === "field");
+      if (motor) setFlyTo([motor.lat, motor.lng]);
+      else if (firstField) setFlyTo([firstField.lat, firstField.lng]);
+      if (!silent) toast.success(`${bn(list.length)} টি সম্পদ লোড হলো`);
+    }
+    if (pRes.error) {
+      console.error("[gps] pipelines load failed:", pRes.error);
+      toast.error("পাইপলাইন লোড ব্যর্থ: " + pRes.error.message);
+    } else {
+      setPipelines(((pRes.data ?? []) as any[]).map((p) => ({ ...p, points: p.points as [number, number][] })));
+    }
+    setLoadingAssets(false);
+  };
+
+  useEffect(() => { if (user) reloadAll(true); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user]);
 
   const handleSave = async () => {
     if (!user || !pending || !label.trim()) return;
@@ -224,6 +233,10 @@ function GpsPage() {
             </Button>
           ))}
           <Button size="sm" variant="outline" onClick={locate}><Locate className="h-3 w-3 mr-1" />আমার অবস্থান</Button>
+          <Button size="sm" variant="outline" onClick={() => reloadAll(false)} disabled={loadingAssets}>
+            {loadingAssets ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+            রিলোড
+          </Button>
         </div>
       }
     >
@@ -416,7 +429,11 @@ function GpsPage() {
               {loadingAssets ? (
                 <div className="text-center py-6 text-muted-foreground text-xs"><Loader2 className="h-4 w-4 animate-spin inline mr-1" />লোড হচ্ছে…</div>
               ) : assets.length === 0 ? (
-                <p className="text-center text-xs text-muted-foreground py-6">এখনো কোনো সম্পদ যুক্ত করা হয়নি</p>
+                <div className="text-center py-6 px-3 space-y-2">
+                  <Database className="h-6 w-6 mx-auto text-muted-foreground/60" />
+                  <p className="text-xs text-muted-foreground">এই একাউন্টে এখনো কোনো সম্পদ সংরক্ষিত নেই</p>
+                  <p className="text-[10px] text-muted-foreground/70">যদি আগে যোগ করেছিলেন কিন্তু দেখা যাচ্ছে না — উপরের <b>রিলোড</b> চাপুন বা নিশ্চিত করুন একই একাউন্টে লগইন আছেন।</p>
+                </div>
               ) : assets.map((a) => {
                 const m = KIND_META[a.kind];
                 const Icon = m.Icon;
