@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Droplet, Maximize2, MapPin, Compass } from "lucide-react";
+import { Droplet, Maximize2, MapPin, Compass, Cpu, WifiOff } from "lucide-react";
 import type { FieldZone } from "@/hooks/useIrrigationData";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
