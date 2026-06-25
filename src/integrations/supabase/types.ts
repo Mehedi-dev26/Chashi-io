@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_chats: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       device_commands: {
         Row: {
           action: string
@@ -133,6 +157,51 @@ export type Database = {
           notes?: string | null
           updated_at?: string
           user_id?: string
+          zone_id?: string
+        }
+        Relationships: []
+      }
+      fields: {
+        Row: {
+          area_acres: number
+          created_at: string
+          crop_type: string
+          id: string
+          name: string
+          name_bn: string
+          polygon: string
+          updated_at: string
+          user_id: string
+          x: number
+          y: number
+          zone_id: string
+        }
+        Insert: {
+          area_acres?: number
+          created_at?: string
+          crop_type?: string
+          id?: string
+          name: string
+          name_bn: string
+          polygon?: string
+          updated_at?: string
+          user_id: string
+          x?: number
+          y?: number
+          zone_id: string
+        }
+        Update: {
+          area_acres?: number
+          created_at?: string
+          crop_type?: string
+          id?: string
+          name?: string
+          name_bn?: string
+          polygon?: string
+          updated_at?: string
+          user_id?: string
+          x?: number
+          y?: number
           zone_id?: string
         }
         Relationships: []
