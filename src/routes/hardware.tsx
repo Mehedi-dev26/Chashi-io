@@ -457,7 +457,7 @@ void setup() {
 
   // 🆕 অনলাইন স্ট্যাটাস LED
   pinMode(PIN_LED_ONLINE, OUTPUT);
-  ledWrite(false);
+  digitalWrite(PIN_LED_ONLINE, LED_ACTIVE_HIGH ? LOW : HIGH);  // OFF initially
 
 
   Wire.begin(I2C_SDA, I2C_SCL);
