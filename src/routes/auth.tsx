@@ -17,10 +17,8 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -33,33 +31,15 @@ function AuthPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success("স্বাগতম! Panel-এ প্রবেশ করছি…");
-        navigate({ to: "/app" });
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email, password,
-          options: { emailRedirectTo: `${window.location.origin}/app`, data: { display_name: name || email.split("@")[0] } },
-        });
-        if (error) throw error;
-        toast.success("একাউন্ট তৈরি হয়েছে। প্রবেশ করছি…");
-        navigate({ to: "/app" });
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast.success("স্বাগতম! মেইন প্যানেলে প্রবেশ করছি…");
+      navigate({ to: "/app" });
     } catch (err: unknown) {
-      toast.error((err as Error).message || "ত্রুটি ঘটেছে");
+      toast.error((err as Error).message || "ভুল credentials — প্রবেশ অনুমোদিত নয়");
     } finally {
       setBusy(false);
     }
-  };
-
-  const google = async () => {
-    setBusy(true);
-    try {
-      const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}/app` });
-      if (res.error) toast.error(String(res.error));
-    } finally { setBusy(false); }
   };
 
   return (
@@ -79,65 +59,40 @@ function AuthPage() {
         </Link>
 
         <div className="glass-card rounded-2xl p-7 sm:p-8">
-          <h1 className="text-2xl font-black tracking-tight">
-            {mode === "login" ? "অপারেটর প্রবেশদ্বার" : "নতুন একাউন্ট"}
-          </h1>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 border border-amber-300 text-[10px] font-bold text-amber-900 mb-3">
+            <Lock className="h-3 w-3" /> RESTRICTED · শুধু অনুমোদিত অ্যাডমিন
+          </div>
+          <h1 className="text-2xl font-black tracking-tight">মেইন প্যানেল Access</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {mode === "login" ? "Main panel-এ প্রবেশ করতে আপনার credentials দিন।" : "Platform-এ যুক্ত হতে নিবন্ধন করুন।"}
+            প্রবেশের জন্য অনুমোদিত ইমেইল ও পাসওয়ার্ড প্রদান করুন। অননুমোদিত একাউন্টে প্রবেশাধিকার নেই।
           </p>
 
-          <button
-            onClick={google} disabled={busy}
-            className="mt-6 w-full h-11 rounded-xl border border-border bg-background/70 hover:bg-secondary transition flex items-center justify-center gap-2.5 text-sm font-semibold disabled:opacity-50"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5.04c1.86 0 3.5.64 4.8 1.9l3.57-3.57C18.13 1.19 15.31 0 12 0 7.31 0 3.25 2.69 1.28 6.62l4.16 3.23C6.4 6.94 8.96 5.04 12 5.04z"/><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.28 1.4-1.12 2.59-2.39 3.39l3.66 2.84c2.14-1.98 3.75-4.9 3.75-8.47z"/><path fill="#FBBC05" d="M5.44 14.62c-.25-.74-.39-1.53-.39-2.34 0-.81.14-1.6.39-2.34L1.28 6.71C.47 8.34 0 10.13 0 12.28c0 2.15.47 3.94 1.28 5.57l4.16-3.23z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.08 7.94-2.94l-3.66-2.84c-1.02.69-2.34 1.1-4.28 1.1-3.04 0-5.6-1.9-6.56-4.81l-4.16 3.23C3.25 21.31 7.31 24 12 24z"/></svg>
-            Google দিয়ে চালিয়ে যান
-          </button>
-
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">অথবা</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <form onSubmit={submit} className="space-y-3.5">
-            {mode === "signup" && (
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground">নাম</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full h-11 px-3 rounded-xl border border-border bg-background/70 focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm" placeholder="আপনার নাম" />
-              </div>
-            )}
+          <form onSubmit={submit} className="space-y-3.5 mt-6">
             <div>
-              <label className="text-xs font-semibold text-muted-foreground">ইমেইল</label>
+              <label className="text-xs font-semibold text-muted-foreground">অনুমোদিত ইমেইল</label>
               <div className="mt-1 relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-11 pl-10 pr-3 rounded-xl border border-border bg-background/70 focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm" placeholder="you@example.com" />
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email"
+                  className="w-full h-11 pl-10 pr-3 rounded-xl border border-border bg-background/70 focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm" placeholder="admin@example.com" />
               </div>
             </div>
             <div>
               <label className="text-xs font-semibold text-muted-foreground">পাসওয়ার্ড</label>
               <div className="mt-1 relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
                   className="w-full h-11 pl-10 pr-3 rounded-xl border border-border bg-background/70 focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm" placeholder="••••••••" />
               </div>
             </div>
 
             <button type="submit" disabled={busy}
               className="w-full h-11 rounded-xl bg-gradient-to-r from-primary to-chart-2 text-primary-foreground font-bold text-sm shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2 disabled:opacity-60">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>
-                {mode === "login" ? "প্রবেশ করুন" : "একাউন্ট তৈরি করুন"} <ArrowRight className="h-4 w-4" />
-              </>}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>মেইন প্যানেলে প্রবেশ <ArrowRight className="h-4 w-4" /></>}
             </button>
           </form>
 
-          <p className="text-xs text-center text-muted-foreground mt-5">
-            {mode === "login" ? "নতুন ব্যবহারকারী?" : "ইতিমধ্যে একাউন্ট আছে?"}{" "}
-            <button onClick={() => setMode(mode === "login" ? "signup" : "login")} className="text-primary font-semibold hover:underline">
-              {mode === "login" ? "নিবন্ধন করুন" : "লগ ইন করুন"}
-            </button>
+          <p className="text-[11px] text-center text-muted-foreground mt-5">
+            নতুন একাউন্ট নিবন্ধন বন্ধ আছে। প্রবেশাধিকার পেতে সিস্টেম অ্যাডমিনের সাথে যোগাযোগ করুন।
           </p>
         </div>
 
@@ -148,3 +103,4 @@ function AuthPage() {
     </div>
   );
 }
+
