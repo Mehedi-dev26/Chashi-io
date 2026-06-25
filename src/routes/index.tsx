@@ -61,8 +61,9 @@ function Landing() {
             <a href="#about" className="text-muted-foreground hover:text-foreground transition">প্রকল্প</a>
           </nav>
           <Link to="/auth" className="h-10 px-4 sm:px-5 shrink-0 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white text-sm font-bold inline-flex items-center gap-1.5 shadow-lg shadow-orange-500/30 hover:shadow-xl hover:scale-[1.02] transition">
-            লগ ইন <ArrowRight className="h-3.5 w-3.5" />
+            মেইন প্যানেল Access <ArrowRight className="h-3.5 w-3.5" />
           </Link>
+
         </div>
       </header>
 

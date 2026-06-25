@@ -17,8 +17,9 @@ export function DashboardLayout({
   children: React.ReactNode;
   actions?: React.ReactNode;
 }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, roles, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
+  const approved = isAdmin || roles.includes("operator");
 
   useEffect(() => {
     if (!loading && !isAuthenticated) navigate({ to: "/auth" });
@@ -34,6 +35,23 @@ export function DashboardLayout({
       </div>
     );
   }
+
+  if (!approved) {
+    return (
+      <div className="min-h-screen grid place-items-center px-6">
+        <div className="max-w-md text-center glass-card rounded-2xl p-8 space-y-4">
+          <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 grid place-items-center text-white text-2xl">⛔</div>
+          <h1 className="text-xl font-black">প্রবেশাধিকার নেই</h1>
+          <p className="text-sm text-muted-foreground">এই একাউন্টটি মেইন প্যানেলে প্রবেশের জন্য অনুমোদিত নয়। অনুগ্রহ করে অনুমোদিত অ্যাডমিন ইমেইল ব্যবহার করুন।</p>
+          <button onClick={async () => { await signOut(); navigate({ to: "/auth" }); }}
+            className="h-10 px-5 rounded-xl bg-gradient-to-r from-primary to-chart-2 text-primary-foreground font-bold text-sm shadow-lg">
+            সাইন আউট
+          </button>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <SidebarProvider>
