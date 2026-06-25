@@ -477,9 +477,9 @@ void setup() {
 }
 
 // 🆕 অনলাইন LED ইন্ডিকেটর — non-blocking
-//   WiFi off                  → LED নিভে থাকবে
-//   WiFi on কিন্তু POST 200 না  → ১s slow blink (WiFi আছে, ব্যাকএন্ড reach নাই)
-//   WiFi on + ব্যাকএন্ড online → ২৫০ms fast blink ("সিস্টেম লাইভ" সংকেত)
+//   WiFi off                    → LED নিভে থাকবে
+//   WiFi on কিন্তু POST 200 না    → ১s slow blink (WiFi আছে, ব্যাকএন্ড reach নাই)
+//   WiFi on + ব্যাকএন্ড online   → ✅ permanently SOLID ON (blink না করে স্থিরভাবে জ্বলে থাকবে)
 inline void ledWrite(bool on) {
   digitalWrite(PIN_LED_ONLINE, (LED_ACTIVE_HIGH ? on : !on) ? HIGH : LOW);
 }
@@ -491,8 +491,13 @@ void updateOnlineLed() {
     if (ledState) { ledState = false; ledWrite(false); }
     return;
   }
-  unsigned long interval = systemOnline ? 250UL : 1000UL;
-  if (millis() - lastToggle >= interval) {
+  if (systemOnline) {
+    // ✅ ব্যাকএন্ডের সাথে connected → solid ON, কোনো blink না
+    if (!ledState) { ledState = true; ledWrite(true); }
+    return;
+  }
+  // WiFi আছে কিন্তু ব্যাকএন্ড reach নাই → 1s slow blink
+  if (millis() - lastToggle >= 1000UL) {
     lastToggle = millis();
     ledState = !ledState;
     ledWrite(ledState);
