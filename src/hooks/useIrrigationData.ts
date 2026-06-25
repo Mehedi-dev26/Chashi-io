@@ -227,15 +227,21 @@ const loadAiActivity = async () => {
   setState({ ...state, metrics: { ...state.metrics, aiActivity: pct } });
 };
 
-export const addField = async (input: { zone_id: string; nameBn: string; area: number; crop: string }) => {
+export const addField = async (input: { zone_id: string; nameBn: string; area: number; crop: string; valveNodeId?: string | null }) => {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) { toast.error("লগইন প্রয়োজন"); return; }
   const { error } = await supabase.from("fields").insert({
     user_id: u.user.id, zone_id: input.zone_id, name: input.zone_id,
     name_bn: input.nameBn, area_acres: input.area, crop_type: input.crop,
     x: 50, y: 50, polygon: "20,20 60,20 60,60 20,60",
+    valve_node_id: input.valveNodeId ?? null,
   });
   if (error) { toast.error("যোগ করা যায়নি: " + error.message); return; }
+
+  // Link sub-node to this zone if selected
+  if (input.valveNodeId) {
+    await supabase.from("field_nodes").update({ zone_id: input.zone_id }).eq("device_id", input.valveNodeId);
+  }
   toast.success(`জমি ${input.zone_id} যোগ হয়েছে`);
   await loadFields();
 };
@@ -243,11 +249,32 @@ export const addField = async (input: { zone_id: string; nameBn: string; area: n
 export const deleteField = async (zone_id: string) => {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) return;
+  // unlink any sub-node first
+  await supabase.from("field_nodes").update({ zone_id: null }).eq("zone_id", zone_id);
   const { error } = await supabase.from("fields").delete().eq("user_id", u.user.id).eq("zone_id", zone_id);
   if (error) { toast.error("মুছে ফেলা যায়নি"); return; }
   toast.success(`${zone_id} মুছে ফেলা হয়েছে`);
   await loadFields();
 };
+
+export const assignNodeToField = async (deviceId: string, zoneId: string | null) => {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return;
+  // Unlink previous field that referenced this node
+  await supabase.from("fields").update({ valve_node_id: null }).eq("user_id", u.user.id).eq("valve_node_id", deviceId);
+  // Update node
+  const { error: ne } = await supabase.from("field_nodes").update({ zone_id: zoneId }).eq("device_id", deviceId);
+  if (ne) { toast.error(ne.message); return; }
+  // Link new field
+  if (zoneId) {
+    await supabase.from("fields").update({ valve_node_id: deviceId }).eq("user_id", u.user.id).eq("zone_id", zoneId);
+    toast.success(`${deviceId} → ${zoneId} যুক্ত হলো`);
+  } else {
+    toast.info(`${deviceId} unassign করা হলো`);
+  }
+  await loadFields();
+};
+
 
 const toggleValve = async (id: string) => {
   const zone = state.zones.find((z) => z.id === id);
