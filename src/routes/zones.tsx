@@ -126,7 +126,22 @@ function ZonesPage() {
                   </select>
                 </div>
               </div>
+              <div>
+                <label className="text-xs font-semibold flex items-center gap-1"><Cpu className="h-3 w-3" /> ভাল্ভ সাব-নোড (ঐচ্ছিক)</label>
+                <select value={form.valveNodeId} onChange={(e) => setForm({ ...form, valveNodeId: e.target.value })} className="mt-1 w-full h-10 px-3 rounded-lg border-2 border-border bg-background text-sm outline-none focus:border-emerald-500">
+                  <option value="">— কোনো নোড নয় —</option>
+                  {availableNodes.map((n) => (
+                    <option key={n.device_id} value={n.device_id}>{n.device_id} · {n.label}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {availableNodes.length === 0
+                    ? "কোনো উপলব্ধ sub-node নেই · Devices পেজ থেকে নতুন যোগ করুন"
+                    : `${bn(availableNodes.length)}টি sub-node উপলব্ধ`}
+                </p>
+              </div>
             </div>
+
             <button type="submit" className="mt-5 w-full h-11 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold shadow-md ring-1 ring-white/30 hover:scale-[1.02] transition">
               যোগ করুন
             </button>
