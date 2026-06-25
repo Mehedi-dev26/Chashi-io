@@ -276,32 +276,31 @@ void drawDashboard(float tank, float lpm, float volt, float curr, float t, float
   oled.fillRect(0, 0, OLED_W, 22, SSD1306_WHITE);
   oled.setTextColor(SSD1306_BLACK);
   oledCenter(motorOn ? "PUMP  ON" : "PUMP  OFF", 4, 2);
+  // 🔧 FIX: reset textSize back to 1 — otherwise every subsequent oled.print
+  //        below also renders at size 2 and the layout collapses.
+  oled.setTextSize(1);
   oled.setTextColor(SSD1306_WHITE);
 
-  // === SUB-HEADER : system status + wifi ===
-  String sysLine = systemOnline ? "SYSTEM ONLINE" : "SYSTEM OFFLINE";
-  oledCenter(sysLine, 25, 1);
+  // === SUB-HEADER : system status ===
+  oledCenter(systemOnline ? "SYSTEM ONLINE" : "SYSTEM OFFLINE", 25, 1);
+  oled.setTextSize(1);
 
   // === DIVIDER ===
   oled.drawFastHLine(0, 35, OLED_W, SSD1306_WHITE);
 
-  // === DATA ROW 1 : TANK + FLOW ===
+  // === DATA ROW 1 : TANK + FLOW (fixed columns, no overflow) ===
   oled.setCursor(2, 38);
-  oled.print("TANK ");
-  oled.print((int)tank); oled.print("%");
-  oled.setCursor(70, 38);
-  oled.print("FLOW ");
-  oled.print(lpm, 1);
+  oled.printf("TANK %3d%%", (int)tank);
+  oled.setCursor(68, 38);
+  oled.printf("FLOW %4.1f", lpm);
 
   // === DATA ROW 2 : V/A + temp/humid ===
   oled.setCursor(2, 48);
-  oled.print(volt, 1); oled.print("V ");
-  oled.print(curr, 2); oled.print("A");
+  oled.printf("%3.1fV %4.2fA", volt, curr);
   oled.setCursor(78, 48);
-  oled.print((int)t); oled.print("C ");
-  oled.print((int)h); oled.print("%");
+  oled.printf("%2dC %2d%%", (int)t, (int)h);
 
-  // === DATA ROW 3 : RUNTIME ===
+  // === DATA ROW 3 : RUNTIME (compact HH:MM:SS, never overflows) ===
   oled.setCursor(2, 57);
   oled.print("RUN ");
   oled.print(fmtRuntime(motorOn ? (motorTotalMs + (millis() - motorStartMs)) : motorTotalMs));
