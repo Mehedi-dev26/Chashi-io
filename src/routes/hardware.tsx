@@ -242,7 +242,7 @@ void oledCenter(const String& s, int y, int sz = 1) {
   oled.print(s);
 }
 
-// 🆕 মিনিমাল বুট — "Develop by Mehedi Ahsan" → "Loading..." প্রোগ্রেস বার → ড্যাশবোর্ড
+// ✅ মিনিমাল বুট — "Develop by Mehedi" → "Loading..." থাকবে যতক্ষণ না ড্যাশবোর্ড আঁকা হয়
 void bootAnimation() {
   // ━━━ Stage 1: Developer credit ━━━
   oled.clearDisplay();
@@ -253,7 +253,9 @@ void bootAnimation() {
   delay(1600);
 
   // ━━━ Stage 2: Loading screen with progress bar ━━━
-  // (Develop by → Loading এর মাঝে আর কোনো black gap থাকবে না)
+  // গুরুত্বপূর্ণ: loading শেষেও screen clear করা যাবে না।
+  // WiFi/backend connect হতে যতক্ষণ লাগে, এই loading screen-ই থাকবে;
+  // তারপর sendTelemetry() সরাসরি dashboard draw করবে — মাঝখানে black screen হবে না।
   const int barX = 14, barY = 38, barW = 100, barH = 10;
   for (int p = 0; p <= 100; p += 4) {
     oled.clearDisplay();
@@ -272,8 +274,6 @@ void bootAnimation() {
     delay(25);
   }
   delay(150);
-  oled.clearDisplay();
-  oled.display();
 }
 
 
