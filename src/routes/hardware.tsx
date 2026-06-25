@@ -336,6 +336,11 @@ void setup() {
 
   dht.begin();
   connectWifi();
+
+  // ✅ Boot-time heartbeat — dashboard সাথে সাথে ONLINE বুঝবে
+  Serial.println("[MASTER] System online — sending boot heartbeat");
+  sendTelemetry();
+  lastSend = millis();
 }
 
 void loop() {
