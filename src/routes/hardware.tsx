@@ -36,7 +36,7 @@ export const Route = createFileRoute("/hardware")({
 const masterDevices = [
   { icon: Cpu,         name: "ESP32 DevKit V1",                     role: "মাস্টার কন্ট্রোলার",                pin: "—",                price: "৬৫০ ৳" },
   { icon: Zap,         name: "১-চ্যানেল রিলে মডিউল (৫V)",            role: "মেইন পাম্প ON/OFF",                pin: "GPIO 25",          price: "১২০ ৳" },
-  { icon: Droplets,    name: "৬V Ultra-Quiet Fractional Pump (১২০ L/H)", role: "মেইন পাম্প · ৬V, ০.২০A, ~১.২W (2.0 L/min)", pin: "রিলে NO আউট", price: "৩৮০ ৳" },
+  { icon: Droplets,    name: "মেইন মোটর · ৬V Ultra-Quiet Pump", role: "মেইন পাম্প · ৬V, ০.২০A, ~১.২W (2.0 L/min)", pin: "রিলে NO আউট", price: "৩৮০ ৳" },
   { icon: Waves,       name: "HC-SR04 আল্ট্রাসনিক",                 role: "ট্যাঙ্ক জলস্তর",                    pin: "Trig 5 · Echo 18", price: "১৮০ ৳" },
   { icon: Thermometer, name: "DHT22",                               role: "তাপমাত্রা ও আর্দ্রতা",              pin: "GPIO 4",           price: "৩৫০ ৳" },
   { icon: CircuitBoard,name: "OLED ০.৯৬\" SSD1306 (I2C)",             role: "বুট লোগো + লাইভ ডেটা ডিসপ্লে",     pin: "SDA 21 · SCL 22",  price: "৩২০ ৳" },
