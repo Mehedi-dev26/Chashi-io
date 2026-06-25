@@ -242,17 +242,40 @@ void oledCenter(const String& s, int y, int sz = 1) {
   oled.print(s);
 }
 
-// 🆕 মিনিমাল বুট — শুধু "Develop by Mehedi Ahsan"
+// 🆕 মিনিমাল বুট — "Develop by Mehedi Ahsan" → "Loading..." প্রোগ্রেস বার → ড্যাশবোর্ড
 void bootAnimation() {
+  // ━━━ Stage 1: Developer credit ━━━
   oled.clearDisplay();
   oled.setTextColor(SSD1306_WHITE);
   oledCenter("Develop by", 18, 1);
   oledCenter("Mehedi Ahsan", 34, 2);
   oled.display();
-  delay(1800);
+  delay(1600);
+
+  // ━━━ Stage 2: Loading screen with progress bar ━━━
+  // (Develop by → Loading এর মাঝে আর কোনো black gap থাকবে না)
+  const int barX = 14, barY = 38, barW = 100, barH = 10;
+  for (int p = 0; p <= 100; p += 4) {
+    oled.clearDisplay();
+    oled.setTextColor(SSD1306_WHITE);
+    oledCenter("Loading...", 10, 2);                       // উপরে বড় করে "Loading..."
+    oled.drawRoundRect(barX, barY, barW, barH, 2, SSD1306_WHITE);
+    int fillW = (barW - 4) * p / 100;
+    if (fillW > 0) oled.fillRoundRect(barX + 2, barY + 2, fillW, barH - 4, 1, SSD1306_WHITE);
+    oled.setTextSize(1);
+    char pct[8]; snprintf(pct, sizeof(pct), "%d%%", p);
+    int16_t bx, by; uint16_t bw, bh;
+    oled.getTextBounds(pct, 0, 0, &bx, &by, &bw, &bh);
+    oled.setCursor((128 - bw) / 2, 54);
+    oled.print(pct);
+    oled.display();
+    delay(25);
+  }
+  delay(150);
   oled.clearDisplay();
   oled.display();
 }
+
 
 String fmtRuntime(unsigned long ms) {
   unsigned long s = ms / 1000;
