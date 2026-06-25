@@ -202,6 +202,10 @@ const float PUMP_RATED_CURRENT = 0.20;
 // 🆕 Manual push buttons (INPUT_PULLUP → press = LOW)
 #define PIN_BTN_ON        32
 #define PIN_BTN_OFF       33
+// 🆕 অনলাইন ইন্ডিকেটর LED — ESP32 DevKit-এর built-in নীল LED (GPIO 2)
+//    সিস্টেম online হলে blink করবে, offline হলে নিভে থাকবে।
+#define PIN_LED_ONLINE     2
+
 
 // ---- OLED ----
 #define OLED_W   128
