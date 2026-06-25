@@ -247,8 +247,8 @@ void bootAnimation() {
   // ━━━ Stage 1: Developer credit ━━━
   oled.clearDisplay();
   oled.setTextColor(SSD1306_WHITE);
-  oledCenter("Develop by", 18, 1);
-  oledCenter("Mehedi Ahsan", 34, 2);
+  oledCenter("Develop by", 20, 1);
+  oledCenter("Mehedi", 36, 2);
   oled.display();
   delay(1600);
 
