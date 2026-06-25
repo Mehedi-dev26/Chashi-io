@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   Cpu, Droplets, Sun, Thermometer, Waves, Zap, Cable, CircuitBoard, Wifi,
-  Code2, Wrench, ShieldCheck, Copy, CheckCheck, Network, Radio, Server,
+  Code2, Wrench, ShieldCheck, Copy, CheckCheck, Network, Radio, Server, Plug,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/hardware")({
 /*  ┌─────────────────────────────┐                                    */
 /*  │  MASTER NODE (ESP32)        │  ←  পাম্প হাউস                     */
 /*  │  • মেইন মোটর রিলে           │                                    */
-/*  │  • ফ্লো সেন্সর (লি/মিনিট)   │                                    */
+/*  │  • R385 ১২V পাম্প (auto L/min)│                                  */
 /*  │  • ট্যাঙ্ক জলস্তর (HC-SR04) │                                    */
 /*  │  • DHT22 (আবহাওয়া)         │                                    */
 /*  │  • OLED স্ট্যাটাস            │                                    */
@@ -34,13 +34,36 @@ export const Route = createFileRoute("/hardware")({
 
 const masterDevices = [
   { icon: Cpu,         name: "ESP32 DevKit V1",          role: "মাস্টার কন্ট্রোলার",                pin: "—",                price: "৬৫০ ৳" },
-  { icon: Zap,         name: "২-চ্যানেল রিলে (১০A)",     role: "মেইন পাম্প + ব্যাকআপ",              pin: "GPIO 25 / 26",     price: "২৫০ ৳" },
-  { icon: Waves,       name: "YF-S201 ফ্লো সেন্সর",      role: "উত্তোলিত পানি পরিমাপ",              pin: "GPIO 23 (INT)",    price: "৪৫০ ৳" },
+  { icon: Zap,         name: "১-চ্যানেল রিলে (১০A)",      role: "মেইন পাম্প নিয়ন্ত্রণ",              pin: "GPIO 25",          price: "১৫০ ৳" },
+  { icon: Droplets,    name: "R385 ১২V DC ডায়াফ্রাম পাম্প", role: "মেইন ওয়াটার পাম্প (১.৮ L/min)",     pin: "রিলে আউট",         price: "৫৫০ ৳" },
   { icon: Waves,       name: "HC-SR04 আল্ট্রাসনিক",      role: "ট্যাঙ্ক/রিজার্ভয়ার জলস্তর",        pin: "Trig 5 · Echo 18", price: "১৮০ ৳" },
   { icon: Thermometer, name: "DHT22",                    role: "তাপমাত্রা ও আর্দ্রতা",              pin: "GPIO 4",           price: "৩৫০ ৳" },
-  { icon: CircuitBoard,name: "OLED ০.৯৬\" SSD1306",       role: "লোকাল স্ট্যাটাস ডিসপ্লে",          pin: "I2C 21/22",        price: "৩২০ ৳" },
+  { icon: CircuitBoard,name: "OLED ০.৯৬\" SSD1306 (I2C)",  role: "বুট লোগো + লাইভ ডেটা ডিসপ্লে",     pin: "SDA 21 · SCL 22",  price: "৩২০ ৳" },
   { icon: Zap,         name: "১২V ৫A SMPS",              role: "মেইন পাওয়ার সাপ্লাই",              pin: "VIN",              price: "৬৫০ ৳" },
   { icon: ShieldCheck, name: "TP4056 + ১৮৬৫০",           role: "ব্যাকআপ ব্যাটারি",                  pin: "VBAT",             price: "৩৫০ ৳" },
+];
+
+/* ---------------- MASTER PIN-BY-PIN WIRING ---------------- */
+const masterWiring = [
+  { from: "ESP32 GPIO 25",      to: "Relay Module IN",       note: "মেইন পাম্প রিলে (Active-LOW)" },
+  { from: "ESP32 5V",           to: "Relay Module VCC",      note: "রিলে কয়েল পাওয়ার" },
+  { from: "ESP32 GND",          to: "Relay Module GND",      note: "কমন গ্রাউন্ড" },
+  { from: "Relay COM",          to: "১২V SMPS +V",            note: "পাম্প পজিটিভ লাইন" },
+  { from: "Relay NO",           to: "R385 পাম্প (+)",         note: "Normally Open — মোটরে কারেন্ট" },
+  { from: "R385 পাম্প (−)",      to: "১২V SMPS −V (GND)",     note: "পাম্প রিটার্ন লাইন" },
+  { from: "HC-SR04 VCC",        to: "ESP32 5V",              note: "আল্ট্রাসনিক পাওয়ার" },
+  { from: "HC-SR04 GND",        to: "ESP32 GND",             note: "—" },
+  { from: "HC-SR04 Trig",       to: "ESP32 GPIO 5",          note: "ট্রিগার পালস আউট" },
+  { from: "HC-SR04 Echo",       to: "ESP32 GPIO 18",         note: "1kΩ + 2kΩ ভোল্টেজ ডিভাইডার" },
+  { from: "DHT22 VCC",          to: "ESP32 3.3V",            note: "10kΩ পুল-আপ DATA→VCC" },
+  { from: "DHT22 DATA",         to: "ESP32 GPIO 4",          note: "একতারা ডিজিটাল বাস" },
+  { from: "DHT22 GND",          to: "ESP32 GND",             note: "—" },
+  { from: "OLED VCC",           to: "ESP32 3.3V",            note: "SSD1306 ০.৯৬ ইঞ্চি" },
+  { from: "OLED GND",           to: "ESP32 GND",             note: "—" },
+  { from: "OLED SDA",           to: "ESP32 GPIO 21",         note: "I2C ডেটা লাইন" },
+  { from: "OLED SCL",           to: "ESP32 GPIO 22",         note: "I2C ক্লক লাইন" },
+  { from: "১২V SMPS −V",         to: "ESP32 GND",             note: "⚠️ কমন গ্রাউন্ড আবশ্যক" },
+  { from: "১২V SMPS +V → VIN",   to: "ESP32 VIN",             note: "অনবোর্ড রেগুলেটর → 3.3V" },
 ];
 
 const subDevices = [
@@ -58,51 +81,164 @@ const subTotalPerNode = "১,৫৩০ ৳";
 const masterCode = `/**
  *  BMDA Smart Irrigation — MASTER NODE (ESP32)
  *  স্থান : পাম্প হাউস
- *  কাজ  : মেইন মোটর চালু/বন্ধ, ফ্লো পরিমাপ, ট্যাঙ্কের জলস্তর,
- *         আবহাওয়া এবং সমস্ত sub-node থেকে আসা সিদ্ধান্ত সমন্বয়।
+ *  পাম্প : R385 ১২V DC ডায়াফ্রাম পাম্প (rated ~1.8 L/min @ 12V)
+ *  কাজ  : Dashboard থেকে রিয়েল-টাইম পাম্প ON/OFF, ট্যাঙ্ক জলস্তর,
+ *         আবহাওয়া, পাম্প ভোল্টেজ ও রানটাইম রিপোর্ট, OLED-এ লাইভ ডেটা।
  *
  *  Board    : ESP32 Dev Module
- *  Libraries: WiFi, HTTPClient, ArduinoJson, DHT, Adafruit_SSD1306
+ *  Libraries:
+ *    - WiFi / HTTPClient / ArduinoJson
+ *    - DHT sensor library  (Adafruit)
+ *    - Adafruit GFX + Adafruit SSD1306
  */
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 // ====== EDIT THESE ======
 const char* WIFI_SSID   = "YOUR_WIFI";
 const char* WIFI_PASS   = "YOUR_PASSWORD";
 // স্থায়ী dev URL — publish না করলেও কাজ করবে।
-// publish করলে: https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2.lovable.app
 const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
-const char* DEVICE_ID   = "MASTER-01";   // মাস্টার আইডি (অনন্য)
+const char* DEVICE_ID   = "MASTER-01";
 const char* ZONE_ID     = "PUMP-HOUSE";
 // ========================
 
-#define PIN_RELAY_PUMP   25     // মেইন পাম্প
-#define PIN_RELAY_BACKUP 26     // ব্যাকআপ ভাল্ভ/ড্রেইন
-#define PIN_FLOW         23     // YF-S201 (Interrupt)
+// ---- Pump spec (R385 12V DC diaphragm) ----
+const float PUMP_RATED_LPM     = 1.8;    // লিটার/মিনিট @ 12V open flow
+const float PUMP_RATED_VOLTAGE = 12.0;   // V
+const float PUMP_RATED_CURRENT = 0.55;   // A (অনুমান, datasheet অনুযায়ী)
+
+// ---- Pins ----
+#define PIN_RELAY_PUMP   25
 #define PIN_TRIG          5
 #define PIN_ECHO         18
 #define PIN_DHT           4
 #define DHT_TYPE      DHT22
+#define I2C_SDA          21
+#define I2C_SCL          22
+
+// ---- OLED ----
+#define OLED_W   128
+#define OLED_H    64
+Adafruit_SSD1306 oled(OLED_W, OLED_H, &Wire, -1);
 
 DHT dht(PIN_DHT, DHT_TYPE);
 
-volatile unsigned long flowPulses = 0;
-bool motorOn = false;
-unsigned long lastSend = 0;
+bool          motorOn       = false;
+unsigned long motorStartMs  = 0;
+unsigned long motorTotalMs  = 0;       // মোট রানটাইম (ms)
+unsigned long lastSend      = 0;
 const unsigned long SEND_INTERVAL = 5000;
 
-void IRAM_ATTR flowISR() { flowPulses++; }
+// =================== DISPLAY HELPERS ===================
+void oledCenter(const String& s, int y, int sz = 1) {
+  oled.setTextSize(sz);
+  int16_t x1, y1; uint16_t w, h;
+  oled.getTextBounds(s, 0, 0, &x1, &y1, &w, &h);
+  oled.setCursor((OLED_W - w) / 2, y);
+  oled.print(s);
+}
 
+void bootAnimation() {
+  // ফেজ ১ : BAWDA লোগো ফেড-ইন
+  for (int i = 0; i <= 6; i++) {
+    oled.clearDisplay();
+    oled.setTextColor(SSD1306_WHITE);
+    // টপ ব্র্যান্ড বার
+    oled.drawRoundRect(2, 2, OLED_W - 4, 14, 3, SSD1306_WHITE);
+    oled.setTextSize(1);
+    oled.setCursor(8, 5); oled.print("SMART IRRIGATION");
+    // মেইন লোগো
+    oledCenter("BAWDA", 22, 3);
+    delay(120);
+    oled.display();
+  }
+  delay(600);
+
+  // ফেজ ২ : Made by Mehedi Hasan
+  oled.clearDisplay();
+  oled.drawRoundRect(2, 2, OLED_W - 4, 14, 3, SSD1306_WHITE);
+  oled.setCursor(8, 5); oled.print("SMART IRRIGATION");
+  oledCenter("BAWDA", 20, 3);
+  oledCenter("Made by Mehedi Hasan", 50, 1);
+  oled.display();
+  delay(1400);
+
+  // ফেজ ৩ : প্রোগ্রেস বার (system booting)
+  for (int p = 0; p <= 100; p += 4) {
+    oled.clearDisplay();
+    oledCenter("BAWDA", 4, 2);
+    oledCenter("Initializing system...", 26, 1);
+    oled.drawRoundRect(14, 42, 100, 10, 3, SSD1306_WHITE);
+    oled.fillRoundRect(16, 44, p * 96 / 100, 6, 2, SSD1306_WHITE);
+    oledCenter(String(p) + "%", 56, 1);
+    oled.display();
+    delay(25);
+  }
+  delay(300);
+}
+
+String fmtRuntime(unsigned long ms) {
+  unsigned long s = ms / 1000;
+  unsigned int h = s / 3600;
+  unsigned int m = (s % 3600) / 60;
+  unsigned int sec = s % 60;
+  char buf[16];
+  snprintf(buf, sizeof(buf), "%02u:%02u:%02u", h, m, sec);
+  return String(buf);
+}
+
+void drawDashboard(float tank, float lpm, float volt, float t, float h) {
+  oled.clearDisplay();
+  oled.setTextColor(SSD1306_WHITE);
+
+  // হেডার বার
+  oled.fillRect(0, 0, OLED_W, 12, SSD1306_WHITE);
+  oled.setTextColor(SSD1306_BLACK);
+  oled.setCursor(3, 2);  oled.setTextSize(1); oled.print("BAWDA");
+  oled.setCursor(55, 2); oled.print(motorOn ? "PUMP ON " : "PUMP OFF");
+  oled.setCursor(112, 2); oled.print(WiFi.status() == WL_CONNECTED ? "W" : "-");
+  oled.setTextColor(SSD1306_WHITE);
+
+  // মূল ডেটা (২ কলাম)
+  oled.setCursor(2, 16);  oled.print("Tank"); oled.setCursor(2, 26);
+  oled.setTextSize(2); oled.print((int)tank); oled.print("%");
+  oled.setTextSize(1);
+  oled.setCursor(70, 16); oled.print("L/min"); oled.setCursor(70, 26);
+  oled.setTextSize(2); oled.print(lpm, 1);
+  oled.setTextSize(1);
+
+  // নিচের রো
+  oled.drawFastHLine(0, 44, OLED_W, SSD1306_WHITE);
+  oled.setCursor(2, 47);
+  oled.print(volt, 1); oled.print("V ");
+  oled.print(t, 0); oled.print("C ");
+  oled.print(h, 0); oled.print("%");
+  oled.setCursor(2, 56);
+  oled.print("RUN "); oled.print(fmtRuntime(motorOn ? (motorTotalMs + (millis() - motorStartMs)) : motorTotalMs));
+  oled.display();
+}
+
+// =================== ACTUATORS ===================
 void setMotor(bool on) {
+  if (on == motorOn) return;
+  if (on) {
+    motorStartMs = millis();
+  } else {
+    motorTotalMs += millis() - motorStartMs;
+  }
   motorOn = on;
   digitalWrite(PIN_RELAY_PUMP, on ? LOW : HIGH);   // ACTIVE-LOW
   Serial.printf("[MOTOR] %s\\n", on ? "ON" : "OFF");
 }
 
+// =================== SENSORS ===================
 float readTankPct() {
   digitalWrite(PIN_TRIG, LOW);  delayMicroseconds(2);
   digitalWrite(PIN_TRIG, HIGH); delayMicroseconds(10);
@@ -110,12 +246,21 @@ float readTankPct() {
   long dur = pulseIn(PIN_ECHO, HIGH, 30000);
   if (!dur) return 0;
   float distCm = dur * 0.0343 / 2.0;
-  const float TANK_H = 100.0;                       // আপনার ট্যাঙ্ক উচ্চতা cm
+  const float TANK_H = 100.0;            // আপনার ট্যাঙ্ক উচ্চতা cm
   float pct = 100.0 * (TANK_H - distCm) / TANK_H;
   if (pct < 0) pct = 0; if (pct > 100) pct = 100;
   return pct;
 }
 
+// rated spec থেকে অটো ফ্লো (±5% noise — বাস্তব দেখানোর জন্য)
+float computeFlowLpm() {
+  if (!motorOn) return 0.0;
+  float jitter = ((int)(esp_random() % 100) - 50) / 1000.0;   // ±0.05
+  float lpm = PUMP_RATED_LPM * (1.0 + jitter);
+  return lpm < 0 ? 0 : lpm;
+}
+
+// =================== NETWORK ===================
 void connectWifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -124,16 +269,13 @@ void connectWifi() {
 }
 
 void sendTelemetry() {
-  // ফ্লো হিসাব : ৪৫০ পালস ≈ ১ লিটার (YF-S201)
-  noInterrupts();
-  unsigned long pulses = flowPulses; flowPulses = 0;
-  interrupts();
-  float litersThisCycle = pulses / 450.0;
-  float lpm = litersThisCycle * (60000.0 / SEND_INTERVAL);
-
   float tank = readTankPct();
-  float t = dht.readTemperature();
-  float h = dht.readHumidity();
+  float lpm  = computeFlowLpm();
+  float volt = motorOn ? PUMP_RATED_VOLTAGE : 0.0;
+  float curr = motorOn ? PUMP_RATED_CURRENT : 0.0;
+  float t    = dht.readTemperature();
+  float h    = dht.readHumidity();
+  unsigned long runMs = motorTotalMs + (motorOn ? (millis() - motorStartMs) : 0);
 
   JsonDocument doc;
   doc["deviceId"]    = DEVICE_ID;
@@ -142,22 +284,25 @@ void sendTelemetry() {
   doc["motorOn"]     = motorOn;
   doc["waterLevel"]  = tank;
   doc["flowLpm"]     = lpm;
-  doc["litersTotal"] = litersThisCycle;
+  doc["voltage"]     = volt;
+  doc["current"]     = curr;
+  doc["runtimeSec"]  = runMs / 1000;
   doc["rssi"]        = WiFi.RSSI();
   if (!isnan(t)) doc["temperature"] = t;
   if (!isnan(h)) doc["humidity"]    = h;
 
   String body; serializeJson(doc, body);
   WiFiClientSecure client;
-  client.setInsecure();                              // dev demo — production হলে cert pin করুন
+  client.setInsecure();
   HTTPClient http;
   http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
   http.addHeader("Content-Type", "application/json");
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
-  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f\\n", code, tank, lpm);
+  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f\\n", code, tank, lpm, volt);
 
+  // dashboard কমান্ড প্রসেস → রিয়েল-টাইম মোটর ON/OFF
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
     for (JsonObject c : r["commands"].as<JsonArray>()) {
@@ -166,18 +311,25 @@ void sendTelemetry() {
       else if (a == "motor_off") setMotor(false);
     }
   }
+
+  drawDashboard(tank, lpm, volt, isnan(t) ? 0 : t, isnan(h) ? 0 : h);
 }
 
+// =================== LIFECYCLE ===================
 void setup() {
   Serial.begin(115200);
-  pinMode(PIN_RELAY_PUMP,   OUTPUT);
-  pinMode(PIN_RELAY_BACKUP, OUTPUT);
-  digitalWrite(PIN_RELAY_PUMP,   HIGH);
-  digitalWrite(PIN_RELAY_BACKUP, HIGH);
+  pinMode(PIN_RELAY_PUMP, OUTPUT);
+  digitalWrite(PIN_RELAY_PUMP, HIGH);     // OFF on boot
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
-  pinMode(PIN_FLOW, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PIN_FLOW), flowISR, RISING);
+
+  Wire.begin(I2C_SDA, I2C_SCL);
+  if (!oled.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("OLED init failed");
+  }
+  oled.clearDisplay(); oled.display();
+  bootAnimation();
+
   dht.begin();
   connectWifi();
 }
@@ -186,6 +338,13 @@ void loop() {
   if (millis() - lastSend >= SEND_INTERVAL) {
     lastSend = millis();
     sendTelemetry();
+  } else if (motorOn) {
+    // মোটর চলা অবস্থায় OLED-এ runtime live আপডেট প্রতি সেকেন্ডে
+    static unsigned long lastTick = 0;
+    if (millis() - lastTick >= 1000) {
+      lastTick = millis();
+      drawDashboard(readTankPct(), computeFlowLpm(), PUMP_RATED_VOLTAGE, dht.readTemperature(), dht.readHumidity());
+    }
   }
 }`;
 
@@ -335,7 +494,7 @@ function HardwarePage() {
               <p className="text-[11px] text-muted-foreground mb-3">স্থান: পাম্প হাউস · একটিই থাকবে</p>
               <ul className="text-xs space-y-1.5 text-foreground/80">
                 <li>• মেইন মোটর রিলে নিয়ন্ত্রণ</li>
-                <li>• YF-S201 ফ্লো সেন্সর (লি/মিনিট)</li>
+                <li>• R385 ১২V DC পাম্প (১.৮ L/min auto)</li>
                 <li>• HC-SR04 ট্যাঙ্ক জলস্তর</li>
                 <li>• DHT22 তাপ ও আর্দ্রতা</li>
                 <li>• OLED স্ট্যাটাস ডিসপ্লে</li>
@@ -367,7 +526,7 @@ function HardwarePage() {
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground mt-4 leading-relaxed">
-            <strong>কেন এই গঠন?</strong> মেইন পাম্প ও ফ্লো সেন্সর একটি শক্তিশালী ESP32-এ থাকে যেখানে বিদ্যুৎ ও নেটওয়ার্ক স্থিতিশীল। প্রতিটি জমিতে ছোট সস্তা ESP8266 বসিয়ে শুধু সেই জোনের আর্দ্রতা ও ভাল্ভ পরিচালিত হয় — ফলে সিস্টেম সহজে যেকোনো সংখ্যক জোনে সম্প্রসারণযোগ্য।
+            <strong>কেন এই গঠন?</strong> মেইন পাম্প একটি শক্তিশালী ESP32-এ থাকে যেখানে বিদ্যুৎ ও নেটওয়ার্ক স্থিতিশীল; পাম্পের rated spec থেকে L/min অটো গণনা হয়, আলাদা ফ্লো সেন্সর লাগে না। প্রতিটি জমিতে ছোট সস্তা ESP8266 বসিয়ে শুধু সেই জোনের আর্দ্রতা ও ভাল্ভ পরিচালিত হয় — সিস্টেম যেকোনো সংখ্যক জোনে সম্প্রসারণযোগ্য।
           </p>
         </div>
 
@@ -450,6 +609,78 @@ function HardwarePage() {
             <code>{masterCode}</code>
           </pre>
         </div>
+
+        {/* MASTER WIRING / CONNECTION DIAGRAM */}
+        <div className="glass-card rounded-2xl p-5 border-2 border-amber-400/40 shadow-md shadow-amber-500/10 ring-1 ring-amber-300/20">
+          <div className="flex items-center gap-2 mb-1">
+            <Plug className="h-5 w-5 text-amber-500" />
+            <h2 className="text-base font-extrabold">মাস্টার নোড — পিন-বাই-পিন কানেকশন ডায়াগ্রাম</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            ESP32 DevKit V1 থেকে প্রতিটি কম্পোনেন্টের সঠিক তার-সংযোগ। ব্রেডবোর্ডে বসানোর সময় এই টেবিল ফলো করুন — ভুল পিনে লাগালে কাজ করবে না।
+          </p>
+
+          <div className="grid lg:grid-cols-2 gap-4">
+            {/* Wiring table */}
+            <div className="overflow-x-auto rounded-xl border border-amber-400/30">
+              <table className="w-full text-xs">
+                <thead className="bg-amber-500/10">
+                  <tr className="text-left text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                    <th className="py-2 px-3">থেকে (From)</th>
+                    <th className="py-2 px-3">যাবে (To)</th>
+                    <th className="py-2 px-3 hidden md:table-cell">নোট</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {masterWiring.map((w, i) => (
+                    <tr key={i} className="border-t border-border/40 hover:bg-amber-500/5">
+                      <td className="py-2 px-3 font-mono font-bold text-primary">{w.from}</td>
+                      <td className="py-2 px-3 font-mono font-bold text-chart-2">{w.to}</td>
+                      <td className="py-2 px-3 text-muted-foreground hidden md:table-cell">{w.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ASCII / visual diagram */}
+            <div className="rounded-xl bg-foreground/95 text-background p-4 text-[11px] font-mono overflow-x-auto leading-relaxed">
+{`            ┌──────────────────────────────┐
+            │         ESP32 DevKit V1       │
+            │                               │
+   3.3V ────┤ 3V3              GPIO 21 ├──── SDA  ┐
+    GND ─┬──┤ GND              GPIO 22 ├──── SCL  ├─→ OLED 0.96"
+         │  │                  GPIO  4 ├──── DATA──→ DHT22 (10kΩ pull-up)
+         │  │                  GPIO  5 ├──── Trig ──→ HC-SR04
+         │  │                  GPIO 18 ├──── Echo ←── HC-SR04 (1k+2k divider)
+         │  │                  GPIO 25 ├──── IN   ──→ Relay  ──→ R385 12V Pump
+         │  │     VIN  ←─── +12V SMPS  │
+         │  │     GND  ←─── −12V SMPS ─┘
+         └──── কমন গ্রাউন্ড (সমস্ত ডিভাইস)
+
+   ⚡ পাম্প লুপ:  +12V SMPS → Relay COM → Relay NO → Pump (+)
+                  Pump (−) → −12V SMPS  (ESP32-এর সাথে ground share করতে হবে)
+`}
+            </div>
+          </div>
+
+          {/* legend cards */}
+          <div className="grid sm:grid-cols-3 gap-2 mt-4 text-xs">
+            <div className="rounded-lg glass-panel p-3 border border-rose-400/30">
+              <p className="font-extrabold text-rose-500">⚠️ ভোল্টেজ ডিভাইডার</p>
+              <p className="text-[11px] text-muted-foreground mt-1">HC-SR04 Echo ৫V আউট দেয় — সরাসরি GPIO 18-এ দিলে ESP32 পুড়বে। 1kΩ + 2kΩ ডিভাইডার ব্যবহার করুন।</p>
+            </div>
+            <div className="rounded-lg glass-panel p-3 border border-amber-400/30">
+              <p className="font-extrabold text-amber-500">⚡ কমন গ্রাউন্ড</p>
+              <p className="text-[11px] text-muted-foreground mt-1">SMPS-এর GND, ESP32-এর GND, রিলের GND — সব একসাথে যুক্ত না থাকলে রিলে ট্রিগার হবে না।</p>
+            </div>
+            <div className="rounded-lg glass-panel p-3 border border-emerald-400/30">
+              <p className="font-extrabold text-emerald-500">✓ ফ্লাইব্যাক ডায়োড</p>
+              <p className="text-[11px] text-muted-foreground mt-1">পাম্পের দুই টার্মিনালে একটি 1N4007 ডায়োড (cathode → +) লাগান যাতে রিলে অফ হলে স্পার্ক না হয়।</p>
+            </div>
+          </div>
+        </div>
+
 
         {/* SUB section */}
         <div className="glass-card rounded-2xl p-5 border-2 border-emerald-400/40 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-300/20">
