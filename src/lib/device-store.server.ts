@@ -11,6 +11,10 @@ export type DeviceTelemetry = {
   humidity?: number;      // %
   valveOpen: boolean;
   motorOn?: boolean;
+  flowLpm?: number;       // litres/min (computed from pump spec)
+  voltage?: number;       // V (motor rated when ON)
+  current?: number;       // A
+  runtimeSec?: number;    // cumulative motor runtime
   rssi?: number;
   updatedAt: number;
 };
