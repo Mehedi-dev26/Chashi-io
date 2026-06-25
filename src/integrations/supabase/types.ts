@@ -278,6 +278,27 @@ export type Database = {
         }
         Relationships: []
       }
+      motor_runtime_log: {
+        Row: {
+          delta_sec: number
+          device_id: string
+          id: string
+          recorded_at: string
+        }
+        Insert: {
+          delta_sec: number
+          device_id: string
+          id?: string
+          recorded_at?: string
+        }
+        Update: {
+          delta_sec?: number
+          device_id?: string
+          id?: string
+          recorded_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

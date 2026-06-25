@@ -202,9 +202,14 @@ const float PUMP_RATED_CURRENT = 0.20;
 // 🆕 Manual push buttons (INPUT_PULLUP → press = LOW)
 #define PIN_BTN_ON        32
 #define PIN_BTN_OFF       33
-// 🆕 অনলাইন ইন্ডিকেটর LED — ESP32 DevKit-এর built-in নীল LED (GPIO 2)
-//    সিস্টেম online হলে blink করবে, offline হলে নিভে থাকবে।
-#define PIN_LED_ONLINE     2
+// 🆕 অনলাইন ইন্ডিকেটর LED
+//    ESP32 DevKit-এ built-in নীল LED সাধারণত GPIO 2 অথবা GPIO 22-এ থাকে।
+//    আপনার বোর্ডে অন্য পিন হলে এখানে বদলান। বাইরে আলাদা LED-ও যোগ করতে
+//    পারেন — GPIO → 220Ω → LED অ্যানোড → GND।
+//    LED_ACTIVE_HIGH = true  → HIGH দিলে LED জ্বলবে (বেশিরভাগ বোর্ড)
+//    LED_ACTIVE_HIGH = false → LOW দিলে LED জ্বলবে (কিছু বোর্ডে built-in inverted)
+#define PIN_LED_ONLINE        2
+#define LED_ACTIVE_HIGH    true
 
 
 // ---- OLED ----
@@ -219,7 +224,7 @@ bool          systemOnline  = false;       // ✅ ব্যাকএন্ডে
 unsigned long motorStartMs  = 0;
 unsigned long motorTotalMs  = 0;            // মোট রানটাইম (ms)
 unsigned long lastSend      = 0;
-const unsigned long SEND_INTERVAL = 5000;
+const unsigned long SEND_INTERVAL = 2000;   // ⚡ 2s — snappy dashboard sync
 
 // Button debounce state
 int  lastBtnOnState  = HIGH;
@@ -237,42 +242,16 @@ void oledCenter(const String& s, int y, int sz = 1) {
   oled.print(s);
 }
 
-// 🆕 নতুন বুট অ্যানিমেশন — শুধু "Develop by Mehedi Ahsan" branding
+// 🆕 মিনিমাল বুট — শুধু "Develop by Mehedi Ahsan"
 void bootAnimation() {
-  // ফেজ ১ : টাইটেল ফেড-ইন
-  for (int i = 0; i <= 4; i++) {
-    oled.clearDisplay();
-    oled.setTextColor(SSD1306_WHITE);
-    oled.drawRoundRect(2, 2, OLED_W - 4, OLED_H - 4, 4, SSD1306_WHITE);
-    oledCenter("SMART", 10, 2);
-    oledCenter("IRRIGATION", 28, 2);
-    oled.display();
-    delay(150);
-  }
-  delay(500);
-
-  // ফেজ ২ : ডেভেলপার ক্রেডিট
   oled.clearDisplay();
-  oled.drawRoundRect(2, 2, OLED_W - 4, OLED_H - 4, 4, SSD1306_WHITE);
-  oledCenter("Develop by", 14, 1);
-  oledCenter("Mehedi Ahsan", 30, 2);
-  oled.drawFastHLine(20, 50, OLED_W - 40, SSD1306_WHITE);
-  oledCenter("v1.0", 54, 1);
+  oled.setTextColor(SSD1306_WHITE);
+  oledCenter("Develop by", 18, 1);
+  oledCenter("Mehedi Ahsan", 34, 2);
   oled.display();
   delay(1800);
-
-  // ফেজ ৩ : প্রোগ্রেস বার (system booting)
-  for (int p = 0; p <= 100; p += 4) {
-    oled.clearDisplay();
-    oledCenter("Initializing", 6, 1);
-    oledCenter("system...", 18, 1);
-    oled.drawRoundRect(14, 38, 100, 12, 3, SSD1306_WHITE);
-    oled.fillRoundRect(16, 40, p * 96 / 100, 8, 2, SSD1306_WHITE);
-    oledCenter(String(p) + "%", 54, 1);
-    oled.display();
-    delay(22);
-  }
-  delay(300);
+  oled.clearDisplay();
+  oled.display();
 }
 
 String fmtRuntime(unsigned long ms) {
@@ -302,32 +281,31 @@ void drawDashboard(float tank, float lpm, float volt, float curr, float t, float
   oled.fillRect(0, 0, OLED_W, 22, SSD1306_WHITE);
   oled.setTextColor(SSD1306_BLACK);
   oledCenter(motorOn ? "PUMP  ON" : "PUMP  OFF", 4, 2);
+  // 🔧 FIX: reset textSize back to 1 — otherwise every subsequent oled.print
+  //        below also renders at size 2 and the layout collapses.
+  oled.setTextSize(1);
   oled.setTextColor(SSD1306_WHITE);
 
-  // === SUB-HEADER : system status + wifi ===
-  String sysLine = systemOnline ? "SYSTEM ONLINE" : "SYSTEM OFFLINE";
-  oledCenter(sysLine, 25, 1);
+  // === SUB-HEADER : system status ===
+  oledCenter(systemOnline ? "SYSTEM ONLINE" : "SYSTEM OFFLINE", 25, 1);
+  oled.setTextSize(1);
 
   // === DIVIDER ===
   oled.drawFastHLine(0, 35, OLED_W, SSD1306_WHITE);
 
-  // === DATA ROW 1 : TANK + FLOW ===
+  // === DATA ROW 1 : TANK + FLOW (fixed columns, no overflow) ===
   oled.setCursor(2, 38);
-  oled.print("TANK ");
-  oled.print((int)tank); oled.print("%");
-  oled.setCursor(70, 38);
-  oled.print("FLOW ");
-  oled.print(lpm, 1);
+  oled.printf("TANK %3d%%", (int)tank);
+  oled.setCursor(68, 38);
+  oled.printf("FLOW %4.1f", lpm);
 
   // === DATA ROW 2 : V/A + temp/humid ===
   oled.setCursor(2, 48);
-  oled.print(volt, 1); oled.print("V ");
-  oled.print(curr, 2); oled.print("A");
+  oled.printf("%3.1fV %4.2fA", volt, curr);
   oled.setCursor(78, 48);
-  oled.print((int)t); oled.print("C ");
-  oled.print((int)h); oled.print("%");
+  oled.printf("%2dC %2d%%", (int)t, (int)h);
 
-  // === DATA ROW 3 : RUNTIME ===
+  // === DATA ROW 3 : RUNTIME (compact HH:MM:SS, never overflows) ===
   oled.setCursor(2, 57);
   oled.print("RUN ");
   oled.print(fmtRuntime(motorOn ? (motorTotalMs + (millis() - motorStartMs)) : motorTotalMs));
@@ -415,14 +393,20 @@ void sendTelemetry() {
                 code, tank, lpm, volt, systemOnline ? 1 : 0);
 
   // dashboard কমান্ড প্রসেস → রিয়েল-টাইম মোটর ON/OFF
+  bool motorChanged = false;
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
     for (JsonObject c : r["commands"].as<JsonArray>()) {
       String a = c["action"].as<String>();
+      bool before = motorOn;
       if      (a == "motor_on")  setMotor(true);
       else if (a == "motor_off") setMotor(false);
+      if (before != motorOn) motorChanged = true;
     }
   }
+  // ⚡ মোটর state বদলালে পরের লুপেই আবার POST হবে (lastSend=0)
+  //    → dashboard <১ সেকেন্ডে কনফার্মেশন পায়।
+  if (motorChanged) lastSend = 0;
 
   drawDashboard(tank, lpm, volt, curr, isnan(t) ? 0 : t, isnan(h) ? 0 : h);
 }
@@ -471,9 +455,9 @@ void setup() {
   pinMode(PIN_BTN_ON,  INPUT_PULLUP);
   pinMode(PIN_BTN_OFF, INPUT_PULLUP);
 
-  // 🆕 অনলাইন স্ট্যাটাস LED (built-in blue, GPIO 2)
+  // 🆕 অনলাইন স্ট্যাটাস LED
   pinMode(PIN_LED_ONLINE, OUTPUT);
-  digitalWrite(PIN_LED_ONLINE, LOW);
+  digitalWrite(PIN_LED_ONLINE, LED_ACTIVE_HIGH ? LOW : HIGH);  // OFF initially
 
 
   Wire.begin(I2C_SDA, I2C_SCL);
@@ -492,20 +476,26 @@ void setup() {
   lastSend = millis();
 }
 
-// 🆕 অনলাইন LED ব্লিঙ্ক হ্যান্ডলার — non-blocking
-//   • systemOnline == true  → ৫০০ms interval-এ blink
-//   • systemOnline == false → সম্পূর্ণ নিভে থাকে
+// 🆕 অনলাইন LED ইন্ডিকেটর — non-blocking
+//   WiFi off                  → LED নিভে থাকবে
+//   WiFi on কিন্তু POST 200 না  → ১s slow blink (WiFi আছে, ব্যাকএন্ড reach নাই)
+//   WiFi on + ব্যাকএন্ড online → ২৫০ms fast blink ("সিস্টেম লাইভ" সংকেত)
+inline void ledWrite(bool on) {
+  digitalWrite(PIN_LED_ONLINE, (LED_ACTIVE_HIGH ? on : !on) ? HIGH : LOW);
+}
 void updateOnlineLed() {
   static unsigned long lastToggle = 0;
   static bool ledState = false;
-  if (systemOnline) {
-    if (millis() - lastToggle >= 500) {
-      lastToggle = millis();
-      ledState = !ledState;
-      digitalWrite(PIN_LED_ONLINE, ledState ? HIGH : LOW);
-    }
-  } else {
-    if (ledState) { ledState = false; digitalWrite(PIN_LED_ONLINE, LOW); }
+  bool wifi = (WiFi.status() == WL_CONNECTED);
+  if (!wifi) {
+    if (ledState) { ledState = false; ledWrite(false); }
+    return;
+  }
+  unsigned long interval = systemOnline ? 250UL : 1000UL;
+  if (millis() - lastToggle >= interval) {
+    lastToggle = millis();
+    ledState = !ledState;
+    ledWrite(ledState);
   }
 }
 

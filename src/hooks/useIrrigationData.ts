@@ -131,7 +131,7 @@ const applyTelemetry = (row: TelemetryRow) => {
       voltage: Number(row.voltage ?? (row.motor_on ? PUMP_SPEC.ratedVoltage : 0)),
       current: Number(row.current ?? (row.motor_on ? PUMP_SPEC.ratedCurrent : 0)),
       flowRate: Number(row.flow_lpm ?? (row.motor_on ? PUMP_SPEC.ratedFlowLpm : 0)),
-      runtime: row.runtime_sec ? +(Number(row.runtime_sec) / 3600).toFixed(3) : state.motor.runtime,
+      runtime: row.runtime_sec != null ? Number(row.runtime_sec) : state.motor.runtime,
       pressure: row.motor_on ? +(2.5 + Number(row.flow_lpm ?? PUMP_SPEC.ratedFlowLpm) * 0.4).toFixed(1) : 0,
       health: 100,
     };
@@ -309,11 +309,18 @@ const toggleValve = async (id: string) => {
 const toggleMotor = async () => {
   if (!state.motor.online) { toast.error("পাম্প অফলাইন — হার্ডওয়্যার সংযোগ ছাড়া চালু করা যাবে না"); return; }
   const target = !state.motor.isOn;
+  // ⚡ Optimistic UI — flip immediately so the dashboard reacts within ~100ms
+  setState({ ...state, motor: { ...state.motor, isOn: target } });
   const { data: u } = await supabase.auth.getUser();
   const { error } = await supabase.from("device_commands").insert({
     device_id: PUMP_SPEC.device_id, action: target ? "motor_on" : "motor_off", issued_by: u.user?.id ?? null,
   });
-  if (error) { toast.error("কমান্ড পাঠানো ব্যর্থ: " + error.message); return; }
+  if (error) {
+    // Roll back optimistic flip
+    setState({ ...state, motor: { ...state.motor, isOn: !target } });
+    toast.error("কমান্ড পাঠানো ব্যর্থ: " + error.message);
+    return;
+  }
   toast.success(`কমান্ড পাঠানো হয়েছে · পাম্প ${target ? "চালু" : "বন্ধ"} হচ্ছে…`);
   pushActivity({ type: "info", message: `কমান্ড queued: পাম্প ${target ? "ON" : "OFF"}` });
 };

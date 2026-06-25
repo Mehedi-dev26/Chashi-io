@@ -35,6 +35,15 @@ export const Route = createFileRoute("/api/public/telemetry")({
             .maybeSingle();
           if (nodeRow?.zone_id) effectiveZoneId = nodeRow.zone_id;
 
+          const newRuntimeSec = body.runtimeSec != null ? Number(body.runtimeSec) : null;
+
+          // Read previous row to compute runtime delta for the monthly log
+          const { data: prev } = await supabaseAdmin
+            .from("device_telemetry")
+            .select("runtime_sec, motor_on")
+            .eq("zone_id", effectiveZoneId)
+            .maybeSingle();
+
           const row = {
             zone_id: effectiveZoneId,
             device_id: String(body.deviceId),
@@ -48,7 +57,7 @@ export const Route = createFileRoute("/api/public/telemetry")({
             flow_lpm: body.flowLpm != null ? Number(body.flowLpm) : null,
             voltage: body.voltage != null ? Number(body.voltage) : null,
             current: body.current != null ? Number(body.current) : null,
-            runtime_sec: body.runtimeSec != null ? Number(body.runtimeSec) : null,
+            runtime_sec: newRuntimeSec,
             rssi: body.rssi != null ? Number(body.rssi) : null,
             tds_ppm: body.tdsPpm != null ? Number(body.tdsPpm) : null,
             updated_at: new Date().toISOString(),
@@ -58,6 +67,20 @@ export const Route = createFileRoute("/api/public/telemetry")({
             .from("device_telemetry")
             .upsert(row, { onConflict: "zone_id" });
           if (upErr) console.error("[telemetry] upsert", upErr);
+
+          // Append runtime delta (only when motor ran between samples)
+          if (newRuntimeSec != null && prev?.runtime_sec != null) {
+            const prevRt = Number(prev.runtime_sec);
+            let delta = newRuntimeSec - prevRt;
+            if (delta < 0) delta = row.motor_on ? newRuntimeSec : 0; // reboot
+            if (delta > 600) delta = 0;                              // gap too big
+            if (delta > 0) {
+              await supabaseAdmin.from("motor_runtime_log").insert({
+                device_id: String(body.deviceId),
+                delta_sec: Math.round(delta),
+              });
+            }
+          }
 
           // Pop pending commands for this device
           const { data: pending } = await supabaseAdmin
