@@ -492,8 +492,26 @@ void setup() {
   lastSend = millis();
 }
 
+// 🆕 অনলাইন LED ব্লিঙ্ক হ্যান্ডলার — non-blocking
+//   • systemOnline == true  → ৫০০ms interval-এ blink
+//   • systemOnline == false → সম্পূর্ণ নিভে থাকে
+void updateOnlineLed() {
+  static unsigned long lastToggle = 0;
+  static bool ledState = false;
+  if (systemOnline) {
+    if (millis() - lastToggle >= 500) {
+      lastToggle = millis();
+      ledState = !ledState;
+      digitalWrite(PIN_LED_ONLINE, ledState ? HIGH : LOW);
+    }
+  } else {
+    if (ledState) { ledState = false; digitalWrite(PIN_LED_ONLINE, LOW); }
+  }
+}
+
 void loop() {
   pollButtons();                           // ⬅ প্রতিটি লুপে বাটন চেক
+  updateOnlineLed();                       // ⬅ নীল LED অনলাইন ইন্ডিকেটর
 
   if (millis() - lastSend >= SEND_INTERVAL) {
     lastSend = millis();
@@ -508,6 +526,7 @@ void loop() {
     }
   }
 }`;
+
 
 
 /* ---------------- SUB-NODE FIRMWARE ---------------- */
