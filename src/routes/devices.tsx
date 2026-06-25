@@ -18,7 +18,8 @@ export const Route = createFileRoute("/devices")({
   component: DevicesPage,
 });
 
-type FieldNode = { id: string; device_id: string; zone_id: string; label: string; notes: string | null };
+type FieldNode = { id: string; device_id: string; zone_id: string | null; label: string; notes: string | null };
+type FieldLite = { zone_id: string; name_bn: string };
 type Telemetry = {
   zone_id: string; device_id: string; soil_moisture: number | null; tds_ppm: number | null;
   ldr: number | null; valve_open: boolean | null; temperature: number | null; humidity: number | null;
