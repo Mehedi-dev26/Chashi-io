@@ -180,7 +180,7 @@ if (typeof window !== "undefined") {
 }
 
 // ---------- DB-driven field load + actions ----------
-type FieldRow = { zone_id: string; name: string; name_bn: string; area_acres: number; crop_type: string; x: number; y: number; polygon: string };
+type FieldRow = { zone_id: string; name: string; name_bn: string; area_acres: number; crop_type: string; x: number; y: number; polygon: string; valve_node_id: string | null };
 
 const loadFields = async () => {
   const { data: u } = await supabase.auth.getUser();
@@ -204,6 +204,8 @@ const loadFields = async () => {
     waterLevel: 0, soilMoisture: 0, status: "idle", valveOpen: false,
     cropType: r.crop_type, x: Number(r.x), y: Number(r.y), polygon: r.polygon,
     online: false, lastSeen: null,
+    valveNodeId: r.valve_node_id ?? null,
+    hasNode: !!r.valve_node_id,
   }));
   setState({ ...state, zones, metrics: { ...state.metrics, totalNodes: zones.length } });
 
@@ -211,6 +213,7 @@ const loadFields = async () => {
   const { data: tel } = await supabase.from("device_telemetry").select("*");
   (tel ?? []).forEach((t) => applyTelemetry(t as TelemetryRow));
 };
+
 
 const loadAiActivity = async () => {
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
