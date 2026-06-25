@@ -615,7 +615,7 @@ function HardwarePage() {
               <p className="text-[11px] text-muted-foreground mb-3">স্থান: পাম্প হাউস · একটিই থাকবে</p>
               <ul className="text-xs space-y-1.5 text-foreground/80">
                 <li>• মেইন মোটর রিলে নিয়ন্ত্রণ</li>
-                <li>• R385 ১২V DC পাম্প (১.৮ L/min auto)</li>
+                <li>• ৬V Ultra-Quiet পাম্প (~২.০ L/min auto)</li>
                 <li>• HC-SR04 ট্যাঙ্ক জলস্তর</li>
                 <li>• DHT22 তাপ ও আর্দ্রতা</li>
                 <li>• OLED স্ট্যাটাস ডিসপ্লে</li>
