@@ -1,5 +1,8 @@
-import { Power, Zap, Gauge, Droplets, Timer, Activity, Wifi, WifiOff } from "lucide-react";
+import { Power, Zap, Gauge, Droplets, Timer, Activity, Wifi, WifiOff, CalendarRange } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import type { MotorState } from "@/hooks/useIrrigationData";
+import { getMonthlyRuntime } from "@/lib/motor-runtime.functions";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
@@ -12,13 +15,48 @@ const fmtAgo = (ts: number | null) => {
   return `${bn(Math.floor(s / 3600))} ঘণ্টা আগে`;
 };
 
+/** Smart runtime formatter — picks the most natural unit. */
+const fmtRuntime = (totalSec: number): { value: string; unit: string } => {
+  const s = Math.max(0, Math.floor(totalSec));
+  if (s < 60) return { value: bn(s), unit: "সেকেন্ড" };
+  if (s < 3600) {
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return { value: r ? `${bn(m)}:${bn(String(r).padStart(2, "0"))}` : bn(m), unit: r ? "মি:সে" : "মিনিট" };
+  }
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return { value: m ? `${bn(h)}:${bn(String(m).padStart(2, "0"))}` : bn(h), unit: m ? "ঘ:মি" : "ঘণ্টা" };
+};
+
 export function MotorPanel({ motor, onToggle }: { motor: MotorState; onToggle: () => void }) {
+  const runtimeFmt = fmtRuntime(motor.runtime);
+
+  // Monthly cumulative runtime (sum of this calendar month's deltas)
+  const fetchMonthly = useServerFn(getMonthlyRuntime);
+  const [monthlySec, setMonthlySec] = useState<number>(0);
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const r = await fetchMonthly({ data: { deviceId: motor.id } });
+        if (active) setMonthlySec(r?.totalSec ?? 0);
+      } catch { /* ignore */ }
+    };
+    load();
+    // refresh every 15s so the value tracks while the pump is running
+    const t = window.setInterval(load, 15000);
+    return () => { active = false; window.clearInterval(t); };
+  }, [fetchMonthly, motor.id]);
+  const monthlyFmt = fmtRuntime(monthlySec);
+
   const metrics = [
-    { icon: Gauge,    label: "চাপ",         value: bn(motor.pressure.toFixed(1)), unit: "PSI",      tint: "from-orange-500 to-red-500",     ring: "shadow-orange-500/30" },
-    { icon: Droplets, label: "প্রবাহ",      value: bn(motor.flowRate.toFixed(2)), unit: "লি/মি",   tint: "from-sky-500 to-cyan-500",       ring: "shadow-sky-500/30" },
-    { icon: Zap,      label: "কারেন্ট",     value: bn(motor.current.toFixed(2)),  unit: "অ্যাম্পি", tint: "from-amber-500 to-yellow-500",   ring: "shadow-amber-500/30" },
-    { icon: Activity, label: "ভোল্টেজ",     value: bn(motor.voltage.toFixed(1)),  unit: "ভোল্ট",   tint: "from-violet-500 to-fuchsia-500", ring: "shadow-violet-500/30" },
-    { icon: Timer,    label: "মোট রানটাইম", value: bn(motor.runtime.toFixed(3)),  unit: "ঘণ্টা",   tint: "from-emerald-500 to-teal-600",   ring: "shadow-emerald-500/30" },
+    { icon: Gauge,    label: "চাপ",       value: bn(motor.pressure.toFixed(1)), unit: "PSI",       tint: "from-orange-500 to-red-500",     ring: "shadow-orange-500/30" },
+    { icon: Droplets, label: "প্রবাহ",    value: bn(motor.flowRate.toFixed(2)), unit: "লি/মি",    tint: "from-sky-500 to-cyan-500",       ring: "shadow-sky-500/30" },
+    { icon: Zap,      label: "কারেন্ট",   value: bn(motor.current.toFixed(2)),  unit: "অ্যাম্পি",  tint: "from-amber-500 to-yellow-500",   ring: "shadow-amber-500/30" },
+    { icon: Activity, label: "ভোল্টেজ",   value: bn(motor.voltage.toFixed(1)),  unit: "ভোল্ট",    tint: "from-violet-500 to-fuchsia-500", ring: "shadow-violet-500/30" },
+    { icon: Timer,         label: "মোট রানটাইম",  value: runtimeFmt.value, unit: runtimeFmt.unit, tint: "from-emerald-500 to-teal-600",  ring: "shadow-emerald-500/30" },
+    { icon: CalendarRange, label: "এই মাসে মোট", value: monthlyFmt.value, unit: monthlyFmt.unit, tint: "from-indigo-500 to-purple-600",  ring: "shadow-indigo-500/30" },
   ];
 
   const canControl = motor.online;
@@ -89,7 +127,7 @@ export function MotorPanel({ motor, onToggle }: { motor: MotorState; onToggle: (
               <m.icon className="h-3.5 w-3.5 text-white drop-shadow" strokeWidth={2.4} />
               <span className="text-[11px] uppercase tracking-wider font-bold text-white/90">{m.label}</span>
             </div>
-            <p className="mt-1.5 text-lg font-extrabold leading-none relative drop-shadow">
+            <p className="mt-1.5 text-lg font-extrabold leading-none relative drop-shadow truncate">
               {m.value} <span className="text-[11px] font-semibold text-white/80">{m.unit}</span>
             </p>
           </div>
