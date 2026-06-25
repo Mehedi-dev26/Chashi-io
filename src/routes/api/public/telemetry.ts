@@ -25,8 +25,18 @@ export const Route = createFileRoute("/api/public/telemetry")({
           }
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+          // Resolve UI-side zone assignment: if this device has been linked to a field
+          // through the Devices page, use that mapping instead of the firmware-baked zoneId.
+          let effectiveZoneId = String(body.zoneId);
+          const { data: nodeRow } = await supabaseAdmin
+            .from("field_nodes")
+            .select("zone_id")
+            .eq("device_id", String(body.deviceId))
+            .maybeSingle();
+          if (nodeRow?.zone_id) effectiveZoneId = nodeRow.zone_id;
+
           const row = {
-            zone_id: String(body.zoneId),
+            zone_id: effectiveZoneId,
             device_id: String(body.deviceId),
             soil_moisture: body.soilMoisture != null ? Number(body.soilMoisture) : 0,
             water_level: body.waterLevel != null ? Number(body.waterLevel) : 0,
