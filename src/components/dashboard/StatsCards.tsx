@@ -1,28 +1,28 @@
 import { Droplets, Gauge, Sprout, Zap, TrendingUp, TrendingDown, Activity, CloudRain, Wifi, Brain } from "lucide-react";
-import type { FieldZone, MotorState } from "@/hooks/useIrrigationData";
+import type { FieldZone, MotorState, NetworkMetrics } from "@/hooks/useIrrigationData";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
-export function StatsCards({ zones, motor }: { zones: FieldZone[]; motor: MotorState }) {
+export function StatsCards({ zones, motor, metrics }: { zones: FieldZone[]; motor: MotorState; metrics: NetworkMetrics }) {
   const totalArea = zones.reduce((s, z) => s + z.area, 0);
   const irrigating = zones.filter((z) => z.valveOpen).length;
-  const avgMoisture = zones.reduce((s, z) => s + z.soilMoisture, 0) / zones.length;
+  const validMoisture = zones.filter((z) => z.soilMoisture > 0);
+  const avgMoisture = validMoisture.length ? validMoisture.reduce((s, z) => s + z.soilMoisture, 0) / validMoisture.length : 0;
   const kw = (motor.voltage * motor.current) / 1000;
 
-  // Only three palettes used across all cards — pressure (amber), electricity (violet), moisture (lime)
   const P_AMBER  = { grad: "from-orange-500 via-amber-500 to-yellow-500",   ring: "ring-amber-300/40" };
   const P_VIOLET = { grad: "from-violet-500 via-fuchsia-500 to-pink-500",   ring: "ring-violet-300/40" };
   const P_LIME   = { grad: "from-lime-500 via-green-500 to-emerald-500",    ring: "ring-lime-300/40" };
 
   const items = [
-    { label: "মোট জমি",          value: bn(totalArea.toFixed(1)),               unit: "একর",         icon: Sprout,    ratio: 0.78,                      trend: 4.2,  up: true,  ...P_LIME },
-    { label: "সক্রিয় ভাল্ভ",      value: bn(irrigating),                          unit: `/ ${bn(zones.length)} জোন`, icon: Droplets,  ratio: irrigating / zones.length, trend: 12,   up: true,  ...P_VIOLET },
-    { label: "পাম্পের চাপ",       value: bn(motor.pressure),                      unit: "PSI",          icon: Gauge,     ratio: motor.pressure / 60,       trend: 2.1,  up: false, ...P_AMBER },
-    { label: "বিদ্যুৎ ব্যবহার",    value: bn(kw.toFixed(1)),                       unit: "কিলোওয়াট",    icon: Zap,       ratio: 0.65,                      trend: 8.4,  up: false, ...P_VIOLET },
-    { label: "প্রবাহ হার",         value: bn(Math.round(motor.flowRate)),         unit: "লিটার/মিনিট",  icon: Activity,  ratio: motor.flowRate / 1500,     trend: 5.6,  up: true,  ...P_AMBER },
-    { label: "গড় মাটির আর্দ্রতা",  value: `${bn(avgMoisture.toFixed(0))}%`,        unit: "rh",           icon: CloudRain, ratio: avgMoisture / 100,         trend: 3.8,  up: true,  ...P_LIME },
-    { label: "নেটওয়ার্ক স্বাস্থ্য", value: `${bn(motor.health)}%`,                unit: "অনলাইন",       icon: Wifi,      ratio: motor.health / 100,        trend: 0.4,  up: true,  ...P_LIME },
-    { label: "AI স্বয়ংক্রিয়তা",   value: bn(92),                                  unit: "% সিদ্ধান্ত",  icon: Brain,     ratio: 0.92,                      trend: 6.7,  up: true,  ...P_VIOLET },
+    { label: "মোট জমি",          value: bn(totalArea.toFixed(1)),               unit: "একর",         icon: Sprout,    ratio: Math.min(1, totalArea / 50),         trend: zones.length, up: true,  ...P_LIME },
+    { label: "সক্রিয় ভাল্ভ",      value: bn(irrigating),                          unit: `/ ${bn(zones.length)} জোন`, icon: Droplets, ratio: zones.length ? irrigating / zones.length : 0, trend: irrigating, up: irrigating>0, ...P_VIOLET },
+    { label: "পাম্পের চাপ",       value: bn(motor.pressure.toFixed(1)),           unit: "PSI",          icon: Gauge,     ratio: Math.min(1, motor.pressure / 10),     trend: motor.pressure, up: motor.isOn, ...P_AMBER },
+    { label: "বিদ্যুৎ ব্যবহার",    value: bn(kw.toFixed(3)),                       unit: "কিলোওয়াট",    icon: Zap,       ratio: Math.min(1, kw / 0.005),              trend: motor.current, up: motor.isOn, ...P_VIOLET },
+    { label: "প্রবাহ হার",         value: bn(motor.flowRate.toFixed(1)),          unit: "লিটার/মিনিট",  icon: Activity,  ratio: Math.min(1, motor.flowRate / 3),      trend: motor.flowRate, up: motor.isOn, ...P_AMBER },
+    { label: "গড় মাটির আর্দ্রতা",  value: `${bn(avgMoisture.toFixed(0))}%`,        unit: "TDS থেকে",      icon: CloudRain, ratio: avgMoisture / 100,                    trend: validMoisture.length, up: true, ...P_LIME },
+    { label: "নেটওয়ার্ক স্বাস্থ্য", value: `${bn(metrics.networkHealth)}%`,        unit: `${bn(metrics.onlineNodes)}/${bn(metrics.totalNodes)} অনলাইন`, icon: Wifi, ratio: metrics.networkHealth / 100, trend: metrics.onlineNodes, up: metrics.networkHealth >= 50, ...P_LIME },
+    { label: "AI স্বয়ংক্রিয়তা",   value: `${bn(metrics.aiActivity)}%`,            unit: "কমান্ড সম্পন্ন",  icon: Brain,     ratio: metrics.aiActivity / 100,             trend: metrics.aiActivity, up: metrics.aiActivity >= 50, ...P_VIOLET },
   ];
 
   return (
