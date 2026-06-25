@@ -120,7 +120,21 @@ const masterDeviceWiring: DeviceWiring[] = [
       { mcu: "ESP32 GND",  dev: "Adapter −V",     note: "⚠️ কমন গ্রাউন্ড আবশ্যক" },
     ],
   },
+  {
+    device: "🆕 ম্যানুয়াল পুশ বাটন (২টি · ON / OFF)",
+    icon: Plug,
+    color: "indigo",
+    grad: "from-indigo-500 to-purple-500",
+    desc: "INPUT_PULLUP মোড — একপাশ GPIO, অন্যপাশ GND; চাপলে পিন LOW হবে। প্রেস হলেই dashboard-এ instant সিঙ্ক হয়।",
+    pairs: [
+      { mcu: "GPIO 32", dev: "Button-ON pin 1",  note: "মোটর ON বাটন" },
+      { mcu: "GND",     dev: "Button-ON pin 2",  note: "—" },
+      { mcu: "GPIO 33", dev: "Button-OFF pin 1", note: "মোটর OFF বাটন" },
+      { mcu: "GND",     dev: "Button-OFF pin 2", note: "—" },
+    ],
+  },
 ];
+
 
 
 const subDevices = [
@@ -178,13 +192,16 @@ const float PUMP_RATED_VOLTAGE = 6.0;
 const float PUMP_RATED_CURRENT = 0.20;
 
 // ---- Pins ----
-#define PIN_RELAY_PUMP   25
-#define PIN_TRIG          5
-#define PIN_ECHO         18
-#define PIN_DHT           4
-#define DHT_TYPE      DHT22
-#define I2C_SDA          21
-#define I2C_SCL          22
+#define PIN_RELAY_PUMP    25
+#define PIN_TRIG           5
+#define PIN_ECHO          18
+#define PIN_DHT            4
+#define DHT_TYPE       DHT22
+#define I2C_SDA           21
+#define I2C_SCL           22
+// 🆕 Manual push buttons (INPUT_PULLUP → press = LOW)
+#define PIN_BTN_ON        32
+#define PIN_BTN_OFF       33
 
 // ---- OLED ----
 #define OLED_W   128
@@ -194,10 +211,18 @@ Adafruit_SSD1306 oled(OLED_W, OLED_H, &Wire, -1);
 DHT dht(PIN_DHT, DHT_TYPE);
 
 bool          motorOn       = false;
+bool          systemOnline  = false;       // ✅ ব্যাকএন্ডে শেষ POST সফল কিনা
 unsigned long motorStartMs  = 0;
-unsigned long motorTotalMs  = 0;       // মোট রানটাইম (ms)
+unsigned long motorTotalMs  = 0;            // মোট রানটাইম (ms)
 unsigned long lastSend      = 0;
 const unsigned long SEND_INTERVAL = 5000;
+
+// Button debounce state
+int  lastBtnOnState  = HIGH;
+int  lastBtnOffState = HIGH;
+unsigned long lastBtnOnMs  = 0;
+unsigned long lastBtnOffMs = 0;
+const unsigned long BTN_DEBOUNCE_MS = 50;
 
 // =================== DISPLAY HELPERS ===================
 void oledCenter(const String& s, int y, int sz = 1) {
@@ -208,41 +233,40 @@ void oledCenter(const String& s, int y, int sz = 1) {
   oled.print(s);
 }
 
+// 🆕 নতুন বুট অ্যানিমেশন — শুধু "Develop by Mehedi Ahsan" branding
 void bootAnimation() {
-  // ফেজ ১ : BAWDA লোগো ফেড-ইন
-  for (int i = 0; i <= 6; i++) {
+  // ফেজ ১ : টাইটেল ফেড-ইন
+  for (int i = 0; i <= 4; i++) {
     oled.clearDisplay();
     oled.setTextColor(SSD1306_WHITE);
-    // টপ ব্র্যান্ড বার
-    oled.drawRoundRect(2, 2, OLED_W - 4, 14, 3, SSD1306_WHITE);
-    oled.setTextSize(1);
-    oled.setCursor(8, 5); oled.print("SMART IRRIGATION");
-    // মেইন লোগো
-    oledCenter("BAWDA", 22, 3);
-    delay(120);
+    oled.drawRoundRect(2, 2, OLED_W - 4, OLED_H - 4, 4, SSD1306_WHITE);
+    oledCenter("SMART", 10, 2);
+    oledCenter("IRRIGATION", 28, 2);
     oled.display();
+    delay(150);
   }
-  delay(600);
+  delay(500);
 
-  // ফেজ ২ : Made by Mehedi Hasan
+  // ফেজ ২ : ডেভেলপার ক্রেডিট
   oled.clearDisplay();
-  oled.drawRoundRect(2, 2, OLED_W - 4, 14, 3, SSD1306_WHITE);
-  oled.setCursor(8, 5); oled.print("SMART IRRIGATION");
-  oledCenter("BAWDA", 20, 3);
-  oledCenter("Made by Mehedi Hasan", 50, 1);
+  oled.drawRoundRect(2, 2, OLED_W - 4, OLED_H - 4, 4, SSD1306_WHITE);
+  oledCenter("Develop by", 14, 1);
+  oledCenter("Mehedi Ahsan", 30, 2);
+  oled.drawFastHLine(20, 50, OLED_W - 40, SSD1306_WHITE);
+  oledCenter("v1.0", 54, 1);
   oled.display();
-  delay(1400);
+  delay(1800);
 
   // ফেজ ৩ : প্রোগ্রেস বার (system booting)
   for (int p = 0; p <= 100; p += 4) {
     oled.clearDisplay();
-    oledCenter("BAWDA", 4, 2);
-    oledCenter("Initializing system...", 26, 1);
-    oled.drawRoundRect(14, 42, 100, 10, 3, SSD1306_WHITE);
-    oled.fillRoundRect(16, 44, p * 96 / 100, 6, 2, SSD1306_WHITE);
-    oledCenter(String(p) + "%", 56, 1);
+    oledCenter("Initializing", 6, 1);
+    oledCenter("system...", 18, 1);
+    oled.drawRoundRect(14, 38, 100, 12, 3, SSD1306_WHITE);
+    oled.fillRoundRect(16, 40, p * 96 / 100, 8, 2, SSD1306_WHITE);
+    oledCenter(String(p) + "%", 54, 1);
     oled.display();
-    delay(25);
+    delay(22);
   }
   delay(300);
 }
@@ -257,34 +281,53 @@ String fmtRuntime(unsigned long ms) {
   return String(buf);
 }
 
-void drawDashboard(float tank, float lpm, float volt, float t, float h) {
+// 🆕 প্রফেশনাল ড্যাশবোর্ড লেআউট
+//   ┌──────────────── header bar (inverse) ──────────────────┐
+//   │   PUMP  ON    (বড়, কেন্দ্রে)                            │
+//   │   SYSTEM ONLINE  ·  WiFi: -65dBm   (ছোট)               │
+//   ├────────────────────────────────────────────────────────┤
+//   │   TANK 75%        FLOW 1.9 L/min                        │
+//   │   6.0V 0.20A      29°C 71%                              │
+//   │   RUN 00:12:34                                          │
+//   └────────────────────────────────────────────────────────┘
+void drawDashboard(float tank, float lpm, float volt, float curr, float t, float h) {
   oled.clearDisplay();
   oled.setTextColor(SSD1306_WHITE);
 
-  // হেডার বার
-  oled.fillRect(0, 0, OLED_W, 12, SSD1306_WHITE);
+  // === HEADER (inverse bar with big PUMP status) ===
+  oled.fillRect(0, 0, OLED_W, 22, SSD1306_WHITE);
   oled.setTextColor(SSD1306_BLACK);
-  oled.setCursor(3, 2);  oled.setTextSize(1); oled.print("BAWDA");
-  oled.setCursor(55, 2); oled.print(motorOn ? "PUMP ON " : "PUMP OFF");
-  oled.setCursor(112, 2); oled.print(WiFi.status() == WL_CONNECTED ? "W" : "-");
+  oledCenter(motorOn ? "PUMP  ON" : "PUMP  OFF", 4, 2);
   oled.setTextColor(SSD1306_WHITE);
 
-  // মূল ডেটা (২ কলাম)
-  oled.setCursor(2, 16);  oled.print("Tank"); oled.setCursor(2, 26);
-  oled.setTextSize(2); oled.print((int)tank); oled.print("%");
-  oled.setTextSize(1);
-  oled.setCursor(70, 16); oled.print("L/min"); oled.setCursor(70, 26);
-  oled.setTextSize(2); oled.print(lpm, 1);
-  oled.setTextSize(1);
+  // === SUB-HEADER : system status + wifi ===
+  String sysLine = systemOnline ? "SYSTEM ONLINE" : "SYSTEM OFFLINE";
+  oledCenter(sysLine, 25, 1);
 
-  // নিচের রো
-  oled.drawFastHLine(0, 44, OLED_W, SSD1306_WHITE);
-  oled.setCursor(2, 47);
+  // === DIVIDER ===
+  oled.drawFastHLine(0, 35, OLED_W, SSD1306_WHITE);
+
+  // === DATA ROW 1 : TANK + FLOW ===
+  oled.setCursor(2, 38);
+  oled.print("TANK ");
+  oled.print((int)tank); oled.print("%");
+  oled.setCursor(70, 38);
+  oled.print("FLOW ");
+  oled.print(lpm, 1);
+
+  // === DATA ROW 2 : V/A + temp/humid ===
+  oled.setCursor(2, 48);
   oled.print(volt, 1); oled.print("V ");
-  oled.print(t, 0); oled.print("C ");
-  oled.print(h, 0); oled.print("%");
-  oled.setCursor(2, 56);
-  oled.print("RUN "); oled.print(fmtRuntime(motorOn ? (motorTotalMs + (millis() - motorStartMs)) : motorTotalMs));
+  oled.print(curr, 2); oled.print("A");
+  oled.setCursor(78, 48);
+  oled.print((int)t); oled.print("C ");
+  oled.print((int)h); oled.print("%");
+
+  // === DATA ROW 3 : RUNTIME ===
+  oled.setCursor(2, 57);
+  oled.print("RUN ");
+  oled.print(fmtRuntime(motorOn ? (motorTotalMs + (millis() - motorStartMs)) : motorTotalMs));
+
   oled.display();
 }
 
@@ -363,7 +406,9 @@ void sendTelemetry() {
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
-  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f\\n", code, tank, lpm, volt);
+  systemOnline = (code == 200);    // ✅ OLED-এর system status এই ফ্ল্যাগ থেকে আসে
+  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f online=%d\\n",
+                code, tank, lpm, volt, systemOnline ? 1 : 0);
 
   // dashboard কমান্ড প্রসেস → রিয়েল-টাইম মোটর ON/OFF
   JsonDocument r;
@@ -375,7 +420,39 @@ void sendTelemetry() {
     }
   }
 
-  drawDashboard(tank, lpm, volt, isnan(t) ? 0 : t, isnan(h) ? 0 : h);
+  drawDashboard(tank, lpm, volt, curr, isnan(t) ? 0 : t, isnan(h) ? 0 : h);
+}
+
+// 🆕 ম্যানুয়াল পুশ-বাটন পোলিং (ডিবাউন্স সহ)
+//    PIN_BTN_ON  চাপলে  → মোটর ON  + সাথে সাথে dashboard সিঙ্ক
+//    PIN_BTN_OFF চাপলে  → মোটর OFF + সাথে সাথে dashboard সিঙ্ক
+void pollButtons() {
+  int onState  = digitalRead(PIN_BTN_ON);
+  int offState = digitalRead(PIN_BTN_OFF);
+
+  // ON button — falling edge (HIGH → LOW)
+  if (onState != lastBtnOnState) lastBtnOnMs = millis();
+  if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && onState == LOW && lastBtnOnState == HIGH) {
+    Serial.println("[BTN] ON pressed");
+    if (!motorOn) {
+      setMotor(true);
+      sendTelemetry();             // ⚡ instant dashboard real-time update
+      lastSend = millis();
+    }
+  }
+  lastBtnOnState = onState;
+
+  // OFF button — falling edge
+  if (offState != lastBtnOffState) lastBtnOffMs = millis();
+  if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && offState == LOW && lastBtnOffState == HIGH) {
+    Serial.println("[BTN] OFF pressed");
+    if (motorOn) {
+      setMotor(false);
+      sendTelemetry();             // ⚡ instant dashboard real-time update
+      lastSend = millis();
+    }
+  }
+  lastBtnOffState = offState;
 }
 
 // =================== LIFECYCLE ===================
@@ -385,6 +462,10 @@ void setup() {
   digitalWrite(PIN_RELAY_PUMP, HIGH);     // OFF on boot
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
+
+  // 🆕 push buttons — INPUT_PULLUP (একপাশ GPIO, অন্যপাশ GND)
+  pinMode(PIN_BTN_ON,  INPUT_PULLUP);
+  pinMode(PIN_BTN_OFF, INPUT_PULLUP);
 
   Wire.begin(I2C_SDA, I2C_SCL);
   if (!oled.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -403,6 +484,8 @@ void setup() {
 }
 
 void loop() {
+  pollButtons();                           // ⬅ প্রতিটি লুপে বাটন চেক
+
   if (millis() - lastSend >= SEND_INTERVAL) {
     lastSend = millis();
     sendTelemetry();
@@ -411,10 +494,12 @@ void loop() {
     static unsigned long lastTick = 0;
     if (millis() - lastTick >= 1000) {
       lastTick = millis();
-      drawDashboard(readTankPct(), computeFlowLpm(), PUMP_RATED_VOLTAGE, dht.readTemperature(), dht.readHumidity());
+      drawDashboard(readTankPct(), computeFlowLpm(), PUMP_RATED_VOLTAGE,
+                    PUMP_RATED_CURRENT, dht.readTemperature(), dht.readHumidity());
     }
   }
 }`;
+
 
 /* ---------------- SUB-NODE FIRMWARE ---------------- */
 const buildSubCode = (serverHost: string) => `/**
