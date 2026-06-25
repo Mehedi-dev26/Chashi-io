@@ -135,7 +135,8 @@ const subDevices = [
 const subTotalPerNode = "১,৪৮০ ৳";
 
 /* ---------------- MASTER FIRMWARE ---------------- */
-const masterCode = `/**
+const buildMasterCode = (serverHost: string) => `/**
+
  *  BMDA Smart Irrigation — MASTER NODE (ESP32)
  *  স্থান : পাম্প হাউস
  *  পাম্প : ৬V Ultra-Quiet Fractional Submersible Pump
