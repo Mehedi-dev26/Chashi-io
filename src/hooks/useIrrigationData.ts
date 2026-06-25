@@ -338,5 +338,5 @@ function useBootstrap() {
 export function useIrrigationData() {
   useBootstrap();
   const snap = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  return { ...snap, toggleValve, toggleMotor, addField, deleteField, reloadFields: loadFields };
+  return { ...snap, toggleValve, toggleMotor, addField, deleteField, assignNodeToField, reloadFields: loadFields };
 }
