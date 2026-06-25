@@ -610,6 +610,78 @@ function HardwarePage() {
           </pre>
         </div>
 
+        {/* MASTER WIRING / CONNECTION DIAGRAM */}
+        <div className="glass-card rounded-2xl p-5 border-2 border-amber-400/40 shadow-md shadow-amber-500/10 ring-1 ring-amber-300/20">
+          <div className="flex items-center gap-2 mb-1">
+            <Plug className="h-5 w-5 text-amber-500" />
+            <h2 className="text-base font-extrabold">মাস্টার নোড — পিন-বাই-পিন কানেকশন ডায়াগ্রাম</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            ESP32 DevKit V1 থেকে প্রতিটি কম্পোনেন্টের সঠিক তার-সংযোগ। ব্রেডবোর্ডে বসানোর সময় এই টেবিল ফলো করুন — ভুল পিনে লাগালে কাজ করবে না।
+          </p>
+
+          <div className="grid lg:grid-cols-2 gap-4">
+            {/* Wiring table */}
+            <div className="overflow-x-auto rounded-xl border border-amber-400/30">
+              <table className="w-full text-xs">
+                <thead className="bg-amber-500/10">
+                  <tr className="text-left text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                    <th className="py-2 px-3">থেকে (From)</th>
+                    <th className="py-2 px-3">যাবে (To)</th>
+                    <th className="py-2 px-3 hidden md:table-cell">নোট</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {masterWiring.map((w, i) => (
+                    <tr key={i} className="border-t border-border/40 hover:bg-amber-500/5">
+                      <td className="py-2 px-3 font-mono font-bold text-primary">{w.from}</td>
+                      <td className="py-2 px-3 font-mono font-bold text-chart-2">{w.to}</td>
+                      <td className="py-2 px-3 text-muted-foreground hidden md:table-cell">{w.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ASCII / visual diagram */}
+            <div className="rounded-xl bg-foreground/95 text-background p-4 text-[11px] font-mono overflow-x-auto leading-relaxed">
+{`            ┌──────────────────────────────┐
+            │         ESP32 DevKit V1       │
+            │                               │
+   3.3V ────┤ 3V3              GPIO 21 ├──── SDA  ┐
+    GND ─┬──┤ GND              GPIO 22 ├──── SCL  ├─→ OLED 0.96"
+         │  │                  GPIO  4 ├──── DATA──→ DHT22 (10kΩ pull-up)
+         │  │                  GPIO  5 ├──── Trig ──→ HC-SR04
+         │  │                  GPIO 18 ├──── Echo ←── HC-SR04 (1k+2k divider)
+         │  │                  GPIO 25 ├──── IN   ──→ Relay  ──→ R385 12V Pump
+         │  │     VIN  ←─── +12V SMPS  │
+         │  │     GND  ←─── −12V SMPS ─┘
+         └──── কমন গ্রাউন্ড (সমস্ত ডিভাইস)
+
+   ⚡ পাম্প লুপ:  +12V SMPS → Relay COM → Relay NO → Pump (+)
+                  Pump (−) → −12V SMPS  (ESP32-এর সাথে ground share করতে হবে)
+`}
+            </div>
+          </div>
+
+          {/* legend cards */}
+          <div className="grid sm:grid-cols-3 gap-2 mt-4 text-xs">
+            <div className="rounded-lg glass-panel p-3 border border-rose-400/30">
+              <p className="font-extrabold text-rose-500">⚠️ ভোল্টেজ ডিভাইডার</p>
+              <p className="text-[11px] text-muted-foreground mt-1">HC-SR04 Echo ৫V আউট দেয় — সরাসরি GPIO 18-এ দিলে ESP32 পুড়বে। 1kΩ + 2kΩ ডিভাইডার ব্যবহার করুন।</p>
+            </div>
+            <div className="rounded-lg glass-panel p-3 border border-amber-400/30">
+              <p className="font-extrabold text-amber-500">⚡ কমন গ্রাউন্ড</p>
+              <p className="text-[11px] text-muted-foreground mt-1">SMPS-এর GND, ESP32-এর GND, রিলের GND — সব একসাথে যুক্ত না থাকলে রিলে ট্রিগার হবে না।</p>
+            </div>
+            <div className="rounded-lg glass-panel p-3 border border-emerald-400/30">
+              <p className="font-extrabold text-emerald-500">✓ ফ্লাইব্যাক ডায়োড</p>
+              <p className="text-[11px] text-muted-foreground mt-1">পাম্পের দুই টার্মিনালে একটি 1N4007 ডায়োড (cathode → +) লাগান যাতে রিলে অফ হলে স্পার্ক না হয়।</p>
+            </div>
+          </div>
+        </div>
+
+
         {/* SUB section */}
         <div className="glass-card rounded-2xl p-5 border-2 border-emerald-400/40 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-300/20">
           <div className="flex items-center gap-2 mb-1">
