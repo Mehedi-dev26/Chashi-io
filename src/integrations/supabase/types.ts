@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      device_commands: {
+        Row: {
+          action: string
+          consumed: boolean
+          consumed_at: string | null
+          created_at: string
+          device_id: string
+          id: string
+          issued_by: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          action: string
+          consumed?: boolean
+          consumed_at?: string | null
+          created_at?: string
+          device_id: string
+          id?: string
+          issued_by?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          action?: string
+          consumed?: boolean
+          consumed_at?: string | null
+          created_at?: string
+          device_id?: string
+          id?: string
+          issued_by?: string | null
+          zone_id?: string | null
+        }
+        Relationships: []
+      }
+      device_telemetry: {
+        Row: {
+          current: number | null
+          device_id: string
+          flow_lpm: number | null
+          humidity: number | null
+          ldr: number | null
+          motor_on: boolean | null
+          rssi: number | null
+          runtime_sec: number | null
+          soil_moisture: number | null
+          temperature: number | null
+          updated_at: string
+          valve_open: boolean | null
+          voltage: number | null
+          water_level: number | null
+          zone_id: string
+        }
+        Insert: {
+          current?: number | null
+          device_id: string
+          flow_lpm?: number | null
+          humidity?: number | null
+          ldr?: number | null
+          motor_on?: boolean | null
+          rssi?: number | null
+          runtime_sec?: number | null
+          soil_moisture?: number | null
+          temperature?: number | null
+          updated_at?: string
+          valve_open?: boolean | null
+          voltage?: number | null
+          water_level?: number | null
+          zone_id: string
+        }
+        Update: {
+          current?: number | null
+          device_id?: string
+          flow_lpm?: number | null
+          humidity?: number | null
+          ldr?: number | null
+          motor_on?: boolean | null
+          rssi?: number | null
+          runtime_sec?: number | null
+          soil_moisture?: number | null
+          temperature?: number | null
+          updated_at?: string
+          valve_open?: boolean | null
+          voltage?: number | null
+          water_level?: number | null
+          zone_id?: string
+        }
+        Relationships: []
+      }
       gps_assets: {
         Row: {
           created_at: string
