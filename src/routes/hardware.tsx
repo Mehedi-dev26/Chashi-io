@@ -67,15 +67,15 @@ const masterWiring = [
 ];
 
 const subDevices = [
-  { icon: Radio,    name: "ESP8266 NodeMCU v3",         role: "সাব-নোড MCU (WiFi)",               pin: "—",                price: "৩৫০ ৳" },
-  { icon: Droplets, name: "ক্যাপাসিটিভ সয়েল মইশ্চার",  role: "মাটির আর্দ্রতা",                    pin: "A0 (ADC)",         price: "২০০ ৳" },
-  { icon: Sun,      name: "LDR + 10kΩ",                role: "সূর্যালোক/দিন-রাত",                 pin: "D5 (Digital)",     price: "৩০ ৳" },
-  { icon: Zap,      name: "১-চ্যানেল রিলে (৫V)",        role: "জোনের সোলিনয়েড ভাল্ভ",             pin: "D1",               price: "১২০ ৳" },
-  { icon: Cable,    name: "১২V সোলিনয়েড ভাল্ভ ১/২\"",    role: "জোন পানি নিয়ন্ত্রণ",                pin: "রিলে আউট",         price: "৪৮০ ৳" },
-  { icon: Zap,      name: "৫V ২A অ্যাডাপ্টার",          role: "সাব-নোড পাওয়ার",                   pin: "VIN",              price: "৩৫০ ৳" },
+  { icon: Radio,        name: "ESP8266 NodeMCU v3",       role: "সাব-নোড MCU (WiFi)",                pin: "—",            price: "৩৫০ ৳" },
+  { icon: FlaskConical, name: "TDS Sensor (Gravity)",     role: "মাটির আর্দ্রতা (ppm → %)",          pin: "A0 (ADC)",     price: "৪৫০ ৳" },
+  { icon: Sun,          name: "LDR + 10kΩ",               role: "সূর্যালোক/দিন-রাত",                 pin: "D5",           price: "৩০ ৳" },
+  { icon: RotateCw,     name: "SG90 Servo Motor (৯g)",    role: "পানির লাইন on/off (০°↔৯০°)",        pin: "D2 (PWM)",     price: "১৮০ ৳" },
+  { icon: Cable,        name: "পানির লাইন + ফিটিং",       role: "জোনের irrigation pipe",             pin: "Servo arm",    price: "১২০ ৳" },
+  { icon: Zap,          name: "৫V ২A অ্যাডাপ্টার",        role: "সাব-নোড পাওয়ার",                    pin: "VIN",          price: "৩৫০ ৳" },
 ];
 
-const subTotalPerNode = "১,৫৩০ ৳";
+const subTotalPerNode = "১,৪৮০ ৳";
 
 /* ---------------- MASTER FIRMWARE ---------------- */
 const masterCode = `/**
