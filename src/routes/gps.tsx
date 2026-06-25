@@ -73,26 +73,35 @@ function GpsPage() {
 
   const pipelineAssets = useMemo(() => assets.filter((a) => a.kind === "motor" || a.kind === "valve"), [assets]);
 
-  useEffect(() => {
+  const reloadAll = async (silent = false) => {
     if (!user) return;
-    (async () => {
-      setLoadingAssets(true);
-      const [aRes, pRes] = await Promise.all([
-        supabase.from("gps_assets").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("gps_pipelines").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      ]);
-      if (aRes.error) toast.error(aRes.error.message);
-      else {
-        const list = (aRes.data ?? []) as Asset[];
-        setAssets(list);
-        const motor = list.find((a) => a.kind === "motor");
-        if (motor) setFlyTo([motor.lat, motor.lng]);
-      }
-      if (pRes.error) toast.error(pRes.error.message);
-      else setPipelines(((pRes.data ?? []) as any[]).map((p) => ({ ...p, points: p.points as [number, number][] })));
-      setLoadingAssets(false);
-    })();
-  }, [user]);
+    setLoadingAssets(true);
+    const [aRes, pRes] = await Promise.all([
+      supabase.from("gps_assets").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("gps_pipelines").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+    ]);
+    if (aRes.error) {
+      console.error("[gps] assets load failed:", aRes.error);
+      toast.error("সম্পদ লোড ব্যর্থ: " + aRes.error.message);
+    } else {
+      const list = (aRes.data ?? []) as Asset[];
+      setAssets(list);
+      const motor = list.find((a) => a.kind === "motor");
+      const firstField = list.find((a) => a.kind === "field");
+      if (motor) setFlyTo([motor.lat, motor.lng]);
+      else if (firstField) setFlyTo([firstField.lat, firstField.lng]);
+      if (!silent) toast.success(`${bn(list.length)} টি সম্পদ লোড হলো`);
+    }
+    if (pRes.error) {
+      console.error("[gps] pipelines load failed:", pRes.error);
+      toast.error("পাইপলাইন লোড ব্যর্থ: " + pRes.error.message);
+    } else {
+      setPipelines(((pRes.data ?? []) as any[]).map((p) => ({ ...p, points: p.points as [number, number][] })));
+    }
+    setLoadingAssets(false);
+  };
+
+  useEffect(() => { if (user) reloadAll(true); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user]);
 
   const handleSave = async () => {
     if (!user || !pending || !label.trim()) return;

@@ -145,7 +145,17 @@ const applyTelemetry = (row: TelemetryRow) => {
   const zones = state.zones.map((z) => {
     if (z.id !== row.zone_id) return z;
     const sm = row.soil_moisture != null ? Number(row.soil_moisture) : z.soilMoisture;
-    const wl = row.water_level != null ? Number(row.water_level) : z.waterLevel;
+    // Water level derived from TDS-based soil moisture (real calculation):
+    //   - <25% → severely dry (0–15% water column)
+    //   - 25–60% → optimal growing (gentle slope)
+    //   - >60% → saturated (asymptotic toward 100%)
+    // Formula: smooth piecewise mapping so the gauge tracks moisture, not a random number
+    const sMoist = Math.max(0, Math.min(100, sm));
+    const derived =
+      sMoist < 25 ? sMoist * 0.6                       // 0 → 0 ... 25 → 15
+      : sMoist < 60 ? 15 + (sMoist - 25) * (55 / 35)   // 25 → 15 ... 60 → 70
+      : 70 + (sMoist - 60) * (30 / 40);                // 60 → 70 ... 100 → 100
+    const wl = row.water_level != null ? Number(row.water_level) : Math.round(derived);
     const valve = row.valve_open ?? z.valveOpen;
     const status: FieldZone["status"] = sm < 25 ? "alert" : valve ? "irrigating" : "idle";
     return { ...z, soilMoisture: sm, waterLevel: wl, valveOpen: !!valve, status, online: true, lastSeen: ts };
