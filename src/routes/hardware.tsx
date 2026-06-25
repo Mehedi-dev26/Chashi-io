@@ -33,14 +33,14 @@ export const Route = createFileRoute("/hardware")({
 /* ------------------------------------------------------------------ */
 
 const masterDevices = [
-  { icon: Cpu,         name: "ESP32 DevKit V1",          role: "মাস্টার কন্ট্রোলার",                pin: "—",                price: "৬৫০ ৳" },
-  { icon: Zap,         name: "১-চ্যানেল রিলে (১০A)",      role: "মেইন পাম্প নিয়ন্ত্রণ",              pin: "GPIO 25",          price: "১৫০ ৳" },
-  { icon: Droplets,    name: "R385 ১২V DC ডায়াফ্রাম পাম্প", role: "মেইন ওয়াটার পাম্প (১.৮ L/min)",     pin: "রিলে আউট",         price: "৫৫০ ৳" },
-  { icon: Waves,       name: "HC-SR04 আল্ট্রাসনিক",      role: "ট্যাঙ্ক/রিজার্ভয়ার জলস্তর",        pin: "Trig 5 · Echo 18", price: "১৮০ ৳" },
-  { icon: Thermometer, name: "DHT22",                    role: "তাপমাত্রা ও আর্দ্রতা",              pin: "GPIO 4",           price: "৩৫০ ৳" },
-  { icon: CircuitBoard,name: "OLED ০.৯৬\" SSD1306 (I2C)",  role: "বুট লোগো + লাইভ ডেটা ডিসপ্লে",     pin: "SDA 21 · SCL 22",  price: "৩২০ ৳" },
-  { icon: Zap,         name: "১২V ৫A SMPS",              role: "মেইন পাওয়ার সাপ্লাই",              pin: "VIN",              price: "৬৫০ ৳" },
-  { icon: ShieldCheck, name: "TP4056 + ১৮৬৫০",           role: "ব্যাকআপ ব্যাটারি",                  pin: "VBAT",             price: "৩৫০ ৳" },
+  { icon: Cpu,         name: "ESP32 DevKit V1",                     role: "মাস্টার কন্ট্রোলার",                pin: "—",                price: "৬৫০ ৳" },
+  { icon: Zap,         name: "১-চ্যানেল রিলে মডিউল (৫V)",            role: "মেইন পাম্প ON/OFF",                pin: "GPIO 25",          price: "১২০ ৳" },
+  { icon: Droplets,    name: "৬V Ultra-Quiet Fractional Pump (১২০ L/H)", role: "মেইন পাম্প · ৬V, ০.২০A, ~১.২W (2.0 L/min)", pin: "রিলে NO আউট", price: "৩৮০ ৳" },
+  { icon: Waves,       name: "HC-SR04 আল্ট্রাসনিক",                 role: "ট্যাঙ্ক জলস্তর",                    pin: "Trig 5 · Echo 18", price: "১৮০ ৳" },
+  { icon: Thermometer, name: "DHT22",                               role: "তাপমাত্রা ও আর্দ্রতা",              pin: "GPIO 4",           price: "৩৫০ ৳" },
+  { icon: CircuitBoard,name: "OLED ০.৯৬\" SSD1306 (I2C)",             role: "বুট লোগো + লাইভ ডেটা ডিসপ্লে",     pin: "SDA 21 · SCL 22",  price: "৩২০ ৳" },
+  { icon: Zap,         name: "৬V ২A রেগুলেটেড অ্যাডাপ্টার",          role: "পাম্প পাওয়ার সাপ্লাই",             pin: "Relay COM",        price: "৩৫০ ৳" },
+  { icon: ShieldCheck, name: "TP4056 + ১৮৬৫০",                      role: "ESP32 ব্যাকআপ ব্যাটারি",            pin: "VIN",              price: "৩৫০ ৳" },
 ];
 
 /* ---------------- MASTER PIN-BY-PIN WIRING ---------------- */
@@ -48,9 +48,9 @@ const masterWiring = [
   { from: "ESP32 GPIO 25",      to: "Relay Module IN",       note: "মেইন পাম্প রিলে (Active-LOW)" },
   { from: "ESP32 5V",           to: "Relay Module VCC",      note: "রিলে কয়েল পাওয়ার" },
   { from: "ESP32 GND",          to: "Relay Module GND",      note: "কমন গ্রাউন্ড" },
-  { from: "Relay COM",          to: "১২V SMPS +V",            note: "পাম্প পজিটিভ লাইন" },
-  { from: "Relay NO",           to: "R385 পাম্প (+)",         note: "Normally Open — মোটরে কারেন্ট" },
-  { from: "R385 পাম্প (−)",      to: "১২V SMPS −V (GND)",     note: "পাম্প রিটার্ন লাইন" },
+  { from: "Relay COM",          to: "৬V অ্যাডাপ্টার +V",      note: "পাম্প পজিটিভ লাইন" },
+  { from: "Relay NO",           to: "৬V পাম্প (+)",           note: "Normally Open — মোটরে কারেন্ট" },
+  { from: "৬V পাম্প (−)",        to: "৬V অ্যাডাপ্টার −V",      note: "পাম্প রিটার্ন লাইন" },
   { from: "HC-SR04 VCC",        to: "ESP32 5V",              note: "আল্ট্রাসনিক পাওয়ার" },
   { from: "HC-SR04 GND",        to: "ESP32 GND",             note: "—" },
   { from: "HC-SR04 Trig",       to: "ESP32 GPIO 5",          note: "ট্রিগার পালস আউট" },
@@ -62,8 +62,8 @@ const masterWiring = [
   { from: "OLED GND",           to: "ESP32 GND",             note: "—" },
   { from: "OLED SDA",           to: "ESP32 GPIO 21",         note: "I2C ডেটা লাইন" },
   { from: "OLED SCL",           to: "ESP32 GPIO 22",         note: "I2C ক্লক লাইন" },
-  { from: "১২V SMPS −V",         to: "ESP32 GND",             note: "⚠️ কমন গ্রাউন্ড আবশ্যক" },
-  { from: "১২V SMPS +V → VIN",   to: "ESP32 VIN",             note: "অনবোর্ড রেগুলেটর → 3.3V" },
+  { from: "৬V অ্যাডাপ্টার −V",    to: "ESP32 GND",             note: "⚠️ কমন গ্রাউন্ড আবশ্যক (পাম্প ও ESP32)" },
+  { from: "ESP32 USB (5V)",      to: "—",                     note: "ESP32 আলাদা USB/পাওয়ার ব্যাংক দিয়ে চালান" },
 ];
 
 const subDevices = [
@@ -81,9 +81,12 @@ const subTotalPerNode = "১,৫৩০ ৳";
 const masterCode = `/**
  *  BMDA Smart Irrigation — MASTER NODE (ESP32)
  *  স্থান : পাম্প হাউস
- *  পাম্প : R385 ১২V DC ডায়াফ্রাম পাম্প (rated ~1.8 L/min @ 12V)
- *  কাজ  : Dashboard থেকে রিয়েল-টাইম পাম্প ON/OFF, ট্যাঙ্ক জলস্তর,
- *         আবহাওয়া, পাম্প ভোল্টেজ ও রানটাইম রিপোর্ট, OLED-এ লাইভ ডেটা।
+ *  পাম্প : ৬V Ultra-Quiet Fractional Submersible Pump
+ *          rated 3–6V DC · ~120 L/H (≈2.0 L/min) · ~0.20A · ~1.2W
+ *  কাজ  : (১) Boot হলে heartbeat পাঠিয়ে dashboard-কে ONLINE জানায়
+ *         (২) Dashboard থেকে রিয়েল-টাইম পাম্প ON/OFF
+ *         (৩) ট্যাঙ্ক জলস্তর, আবহাওয়া, পাম্প ভোল্টেজ/কারেন্ট/প্রবাহ ও রানটাইম
+ *         (৪) OLED-এ লাইভ ডেটা
  *
  *  Board    : ESP32 Dev Module
  *  Libraries:
@@ -109,10 +112,11 @@ const char* DEVICE_ID   = "MASTER-01";
 const char* ZONE_ID     = "PUMP-HOUSE";
 // ========================
 
-// ---- Pump spec (R385 12V DC diaphragm) ----
-const float PUMP_RATED_LPM     = 1.8;    // লিটার/মিনিট @ 12V open flow
-const float PUMP_RATED_VOLTAGE = 12.0;   // V
-const float PUMP_RATED_CURRENT = 0.55;   // A (অনুমান, datasheet অনুযায়ী)
+// ---- Pump spec (6V Ultra-Quiet Fractional, 120 L/H) ----
+// rated 6V → 0.20A → 1.20W; open flow ≈ 2.0 L/min (120 L/H)
+const float PUMP_RATED_LPM     = 2.0;
+const float PUMP_RATED_VOLTAGE = 6.0;
+const float PUMP_RATED_CURRENT = 0.20;
 
 // ---- Pins ----
 #define PIN_RELAY_PUMP   25
@@ -332,6 +336,11 @@ void setup() {
 
   dht.begin();
   connectWifi();
+
+  // ✅ Boot-time heartbeat — dashboard সাথে সাথে ONLINE বুঝবে
+  Serial.println("[MASTER] System online — sending boot heartbeat");
+  sendTelemetry();
+  lastSend = millis();
 }
 
 void loop() {

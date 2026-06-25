@@ -1,37 +1,42 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queueCommand } from "@/lib/device-store.server";
 
-// Dashboard / mobile app POSTs control commands here.
-// Body: { deviceId, action: "valve_open"|"valve_close"|"motor_on"|"motor_off", zoneId? }
-// ESP32 will pick it up on next telemetry POST.
+// Public endpoint for queueing device commands (anonymous-issued; e.g. from kiosks).
+// Authenticated users should prefer inserting into device_commands via the supabase client
+// so RLS records `issued_by`. Body: { deviceId, action, zoneId? }
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+const VALID = ["valve_open", "valve_close", "motor_on", "motor_off"] as const;
 
 export const Route = createFileRoute("/api/public/commands")({
   server: {
     handlers: {
-      OPTIONS: async () =>
-        new Response(null, {
-          status: 204,
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-          },
-        }),
+      OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
 
       POST: async ({ request }) => {
         try {
           const body = await request.json();
-          const valid = ["valve_open", "valve_close", "motor_on", "motor_off"];
-          if (!body?.deviceId || !valid.includes(body?.action)) {
-            return Response.json({ ok: false, error: "deviceId and valid action required" }, { status: 400 });
+          if (!body?.deviceId || !VALID.includes(body?.action)) {
+            return Response.json({ ok: false, error: "deviceId and valid action required" }, { status: 400, headers: CORS });
           }
-          const cmd = queueCommand(String(body.deviceId), {
-            action: body.action,
-            zoneId: body.zoneId ? String(body.zoneId) : undefined,
-          });
-          return Response.json({ ok: true, command: cmd }, { headers: { "Access-Control-Allow-Origin": "*" } });
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data, error } = await supabaseAdmin
+            .from("device_commands")
+            .insert({
+              device_id: String(body.deviceId),
+              zone_id: body.zoneId ? String(body.zoneId) : null,
+              action: body.action,
+            })
+            .select("id, action, zone_id")
+            .single();
+          if (error) throw error;
+          return Response.json({ ok: true, command: data }, { headers: CORS });
         } catch (e) {
-          return Response.json({ ok: false, error: String(e) }, { status: 500 });
+          return Response.json({ ok: false, error: String(e) }, { status: 500, headers: CORS });
         }
       },
     },
