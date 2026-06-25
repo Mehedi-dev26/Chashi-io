@@ -35,6 +35,10 @@ export const Route = createFileRoute("/api/public/telemetry")({
             humidity: body.humidity != null ? Number(body.humidity) : undefined,
             valveOpen: Boolean(body.valveOpen),
             motorOn: body.motorOn != null ? Boolean(body.motorOn) : undefined,
+            flowLpm: body.flowLpm != null ? Number(body.flowLpm) : undefined,
+            voltage: body.voltage != null ? Number(body.voltage) : undefined,
+            current: body.current != null ? Number(body.current) : undefined,
+            runtimeSec: body.runtimeSec != null ? Number(body.runtimeSec) : undefined,
             rssi: body.rssi != null ? Number(body.rssi) : undefined,
           });
           const commands = popCommands(String(body.deviceId));
