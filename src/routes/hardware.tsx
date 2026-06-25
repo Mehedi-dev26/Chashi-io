@@ -388,13 +388,23 @@ void sendTelemetry() {
                 code, tank, lpm, volt, systemOnline ? 1 : 0);
 
   // dashboard কমান্ড প্রসেস → রিয়েল-টাইম মোটর ON/OFF
+  bool motorChanged = false;
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
     for (JsonObject c : r["commands"].as<JsonArray>()) {
       String a = c["action"].as<String>();
+      bool before = motorOn;
       if      (a == "motor_on")  setMotor(true);
       else if (a == "motor_off") setMotor(false);
+      if (before != motorOn) motorChanged = true;
     }
+  }
+  // ⚡ যদি কমান্ডে মোটর state বদলায়, সাথে সাথে আরেকটা telemetry পাঠাও
+  //     যাতে dashboard <১ সেকেন্ডে নিশ্চিতকরণ পায়।
+  if (motorChanged) {
+    delay(50);
+    sendTelemetryConfirm();
+    return;
   }
 
   drawDashboard(tank, lpm, volt, curr, isnan(t) ? 0 : t, isnan(h) ? 0 : h);
