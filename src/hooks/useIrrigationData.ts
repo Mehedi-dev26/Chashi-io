@@ -62,7 +62,7 @@ export const PUMP_SPEC = {
   ratedVoltage: 6.0,
   ratedCurrent: 0.20,
   ratedFlowLpm: 2.0,
-  heartbeatMs: 15000,
+  heartbeatMs: 5000,   // ⚡ ৫ সেকেন্ডের মধ্যে heartbeat না এলে অফলাইন → মোটর instant off
 };
 
 // fallback default zones (only used if user has none in DB and seed fails)
@@ -185,7 +185,7 @@ if (typeof window !== "undefined") {
         return z;
       });
       if (changed) setState({ ...state, zones, metrics: recomputeMetrics() });
-    }, 4000);
+    }, 1000);   // ⚡ প্রতি সেকেন্ডে watchdog চেক → দ্রুত UI response
   }
 }
 
