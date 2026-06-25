@@ -719,22 +719,28 @@ function HardwarePage() {
           </div>
         </div>
 
-        {/* AUTO-CAPTURED SERVER URL BANNER */}
+        {/* BACKEND SERVER URL BANNER — pinned to Lovable Cloud */}
         <div className="rounded-2xl p-5 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 text-white shadow-lg ring-1 ring-white/25 border-2 border-white/15">
           <div className="flex items-start gap-3">
             <div className="h-10 w-10 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm shrink-0">
               <Globe className="h-5 w-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] uppercase tracking-wider font-bold opacity-95">অটো-ক্যাপচারড সার্ভার URL</p>
-              <p className="text-sm font-extrabold mt-0.5">নিচের ফার্মওয়্যারে আপনি এখন যে domain-এ আছেন, সেটিই স্বয়ংক্রিয়ভাবে বসানো হয়েছে</p>
+              <p className="text-[11px] uppercase tracking-wider font-bold opacity-95">ফার্মওয়্যার সার্ভার URL (ব্যাকএন্ড)</p>
+              <p className="text-sm font-extrabold mt-0.5">নিচের ফার্মওয়্যার সবসময় Lovable Cloud ব্যাকএন্ডে POST করবে</p>
               <p className="font-mono text-xs md:text-sm bg-black/25 rounded-lg px-3 py-2 mt-2 break-all">{serverHost}</p>
               <p className="text-[11px] mt-2 opacity-90 leading-relaxed">
-                Vercel default domain, custom domain, বা Lovable preview — যেখান থেকেই এই পেজ খুলবেন, ESP32/ESP8266 কোডের <code className="bg-black/30 px-1 rounded">SERVER_HOST</code> সেই URL-এ আপডেট হয়ে যাবে। কপি করার আগে নিশ্চিত হোন আপনি সঠিক production domain-এ আছেন।
+                <strong>⚠ গুরুত্বপূর্ণ:</strong> Vercel শুধু ফ্রন্টএন্ড (UI) host করে — ব্যাকএন্ড API (<code className="bg-black/30 px-1 rounded">/api/public/telemetry</code>) Vercel-এ চলে না। Vercel domain-এ POST করলে <strong>405 Method Not Allowed</strong> আসবে। তাই ESP32-এর <code className="bg-black/30 px-1 rounded">SERVER_HOST</code> সবসময় উপরের Lovable Cloud URL-এ pin করা — এটিই সঠিক backend।
               </p>
+              {originMismatch && (
+                <p className="text-[11px] mt-2 bg-amber-500/30 rounded-lg px-3 py-2 leading-relaxed border border-amber-200/40">
+                  আপনি এখন <code className="bg-black/30 px-1 rounded">{viewOrigin}</code> থেকে এই পেজ দেখছেন (Vercel/custom domain) — UI এখান থেকে কাজ করে, কিন্তু ESP32 অবশ্যই উপরের Lovable URL-এ POST করবে।
+                </p>
+              )}
             </div>
           </div>
         </div>
+
 
         {/* MASTER firmware */}
         <div className="glass-card rounded-2xl p-5">
