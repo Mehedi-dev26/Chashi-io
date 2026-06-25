@@ -179,8 +179,19 @@ export function FieldMap({ zones, onToggle }: { zones: FieldZone[]; onToggle: (i
                 {z.valveOpen && (
                   <span className="absolute inset-0 rounded-lg pulse-ring" style={{ border: `2px solid ${statusColor[z.status]}` }} />
                 )}
+                {/* sub-node status pin (top-right) */}
+                <span
+                  className={`absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full grid place-items-center ring-2 ring-background ${
+                    !z.hasNode ? "bg-zinc-400"
+                    : z.online ? "bg-emerald-500 animate-pulse"
+                    : "bg-rose-500"
+                  }`}
+                  title={!z.hasNode ? "কোনো sub-node নেই" : z.online ? "Sub-node অনলাইন" : "Sub-node অফলাইন"}
+                >
+                  {!z.hasNode ? <WifiOff className="h-2 w-2 text-white" /> : <Cpu className="h-2 w-2 text-white" />}
+                </span>
                 <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-semibold whitespace-nowrap bg-background/90 backdrop-blur px-1.5 py-0.5 rounded border border-border">
-                  {z.nameBn.split(" ").slice(-1)} · {bn(z.waterLevel.toFixed(0))}%
+                  {z.nameBn.split(" ").slice(-1)} · {z.hasNode ? `${bn(z.soilMoisture.toFixed(0))}%` : "নো নোড"}
                 </div>
               </div>
             </button>
