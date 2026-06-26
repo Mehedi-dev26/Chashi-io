@@ -49,12 +49,21 @@ export type NetworkMetrics = {
   aiActivity: number;     // % of commands consumed (last 24h)
 };
 
+export type WeatherState = {
+  temperature: number | null;  // °C — latest from any DHT22 sub-node
+  humidity: number | null;     // % RH
+  sourceZone: string | null;   // which sub-node reported it
+  lastSeen: number | null;
+};
+
 type Store = {
   zones: FieldZone[];
   motor: MotorState;
   activity: ActivityEntry[];
   metrics: NetworkMetrics;
+  weather: WeatherState;
 };
+
 
 export const PUMP_SPEC = {
   device_id: "MASTER-01",
@@ -86,7 +95,9 @@ let state: Store = {
   },
   activity: [{ id: "init", time: "—", type: "info", message: "সিস্টেম প্রস্তুত · ডাটাবেজ থেকে লোড হচ্ছে…" }],
   metrics: { networkHealth: 0, totalNodes: 0, onlineNodes: 0, aiActivity: 0 },
+  weather: { temperature: null, humidity: null, sourceZone: null, lastSeen: null },
 };
+
 
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
@@ -107,8 +118,11 @@ type TelemetryRow = {
   voltage: number | null; current: number | null;
   flow_lpm: number | null; runtime_sec: number | null;
   soil_moisture: number | null; water_level: number | null;
-  tds_ppm: number | null; updated_at: string;
+  tds_ppm: number | null;
+  temperature: number | null; humidity: number | null;
+  updated_at: string;
 };
+
 
 const recomputeMetrics = () => {
   const now = Date.now();
