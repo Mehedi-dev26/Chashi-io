@@ -14,9 +14,8 @@ const HourlyInput = z.object({
  * (UTC month boundary) for the given device.
  */
 export const getMonthlyRuntime = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => MonthlyInput.parse(d ?? {}))
-  .handler(async ({ data }) => {
-    return { totalSec: 42, debug: data.deviceId };
+  .handler(async () => {
+    return { totalSec: 42 };
   });
 
 /**
