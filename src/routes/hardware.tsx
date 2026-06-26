@@ -319,7 +319,7 @@ bool readDhtSafe(float &tempC, float &humidity) {
   if (isnan(t) && isnan(h)) {
     Serial.println("[DHT] read failed (NaN) — check wiring / power");
   } else {
-    Serial.printf("[DHT] raw t=%.1fC h=%.1f%%\n", t, h);
+    Serial.print("[DHT] raw t="); Serial.print(t, 1); Serial.print("C h="); Serial.print(h, 1); Serial.println("%");
   }
   return !isnan(tempC) || !isnan(humidity);
 }
