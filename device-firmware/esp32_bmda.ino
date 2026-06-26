@@ -168,11 +168,11 @@ void drawDashboard(float tank, float lpm, float volt, float curr, float t, float
   if (!isnan(t) && !isnan(h)) {
     oled.printf("%4.1fC%3d%%", t, (int)round(h));
   } else if (!isnan(t)) {
-    oled.printf("%4.1fC --%%", t);
+    oled.printf("%4.1fC--%%", t);
   } else if (!isnan(h)) {
     oled.printf("--.-C%3d%%", (int)round(h));
   } else {
-    oled.print("--.-C --%");
+    oled.print("--.-C--%");
   }
 
   oled.setCursor(2, 57);
