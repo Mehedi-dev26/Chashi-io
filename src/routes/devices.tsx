@@ -191,7 +191,10 @@ function DevicesPage() {
             const t = tele[n.device_id];
             const online = !!(t && Date.now() - new Date(t.updated_at).getTime() < ONLINE_MS);
             const moisture = t?.soil_moisture ?? 0;
-            const tds = t?.tds_ppm ?? 0;
+            const sMoist = Math.max(0, Math.min(100, moisture));
+            const waterLevel = sMoist < 25 ? sMoist * 0.6
+              : sMoist < 60 ? 15 + (sMoist - 25) * (55 / 35)
+              : 70 + (sMoist - 60) * (30 / 40);
             const valveOpen = !!t?.valve_open;
             const assignedZone = zones.find((z) => z.id === n.zone_id);
             return (
@@ -238,12 +241,12 @@ function DevicesPage() {
 
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     <div className="rounded-lg p-2.5 bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow shadow-sky-500/30">
-                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><Sprout className="h-3 w-3" />আর্দ্রতা</div>
+                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><Sprout className="h-3 w-3" />SM · মাটি</div>
                       <p className="mt-1 text-xl font-extrabold">{bn(moisture.toFixed(0))}<span className="text-xs">%</span></p>
                     </div>
-                    <div className="rounded-lg p-2.5 bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow shadow-amber-500/30">
-                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><FlaskConical className="h-3 w-3" />TDS</div>
-                      <p className="mt-1 text-xl font-extrabold">{bn(tds.toFixed(0))}<span className="text-xs"> ppm</span></p>
+                    <div className="rounded-lg p-2.5 bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow shadow-cyan-500/30">
+                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><Droplets className="h-3 w-3" />পানির স্তর</div>
+                      <p className="mt-1 text-xl font-extrabold">{bn(waterLevel.toFixed(0))}<span className="text-xs">%</span></p>
                     </div>
                   </div>
 
