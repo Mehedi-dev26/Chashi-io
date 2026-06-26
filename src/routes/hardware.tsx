@@ -29,9 +29,9 @@ export const Route = createFileRoute("/hardware")({
 /*    ┌────────────┼────────────┐                                       */
 /*    ▼            ▼            ▼                                       */
 /*  SUB-01       SUB-02       SUB-03   (ESP8266 NodeMCU — জমিতে)       */
-/*  • Soil       • Soil       • Soil                                    */
-/*  • LDR        • LDR        • LDR                                     */
-/*  • Valve      • Valve      • Valve                                   */
+/*  • Soil       • Soil       • Soil   (Capacitive Soil Moisture v1.2) */
+/*  • DHT22      • DHT22      • DHT22                                  */
+/*  • Valve      • Valve      • Valve  (SG90 Servo)                    */
 /* ------------------------------------------------------------------ */
 
 const masterDevices = [
