@@ -292,10 +292,15 @@ String fmtRuntime(unsigned long ms) {
   return String(buf);
 }
 
-// ✅ DHT22 safe read: invalid/corrupted reads (যেমন 793°C / 169%) dashboard বা OLED-এ যাবে না
+// ✅ DHT22 safe read — external 4.7k pull-up লাগে না; ESP32-এর internal pull-up + 3x retry ব্যবহার
 bool readDhtSafe(float &tempC, float &humidity) {
-  float t = dht.readTemperature(false);  // false = Celsius
-  float h = dht.readHumidity();
+  float t = NAN, h = NAN;
+  for (int i = 0; i < 3; i++) {
+    t = dht.readTemperature(false);  // Celsius
+    h = dht.readHumidity();
+    if (!isnan(t) && !isnan(h)) break;
+    delay(60);
+  }
 
   bool tOk = !isnan(t) && t >= -40.0 && t <= 80.0;
   bool hOk = !isnan(h) && h >= 0.0 && h <= 100.0;
@@ -307,6 +312,7 @@ bool readDhtSafe(float &tempC, float &humidity) {
   humidity = !isnan(lastGoodHum) ? lastGoodHum : NAN;
   return !isnan(tempC) || !isnan(humidity);
 }
+
 
 // 🆕 প্রফেশনাল ড্যাশবোর্ড লেআউট
 //   ┌──────────────── header bar (inverse) ──────────────────┐
