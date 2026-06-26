@@ -56,12 +56,12 @@ export const Route = createFileRoute("/api/public/telemetry")({
           // Read previous row to compute runtime delta for the monthly log
           const { data: prev } = await supabaseAdmin
             .from("device_telemetry")
-            .select("runtime_sec, motor_on")
+            .select("runtime_sec, motor_on, temperature, humidity")
             .eq("zone_id", effectiveZoneId)
             .maybeSingle();
 
-          const temperature = cleanTemperature(body.temperature);
-          const humidity = cleanHumidity(body.humidity);
+          const temperature = cleanTemperature(body.temperature) ?? cleanTemperature(prev?.temperature);
+          const humidity = cleanHumidity(body.humidity) ?? cleanHumidity(prev?.humidity);
 
           const row = {
             zone_id: effectiveZoneId,
