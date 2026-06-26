@@ -616,18 +616,20 @@ const buildSubCode = (serverHost: string) => `/**
  *  BMDA Smart Irrigation — SUB NODE (ESP8266 NodeMCU)
  *  স্থান : জমিতে — প্রতিটি জোনে একটি
  *  সেন্সর: TDS sensor (Gravity/generic) → মাটির আর্দ্রতা %
+ *         DHT22 → তাপমাত্রা (°C) + আর্দ্রতা (%RH)
  *         LDR → দিন/রাত
  *  অ্যাকচুয়েটর: SG90 Servo Motor → পানির লাইন on/off (০°=বন্ধ, ৯০°=খোলা)
  *  কাজ  : প্রতি ৫ সেকেন্ডে heartbeat + dashboard থেকে valve কমান্ড গ্রহণ।
  *
  *  Board    : NodeMCU 1.0 (ESP-12E Module)
- *  Libraries: ESP8266WiFi, ESP8266HTTPClient, ArduinoJson, Servo
+ *  Libraries: ESP8266WiFi, ESP8266HTTPClient, ArduinoJson, Servo, DHT sensor library
  */
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecureBearSSL.h>
 #include <ArduinoJson.h>
 #include <Servo.h>
+#include <DHT.h>
 
 // ====== EDIT THESE ======
 const char* WIFI_SSID   = "YOUR_WIFI";
@@ -641,6 +643,8 @@ const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 #define PIN_TDS     A0     // TDS sensor analog (ESP8266-এ একটাই ADC)
 #define PIN_LDR     D5     // LDR digital
 #define PIN_SERVO   D2     // SG90 servo PWM (GPIO4)
+#define PIN_DHT     D6     // DHT22 data (GPIO12)
+#define DHT_TYPE    DHT22
 
 // ---- TDS reference voltage (NodeMCU ADC 0..1023 → 0..3.3V via onboard divider) ----
 const float VREF = 3.3;
@@ -648,12 +652,17 @@ const float ADC_MAX = 1023.0;
 
 // ---- Servo ----
 Servo valveServo;
+DHT dht(PIN_DHT, DHT_TYPE);
 const int SERVO_CLOSED = 0;
 const int SERVO_OPEN   = 90;
 
 bool valveOpen = false;
 unsigned long lastSend = 0;
 const unsigned long SEND_INTERVAL = 5000;
+unsigned long lastWifiAttempt = 0;
+const unsigned long WIFI_RETRY_MS = 5000;
+float lastGoodTemp = NAN;
+float lastGoodHum  = NAN;
 
 void setValve(bool on) {
   valveOpen = on;
@@ -689,14 +698,48 @@ float ppmToMoisturePct(float ppm) {
   return pct;
 }
 
+bool readDhtSafe(float &tempC, float &humidity) {
+  float t = dht.readTemperature(false);  // Celsius
+  float h = dht.readHumidity();
+  bool tOk = !isnan(t) && t >= -40.0 && t <= 80.0;
+  bool hOk = !isnan(h) && h >= 0.0 && h <= 100.0;
+  if (tOk) lastGoodTemp = t;
+  if (hOk) lastGoodHum = h;
+  tempC = !isnan(lastGoodTemp) ? lastGoodTemp : NAN;
+  humidity = !isnan(lastGoodHum) ? lastGoodHum : NAN;
+  return !isnan(tempC) || !isnan(humidity);
+}
+
 void connectWifi() {
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(false);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  while (WiFi.status() != WL_CONNECTED) { delay(300); Serial.print("."); }
-  Serial.printf("\\n[%s] WiFi OK  IP=%s\\n", DEVICE_ID, WiFi.localIP().toString().c_str());
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000UL) { delay(300); Serial.print("."); }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("\\n[%s] WiFi OK  IP=%s\\n", DEVICE_ID, WiFi.localIP().toString().c_str());
+  } else {
+    Serial.printf("\\n[%s] WiFi timeout — retrying in background\\n", DEVICE_ID);
+  }
+}
+
+bool ensureWifi() {
+  if (WiFi.status() == WL_CONNECTED) return true;
+  if (millis() - lastWifiAttempt >= WIFI_RETRY_MS) {
+    lastWifiAttempt = millis();
+    Serial.printf("[%s] WiFi lost — reconnecting...\\n", DEVICE_ID);
+    WiFi.disconnect(false);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+  }
+  return false;
 }
 
 void sendTelemetry() {
+  if (!ensureWifi()) return;
+
+  float tempC, humidity;
+  readDhtSafe(tempC, humidity);
   float ppm  = readTdsPpm(25.0);
   float soil = ppmToMoisturePct(ppm);
   bool  dayLight = digitalRead(PIN_LDR) == LOW;
@@ -710,6 +753,8 @@ void sendTelemetry() {
   doc["ldr"]          = dayLight ? 85 : 10;
   doc["valveOpen"]    = valveOpen;
   doc["rssi"]         = WiFi.RSSI();
+  if (!isnan(tempC))   doc["temperature"] = round(tempC * 10.0) / 10.0;
+  if (!isnan(humidity)) doc["humidity"]   = round(humidity);
 
   String body; serializeJson(doc, body);
   BearSSL::WiFiClientSecure client;
@@ -720,8 +765,8 @@ void sendTelemetry() {
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
-  Serial.printf("[%s] POST %d  ppm=%.0f soil=%.0f%% valve=%d\\n",
-                ZONE_ID, code, ppm, soil, valveOpen);
+  Serial.printf("[%s] POST %d  ppm=%.0f soil=%.0f%% T=%.1fC H=%.0f%% valve=%d\\n",
+                ZONE_ID, code, ppm, soil, tempC, humidity, valveOpen);
 
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
@@ -736,6 +781,7 @@ void sendTelemetry() {
 void setup() {
   Serial.begin(115200);
   pinMode(PIN_LDR, INPUT);
+  dht.begin();
   valveServo.attach(PIN_SERVO);
   setValve(false);              // boot হলে valve বন্ধ থাকবে
   connectWifi();
@@ -746,6 +792,7 @@ void setup() {
 }
 
 void loop() {
+  ensureWifi();
   if (millis() - lastSend >= SEND_INTERVAL) {
     lastSend = millis();
     sendTelemetry();
