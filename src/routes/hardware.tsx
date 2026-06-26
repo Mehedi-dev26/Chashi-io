@@ -297,11 +297,11 @@ String fmtRuntime(unsigned long ms) {
 //    dashboard দুটোই blank দেখাত। এখন সেন্সর যা দেয়, তাই দেখাবে।
 bool readDhtSafe(float &tempC, float &humidity) {
   float t = NAN, h = NAN;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 5; i++) {
     t = dht.readTemperature(false);  // Celsius
     h = dht.readHumidity();
     if (!isnan(t) && !isnan(h)) break;
-    delay(60);
+    delay(80);
   }
 
   if (!isnan(t)) lastGoodTemp = t;
@@ -568,7 +568,23 @@ void setup() {
 
   pinMode(PIN_DHT, INPUT_PULLUP);   // ✅ ESP32 internal pull-up — external 4.7k resistor লাগবে না
   dht.begin();
-  delay(2500);                       // DHT22 warmup (without external pull-up একটু বেশি সময় লাগে)
+
+  // 🆕 Placeholder dashboard — যাতে OLED "Loading 100%" এ আটকে না থাকে
+  drawDashboard(readTankPct(), 0.0, 0.0, 0.0, NAN, NAN);
+
+  // DHT22 warmup ~2.5s — এই সময়ে প্রতি 250ms display refresh করব
+  unsigned long warmupUntil = millis() + 2500;
+  while (millis() < warmupUntil) {
+    float t, h;
+    readDhtSafe(t, h);
+    drawDashboard(readTankPct(), 0.0, 0.0, 0.0, t, h);
+    delay(250);
+  }
+
+  // 🆕 Prime DHT once directly so the first telemetry frame has real values
+  float pt = dht.readTemperature(false), ph = dht.readHumidity();
+  if (!isnan(pt)) lastGoodTemp = pt;
+  if (!isnan(ph)) lastGoodHum  = ph;
 
   connectWifi();
 

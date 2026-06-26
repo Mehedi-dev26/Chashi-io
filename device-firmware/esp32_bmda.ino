@@ -148,13 +148,13 @@ bool readDhtSafe(float &tempC, float &humidity) {
   }
   lastDhtReadMs = millis();
 
-  // Retry up to 3 times to ride out single-frame CRC errors
+  // Retry up to 5 times to ride out CRC errors with internal pull-up
   float t = NAN, h = NAN;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 5; i++) {
     t = dht.readTemperature(false);
     h = dht.readHumidity();
     if (!isnan(t) && !isnan(h)) break;
-    delay(60);
+    delay(80);
   }
 
   // ⚠️ Show whatever the sensor reports — NaN-only guard.
@@ -418,11 +418,23 @@ void setup() {
   dht.begin();
   dhtWarmupUntil = millis() + 2500;  // give DHT22 ~2.5s to stabilise without external pull-up
 
+  // Render an immediate placeholder dashboard so OLED never sits on "Loading 100%"
+  drawDashboard(readTankPct(), 0.0, 0.0, 0.0, NAN, NAN);
+
   connectWifi();
 
   Serial.println("[MASTER] System online — sending boot heartbeat");
-  // Wait for warmup before first telemetry so first read is valid
-  while (millis() < dhtWarmupUntil) { delay(50); }
+  // Wait for warmup; keep refreshing the dashboard so the screen stays alive
+  while (millis() < dhtWarmupUntil) {
+    float t, h;
+    readDhtSafe(t, h);
+    drawDashboard(readTankPct(), 0.0, 0.0, 0.0, t, h);
+    delay(250);
+  }
+  // Prime DHT with one direct read so the first telemetry frame has real values
+  float pt = dht.readTemperature(false), ph = dht.readHumidity();
+  if (!isnan(pt)) lastGoodTemp = pt;
+  if (!isnan(ph)) lastGoodHum = ph;
   sendTelemetry();
   lastSend = millis();
 }
