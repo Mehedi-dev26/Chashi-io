@@ -391,18 +391,30 @@ void pollButtons() {
   int rawOn  = digitalRead(PIN_BTN_ON);
   int rawOff = digitalRead(PIN_BTN_OFF);
 
-  // ON button — debounce on stable state
+  // Diagnostic heartbeat — prints raw button states every 3s.
+  // Use this in Serial Monitor (115200) to verify your wiring:
+  //   "[BTN] raw ON=1 OFF=1" idle → pressing should flip to 0 (or vice-versa).
+  static unsigned long lastBtnLog = 0;
+  if (millis() - lastBtnLog > 3000) {
+    lastBtnLog = millis();
+    Serial.print("[BTN] raw ON="); Serial.print(rawOn);
+    Serial.print(" OFF="); Serial.print(rawOff);
+    Serial.print("  idle ON="); Serial.print(btnOnIdle);
+    Serial.print(" OFF="); Serial.println(btnOffIdle);
+  }
+
+  // ON button — debounce on stable state; trigger when leaving idle level
   if (rawOn != lastBtnOnState) { lastBtnOnMs = millis(); lastBtnOnState = rawOn; }
   if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOnState) {
     stableBtnOnState = rawOn;
-    if (stableBtnOnState == LOW) handleButtonEdge(true);   // press edge only
+    if (stableBtnOnState != btnOnIdle) handleButtonEdge(true);   // press edge only
   }
 
-  // OFF button — debounce on stable state
+  // OFF button — debounce on stable state; trigger when leaving idle level
   if (rawOff != lastBtnOffState) { lastBtnOffMs = millis(); lastBtnOffState = rawOff; }
   if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOffState) {
     stableBtnOffState = rawOff;
-    if (stableBtnOffState == LOW) handleButtonEdge(false); // press edge only
+    if (stableBtnOffState != btnOffIdle) handleButtonEdge(false); // press edge only
   }
 }
 
