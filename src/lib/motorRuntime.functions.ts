@@ -14,9 +14,7 @@ const HourlyInput = z.object({
  * (UTC month boundary) for the given device.
  */
 export const getMonthlyRuntime = createServerFn({ method: "POST" })
-  .handler(async () => {
-    return { totalSec: 42 };
-  });
+  .handler(async () => "hello");
 
 /**
  * Returns last 24 hours of motor runtime aggregated into hourly buckets.
