@@ -240,6 +240,11 @@ unsigned long lastBtnOnMs  = 0;
 unsigned long lastBtnOffMs = 0;
 const unsigned long BTN_DEBOUNCE_MS = 40;
 
+// 🆕 Auto-captured idle level (boot-time). বাটন যেভাবেই wire করা থাকুক
+// (GPIO↔GND বা GPIO↔3.3V), idle level capture করে যেকোনো পরিবর্তনকেই press ধরা হবে।
+int btnOnIdle  = HIGH;
+int btnOffIdle = HIGH;
+
 // বাটন চাপলে ৩ সেকেন্ড dashboard-এর পুরোনো উল্টো command ignore করব
 unsigned long buttonOverrideUntil = 0;
 const unsigned long BUTTON_OVERRIDE_MS = 3000;
