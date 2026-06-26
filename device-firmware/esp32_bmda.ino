@@ -378,9 +378,8 @@ void sendTelemetry() {
   drawDashboard(tank, lpm, volt, curr, t, h);
 }
 
-// Momentary push-button handler — single press = one toggle signal.
-// Edge fires on the STABLE state transition (after debounce), so a release
-// or bounce cannot retrigger. ON button only turns motor ON; OFF only OFF.
+// Momentary push-button handler — single press = one signal.
+// Press edge only (HIGH→LOW). ON button only turns motor ON; OFF only OFF.
 void handleButtonEdge(bool isOnButton) {
   if (isOnButton) {
     if (motorOn) { Serial.println("[BTN] ON pressed (already running)"); return; }
@@ -399,33 +398,40 @@ void handleButtonEdge(bool isOnButton) {
 void pollButtons() {
   int rawOn  = digitalRead(PIN_BTN_ON);
   int rawOff = digitalRead(PIN_BTN_OFF);
+  unsigned long now = millis();
 
-  // Diagnostic heartbeat — prints raw button states every 3s.
-  // Use this in Serial Monitor (115200) to verify your wiring:
-  //   "[BTN] raw ON=1 OFF=1" idle → pressing should flip to 0 (or vice-versa).
+  // Diagnostic heartbeat every 3s
   static unsigned long lastBtnLog = 0;
-  if (millis() - lastBtnLog > 3000) {
-    lastBtnLog = millis();
+  if (now - lastBtnLog > 3000) {
+    lastBtnLog = now;
     Serial.print("[BTN] raw ON="); Serial.print(rawOn);
-    Serial.print(" OFF="); Serial.print(rawOff);
-    Serial.print("  idle ON="); Serial.print(btnOnIdle);
-    Serial.print(" OFF="); Serial.println(btnOffIdle);
+    Serial.print(" OFF="); Serial.println(rawOff);
   }
 
-  // ON button — debounce on stable state; trigger when leaving idle level
-  if (rawOn != lastBtnOnState) { lastBtnOnMs = millis(); lastBtnOnState = rawOn; }
-  if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOnState) {
-    stableBtnOnState = rawOn;
-    if (stableBtnOnState != btnOnIdle) handleButtonEdge(true);   // press edge only
+  // -------- ON button --------
+  if (rawOn != lastBtnOnRaw) { btnOnChangeMs = now; lastBtnOnRaw = rawOn; }
+  if ((now - btnOnChangeMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOn) {
+    int prev = stableBtnOn;
+    stableBtnOn = rawOn;
+    // Press edge ONLY: HIGH→LOW, and not within lockout window
+    if (prev == HIGH && stableBtnOn == LOW && now >= btnOnLockoutUntil) {
+      btnOnLockoutUntil = now + BTN_LOCKOUT_MS;
+      handleButtonEdge(true);
+    }
   }
 
-  // OFF button — debounce on stable state; trigger when leaving idle level
-  if (rawOff != lastBtnOffState) { lastBtnOffMs = millis(); lastBtnOffState = rawOff; }
-  if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOffState) {
-    stableBtnOffState = rawOff;
-    if (stableBtnOffState != btnOffIdle) handleButtonEdge(false); // press edge only
+  // -------- OFF button --------
+  if (rawOff != lastBtnOffRaw) { btnOffChangeMs = now; lastBtnOffRaw = rawOff; }
+  if ((now - btnOffChangeMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOff) {
+    int prev = stableBtnOff;
+    stableBtnOff = rawOff;
+    if (prev == HIGH && stableBtnOff == LOW && now >= btnOffLockoutUntil) {
+      btnOffLockoutUntil = now + BTN_LOCKOUT_MS;
+      handleButtonEdge(false);
+    }
   }
 }
+
 
 void updateOnlineLed() {
   static unsigned long lastToggle = 0;
