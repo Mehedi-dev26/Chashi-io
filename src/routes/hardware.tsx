@@ -588,6 +588,15 @@ void setup() {
   // 🆕 push buttons — INPUT_PULLUP (একপাশ GPIO, অন্যপাশ GND)
   pinMode(PIN_BTN_ON,  INPUT_PULLUP);
   pinMode(PIN_BTN_OFF, INPUT_PULLUP);
+  // 🆕 Auto-capture idle level — pinMode-এর পর pin যা পড়ে সেটাই "not pressed"
+  //    baseline। যেকোনো wiring (button→GND বা button→3.3V) এতে কাজ করবে।
+  delay(20);
+  btnOnIdle  = digitalRead(PIN_BTN_ON);
+  btnOffIdle = digitalRead(PIN_BTN_OFF);
+  lastBtnOnState  = stableBtnOnState  = btnOnIdle;
+  lastBtnOffState = stableBtnOffState = btnOffIdle;
+  Serial.print("[BTN] idle captured  ON="); Serial.print(btnOnIdle);
+  Serial.print("  OFF="); Serial.println(btnOffIdle);
 
   // 🆕 অনলাইন স্ট্যাটাস LED
   pinMode(PIN_LED_ONLINE, OUTPUT);
