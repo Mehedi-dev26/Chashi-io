@@ -143,8 +143,8 @@ const applyTelemetry = (row: TelemetryRow) => {
   const validHum = hNum != null && Number.isFinite(hNum) && hNum >= 0 && hNum <= 100;
   const weather = validTemp || validHum
     ? {
-        temperature: validTemp ? Number(tNum.toFixed(1)) : state.weather.temperature,
-        humidity: validHum ? Number(hNum.toFixed(0)) : state.weather.humidity,
+        temperature: validTemp ? Number(tNum!.toFixed(1)) : state.weather.temperature,
+        humidity: validHum ? Number(hNum!.toFixed(0)) : state.weather.humidity,
         sourceZone: row.zone_id === PUMP_SPEC.zone_id ? row.device_id : row.zone_id,
         lastSeen: ts,
       }
