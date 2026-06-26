@@ -1,78 +1,79 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+
+const MonthlyInput = z.object({ deviceId: z.string().default("MASTER-01") });
+const HourlyInput = z.object({
+  deviceId: z.string().default("MASTER-01"),
+  ratedFlowLpm: z.number().default(2.0),
+  ratedVoltage: z.number().default(6.0),
+  ratedCurrent: z.number().default(0.20),
+});
 
 /**
  * Returns total motor running seconds in the current calendar month
  * (UTC month boundary) for the given device.
  */
 export const getMonthlyRuntime = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => {
-    const d = (data ?? {}) as { deviceId?: string };
-    return { deviceId: String(d.deviceId ?? "MASTER-01") };
-  })
+  .inputValidator((d: unknown) => MonthlyInput.parse(d ?? {}))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const now = new Date();
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-    const { data: rows, error } = await supabaseAdmin
-      .from("motor_runtime_log")
-      .select("delta_sec")
-      .eq("device_id", data.deviceId)
-      .gte("recorded_at", monthStart);
-    if (error) return { totalSec: 0, error: error.message };
-    const totalSec = (rows ?? []).reduce((s, r) => s + Number(r.delta_sec || 0), 0);
-    return { totalSec };
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const now = new Date();
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+      const { data: rows, error } = await supabaseAdmin
+        .from("motor_runtime_log")
+        .select("delta_sec")
+        .eq("device_id", data.deviceId)
+        .gte("recorded_at", monthStart);
+      if (error) return { totalSec: 0, error: String(error.message ?? error) };
+      const totalSec = (rows ?? []).reduce((s, r) => s + Number(r.delta_sec || 0), 0);
+      return { totalSec };
+    } catch (e) {
+      return { totalSec: 0, error: String((e as Error)?.message ?? e) };
+    }
   });
 
 /**
- * Returns last 24 hours of motor runtime aggregated into hourly buckets
- * (local time of the user). Each bucket carries:
- *   - runSec: total seconds the motor ran in that hour
- *   - waterL: liters delivered, derived from rated flow (L/min)
- *   - powerKwh: energy used, derived from rated voltage × current
+ * Returns last 24 hours of motor runtime aggregated into hourly buckets.
  */
 export const getHourlyUsage = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => {
-    const d = (data ?? {}) as { deviceId?: string; ratedFlowLpm?: number; ratedVoltage?: number; ratedCurrent?: number };
-    return {
-      deviceId: String(d.deviceId ?? "MASTER-01"),
-      ratedFlowLpm: Number(d.ratedFlowLpm ?? 2.0),
-      ratedVoltage: Number(d.ratedVoltage ?? 6.0),
-      ratedCurrent: Number(d.ratedCurrent ?? 0.20),
-    };
-  })
+  .inputValidator((d: unknown) => HourlyInput.parse(d ?? {}))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const sinceMs = Date.now() - 24 * 3600 * 1000;
-    const since = new Date(sinceMs).toISOString();
-    const { data: rows, error } = await supabaseAdmin
-      .from("motor_runtime_log")
-      .select("delta_sec, recorded_at")
-      .eq("device_id", data.deviceId)
-      .gte("recorded_at", since)
-      .order("recorded_at", { ascending: true });
-    if (error) return { buckets: [], error: error.message };
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const sinceMs = Date.now() - 24 * 3600 * 1000;
+      const since = new Date(sinceMs).toISOString();
+      const { data: rows, error } = await supabaseAdmin
+        .from("motor_runtime_log")
+        .select("delta_sec, recorded_at")
+        .eq("device_id", data.deviceId)
+        .gte("recorded_at", since)
+        .order("recorded_at", { ascending: true });
+      if (error) return { buckets: [], error: String(error.message ?? error) };
 
-    // Initialise 24 hourly buckets ending at the current hour.
-    const nowHour = new Date();
-    nowHour.setMinutes(0, 0, 0);
-    const buckets: { hourTs: number; runSec: number }[] = [];
-    for (let i = 23; i >= 0; i--) {
-      buckets.push({ hourTs: nowHour.getTime() - i * 3600 * 1000, runSec: 0 });
+      const nowHour = new Date();
+      nowHour.setMinutes(0, 0, 0);
+      const buckets: { hourTs: number; runSec: number }[] = [];
+      for (let i = 23; i >= 0; i--) {
+        buckets.push({ hourTs: nowHour.getTime() - i * 3600 * 1000, runSec: 0 });
+      }
+
+      for (const r of rows ?? []) {
+        const t = new Date(r.recorded_at as string).getTime();
+        const idx = buckets.findIndex((b) => t >= b.hourTs && t < b.hourTs + 3600 * 1000);
+        if (idx >= 0) buckets[idx].runSec += Number(r.delta_sec || 0);
+      }
+
+      const wattHourPerSec = (data.ratedVoltage * data.ratedCurrent) / 3600;
+      return {
+        buckets: buckets.map((b) => ({
+          hourTs: b.hourTs,
+          runSec: b.runSec,
+          waterL: +(b.runSec * (data.ratedFlowLpm / 60)).toFixed(2),
+          powerKwh: +((b.runSec * wattHourPerSec) / 1000).toFixed(4),
+        })),
+      };
+    } catch (e) {
+      return { buckets: [], error: String((e as Error)?.message ?? e) };
     }
-
-    for (const r of rows ?? []) {
-      const t = new Date(r.recorded_at as string).getTime();
-      const idx = buckets.findIndex((b) => t >= b.hourTs && t < b.hourTs + 3600 * 1000);
-      if (idx >= 0) buckets[idx].runSec += Number(r.delta_sec || 0);
-    }
-
-    const wattHourPerSec = (data.ratedVoltage * data.ratedCurrent) / 3600; // kWh = V*A*sec/3.6e6, we want kWh per bucket
-    return {
-      buckets: buckets.map((b) => ({
-        hourTs: b.hourTs,
-        runSec: b.runSec,
-        waterL: +(b.runSec * (data.ratedFlowLpm / 60)).toFixed(2),
-        powerKwh: +((b.runSec * wattHourPerSec) / 1000).toFixed(4),
-      })),
-    };
   });
