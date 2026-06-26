@@ -448,6 +448,17 @@ void setup() {
   pinMode(PIN_ECHO, INPUT);
   pinMode(PIN_BTN_ON, INPUT_PULLUP);
   pinMode(PIN_BTN_OFF, INPUT_PULLUP);
+  // Sample the resting state of each button right after pinMode. Whatever the
+  // pin reads while idle becomes the "not pressed" baseline — so any wiring
+  // that produces a CHANGE on press will trigger correctly. Button must be
+  // wired between the GPIO and GND (active-LOW with internal pull-up).
+  delay(20);
+  btnOnIdle  = digitalRead(PIN_BTN_ON);
+  btnOffIdle = digitalRead(PIN_BTN_OFF);
+  lastBtnOnState = stableBtnOnState = btnOnIdle;
+  lastBtnOffState = stableBtnOffState = btnOffIdle;
+  Serial.print("[BTN] idle captured  ON="); Serial.print(btnOnIdle);
+  Serial.print("  OFF="); Serial.println(btnOffIdle);
   pinMode(PIN_LED_ONLINE, OUTPUT);
   ledWrite(false);
 
