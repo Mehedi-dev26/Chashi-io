@@ -9,6 +9,66 @@ const HourlyInput = z.object({
   ratedCurrent: z.number().default(0.20),
 });
 
+type RuntimeRow = { delta_sec: number | null; recorded_at?: string | null };
+
+const PAGE_SIZE = 1000;
+
+const sumPagedRuntime = async (
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  deviceId: string,
+  sinceIso: string,
+) => {
+  let totalSec = 0;
+  let from = 0;
+
+  while (true) {
+    const to = from + PAGE_SIZE - 1;
+    const { data: page, error } = await supabaseAdmin
+      .from("motor_runtime_log")
+      .select("delta_sec")
+      .eq("device_id", deviceId)
+      .gte("recorded_at", sinceIso)
+      .order("recorded_at", { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+    const rows = (page ?? []) as RuntimeRow[];
+    totalSec += rows.reduce((sum, row) => sum + Number(row.delta_sec || 0), 0);
+    if (rows.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return totalSec;
+};
+
+const fetchPagedRuntimeRows = async (
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  deviceId: string,
+  sinceIso: string,
+) => {
+  const allRows: RuntimeRow[] = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + PAGE_SIZE - 1;
+    const { data: page, error } = await supabaseAdmin
+      .from("motor_runtime_log")
+      .select("delta_sec, recorded_at")
+      .eq("device_id", deviceId)
+      .gte("recorded_at", sinceIso)
+      .order("recorded_at", { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+    const rows = (page ?? []) as RuntimeRow[];
+    allRows.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return allRows;
+};
+
 export const getMonthlyRuntime = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => MonthlyInput.parse(d ?? {}))
   .handler(async ({ data }) => {
@@ -16,13 +76,7 @@ export const getMonthlyRuntime = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const now = new Date();
       const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-      const { data: rows, error } = await supabaseAdmin
-        .from("motor_runtime_log")
-        .select("delta_sec")
-        .eq("device_id", data.deviceId)
-        .gte("recorded_at", monthStart);
-      if (error) return { totalSec: 0, error: String(error.message ?? error) };
-      const totalSec = (rows ?? []).reduce((s, r) => s + Number(r.delta_sec || 0), 0);
+      const totalSec = await sumPagedRuntime(supabaseAdmin, data.deviceId, monthStart);
       return { totalSec };
     } catch (e) {
       return { totalSec: 0, error: String((e as Error)?.message ?? e) };
@@ -36,13 +90,7 @@ export const getHourlyUsage = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const sinceMs = Date.now() - 24 * 3600 * 1000;
       const since = new Date(sinceMs).toISOString();
-      const { data: rows, error } = await supabaseAdmin
-        .from("motor_runtime_log")
-        .select("delta_sec, recorded_at")
-        .eq("device_id", data.deviceId)
-        .gte("recorded_at", since)
-        .order("recorded_at", { ascending: true });
-      if (error) return { buckets: [], error: String(error.message ?? error) };
+      const rows = await fetchPagedRuntimeRows(supabaseAdmin, data.deviceId, since);
 
       const nowHour = new Date();
       nowHour.setMinutes(0, 0, 0);
@@ -51,7 +99,7 @@ export const getHourlyUsage = createServerFn({ method: "POST" })
         buckets.push({ hourTs: nowHour.getTime() - i * 3600 * 1000, runSec: 0 });
       }
 
-      for (const r of rows ?? []) {
+      for (const r of rows) {
         const t = new Date(r.recorded_at as string).getTime();
         const idx = buckets.findIndex((b) => t >= b.hourTs && t < b.hourTs + 3600 * 1000);
         if (idx >= 0) buckets[idx].runSec += Number(r.delta_sec || 0);

@@ -40,14 +40,14 @@ export function MotorPanel({ motor, onToggle }: { motor: MotorState; onToggle: (
     const load = async () => {
       try {
         const r = await fetchMonthly({ data: { deviceId: motor.id } });
-        if (active) setMonthlySec(r?.totalSec ?? 0);
+        if (active) setMonthlySec(Math.max(Number(r?.totalSec ?? 0), Number(motor.runtime ?? 0)));
       } catch { /* ignore */ }
     };
     load();
-    // refresh every 15s so the value tracks while the pump is running
-    const t = window.setInterval(load, 15000);
+    // refresh quickly so the card tracks real hardware runtime while the motor is active
+    const t = window.setInterval(load, motor.isOn ? 5000 : 15000);
     return () => { active = false; window.clearInterval(t); };
-  }, [fetchMonthly, motor.id]);
+  }, [fetchMonthly, motor.id, motor.isOn, motor.runtime]);
   const monthlyFmt = fmtRuntime(monthlySec);
 
   const metrics = [
