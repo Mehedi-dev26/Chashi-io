@@ -75,9 +75,16 @@ unsigned long dhtWarmupUntil = 0;
 
 int lastBtnOnState = HIGH;
 int lastBtnOffState = HIGH;
+int stableBtnOnState = HIGH;
+int stableBtnOffState = HIGH;
 unsigned long lastBtnOnMs = 0;
 unsigned long lastBtnOffMs = 0;
-const unsigned long BTN_DEBOUNCE_MS = 50;
+const unsigned long BTN_DEBOUNCE_MS = 40;
+
+// After a physical button press, ignore opposing server commands briefly
+// so a stale queued dashboard command can't immediately revert the user.
+unsigned long buttonOverrideUntil = 0;
+const unsigned long BUTTON_OVERRIDE_MS = 3000;
 
 void ledWrite(bool on) {
   digitalWrite(PIN_LED_ONLINE, (LED_ACTIVE_HIGH ? on : !on) ? HIGH : LOW);
@@ -334,43 +341,63 @@ void sendTelemetry() {
   bool motorChanged = false;
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
+    bool inOverride = (millis() < buttonOverrideUntil);
     for (JsonObject c : r["commands"].as<JsonArray>()) {
       String a = c["action"].as<String>();
-      bool before = motorOn;
-      if (a == "motor_on") setMotor(true);
-      else if (a == "motor_off") setMotor(false);
-      if (before != motorOn) motorChanged = true;
+      bool target = motorOn;
+      if (a == "motor_on") target = true;
+      else if (a == "motor_off") target = false;
+      else continue;
+      // Honor a fresh local button press: ignore stale opposing queued cmds
+      if (inOverride && target != motorOn) {
+        Serial.printf("[CMD] ignored %s (button override active)\n", a.c_str());
+        continue;
+      }
+      if (target != motorOn) {
+        setMotor(target);
+        motorChanged = true;
+      }
     }
   }
   if (motorChanged) lastSend = 0;
   drawDashboard(tank, lpm, volt, curr, t, h);
 }
 
+// Momentary push-button handler — single press = one toggle signal.
+// Edge fires on the STABLE state transition (after debounce), so a release
+// or bounce cannot retrigger. ON button only turns motor ON; OFF only OFF.
+void handleButtonEdge(bool isOnButton) {
+  if (isOnButton) {
+    if (motorOn) { Serial.println("[BTN] ON pressed (already running)"); return; }
+    Serial.println("[BTN] ON  → motor START");
+    setMotor(true);
+  } else {
+    if (!motorOn) { Serial.println("[BTN] OFF pressed (already stopped)"); return; }
+    Serial.println("[BTN] OFF → motor STOP");
+    setMotor(false);
+  }
+  buttonOverrideUntil = millis() + BUTTON_OVERRIDE_MS;
+  sendTelemetry();        // instant dashboard + OLED sync
+  lastSend = millis();
+}
+
 void pollButtons() {
-  int onState = digitalRead(PIN_BTN_ON);
-  int offState = digitalRead(PIN_BTN_OFF);
+  int rawOn  = digitalRead(PIN_BTN_ON);
+  int rawOff = digitalRead(PIN_BTN_OFF);
 
-  if (onState != lastBtnOnState) lastBtnOnMs = millis();
-  if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && onState == LOW && lastBtnOnState == HIGH) {
-    Serial.println("[BTN] ON pressed");
-    if (!motorOn) {
-      setMotor(true);
-      sendTelemetry();
-      lastSend = millis();
-    }
+  // ON button — debounce on stable state
+  if (rawOn != lastBtnOnState) { lastBtnOnMs = millis(); lastBtnOnState = rawOn; }
+  if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOnState) {
+    stableBtnOnState = rawOn;
+    if (stableBtnOnState == LOW) handleButtonEdge(true);   // press edge only
   }
-  lastBtnOnState = onState;
 
-  if (offState != lastBtnOffState) lastBtnOffMs = millis();
-  if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && offState == LOW && lastBtnOffState == HIGH) {
-    Serial.println("[BTN] OFF pressed");
-    if (motorOn) {
-      setMotor(false);
-      sendTelemetry();
-      lastSend = millis();
-    }
+  // OFF button — debounce on stable state
+  if (rawOff != lastBtnOffState) { lastBtnOffMs = millis(); lastBtnOffState = rawOff; }
+  if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOffState) {
+    stableBtnOffState = rawOff;
+    if (stableBtnOffState == LOW) handleButtonEdge(false); // press edge only
   }
-  lastBtnOffState = offState;
 }
 
 void updateOnlineLed() {
