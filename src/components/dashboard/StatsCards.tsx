@@ -15,14 +15,14 @@ export function StatsCards({ zones, motor, metrics, weather }: { zones: FieldZon
   const P_LIME   = { grad: "from-lime-500 via-green-500 to-emerald-500",    ring: "ring-lime-300/40" };
   const P_SKY    = { grad: "from-sky-500 via-cyan-500 to-teal-500",         ring: "ring-cyan-300/40" };
 
-  // Weather card values (DHT22 from sub-node)
-  const wHasData = weather.temperature != null || weather.humidity != null;
+  // Weather card values (DHT22 from sub-node). When all nodes offline → 0/0 with offline note.
+  const wHasData = weather.lastSeen != null;
   const wFresh   = weather.lastSeen != null && Date.now() - weather.lastSeen < 30_000;
-  const tStr = weather.temperature != null ? bn(weather.temperature.toFixed(1)) : "—";
-  const hStr = weather.humidity != null ? bn(weather.humidity.toFixed(0)) : "—";
-  const weatherSubtitle = wHasData
-    ? `${hStr}% আর্দ্রতা · ${wFresh ? (weather.sourceZone ?? "Sub-Node") : "stale"}`
-    : "DHT22 অপেক্ষমাণ…";
+  const tStr = weather.temperature != null ? bn(weather.temperature.toFixed(1)) : bn("0.0");
+  const hStr = weather.humidity != null ? bn(weather.humidity.toFixed(0)) : bn("0");
+  const weatherSubtitle = !wHasData
+    ? "Sub-Node অফলাইন"
+    : `${hStr}% আর্দ্রতা · ${wFresh ? (weather.sourceZone ?? "Sub-Node") : "stale"}`;
 
   const items = [
     { label: "মোট জমি",          value: bn(totalArea.toFixed(1)),               unit: "একর",         icon: Sprout,    ratio: Math.min(1, totalArea / 50),         trend: zones.length, up: true,  ...P_LIME },

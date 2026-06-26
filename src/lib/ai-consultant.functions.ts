@@ -68,15 +68,16 @@ ${zoneSummary}
     let reply: string;
     try {
       const { text } = await generateText({
-        model: gateway("google/gemini-3-flash-preview"),
+        model: gateway("google/gemini-2.5-flash"),
         messages,
       });
       reply = text;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
+      console.error("[ai-consultant] gateway error:", msg);
       if (msg.includes("429")) throw new Error("RATE_LIMIT");
       if (msg.includes("402")) throw new Error("CREDITS_EXHAUSTED");
-      throw e;
+      throw new Error("AI_GATEWAY: " + msg.slice(0, 200));
     }
 
     // Persist Q&A

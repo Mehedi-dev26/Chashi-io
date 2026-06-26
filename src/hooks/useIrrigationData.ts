@@ -202,21 +202,32 @@ if (typeof window !== "undefined") {
     g.__bmda_watchdog = window.setInterval(() => {
       const now = Date.now();
       let changed = false;
+      let next = state;
       // motor offline?
-      if (state.motor.lastSeen && now - state.motor.lastSeen > PUMP_SPEC.heartbeatMs && state.motor.online) {
+      if (next.motor.lastSeen && now - next.motor.lastSeen > PUMP_SPEC.heartbeatMs && next.motor.online) {
         pushActivity({ type: "warning", message: "⚠ পাম্প অফলাইন · heartbeat বিচ্ছিন্ন" });
-        setState({ ...state, motor: { ...state.motor, online: false, isOn: false, voltage: 0, current: 0, flowRate: 0, pressure: 0, health: 0 } });
+        next = { ...next, motor: { ...next.motor, online: false, isOn: false, voltage: 0, current: 0, flowRate: 0, pressure: 0, health: 0 } };
         changed = true;
       }
       // zone offline?
-      const zones = state.zones.map((z) => {
+      const zones = next.zones.map((z) => {
         if (z.online && z.lastSeen && now - z.lastSeen > PUMP_SPEC.heartbeatMs) {
           changed = true;
           return { ...z, online: false };
         }
         return z;
       });
-      if (changed) setState({ ...state, zones, metrics: recomputeMetrics() });
+      if (changed) next = { ...next, zones };
+
+      // ⚡ Weather (DHT22): যখন source sub-node বা master offline → তাপমাত্রা/আর্দ্রতা 0
+      const wStale = next.weather.lastSeen && now - next.weather.lastSeen > PUMP_SPEC.heartbeatMs;
+      const anyOnline = next.motor.online || zones.some((z) => z.online);
+      if ((wStale || !anyOnline) && (next.weather.temperature !== 0 || next.weather.humidity !== 0 || next.weather.lastSeen !== null)) {
+        next = { ...next, weather: { temperature: 0, humidity: 0, sourceZone: null, lastSeen: null } };
+        changed = true;
+      }
+
+      if (changed) setState({ ...next, metrics: recomputeMetrics() });
     }, 1000);   // ⚡ প্রতি সেকেন্ডে watchdog চেক → দ্রুত UI response
   }
 }
