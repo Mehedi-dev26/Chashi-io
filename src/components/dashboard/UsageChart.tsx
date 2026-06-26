@@ -1,32 +1,84 @@
 import { useEffect, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useServerFn } from "@tanstack/react-start";
+import { getHourlyUsage } from "@/lib/motor-runtime.functions";
+import { PUMP_SPEC } from "@/hooks/useIrrigationData";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
-const data = Array.from({ length: 24 }, (_, h) => ({
-  hour: `${bn(h.toString().padStart(2, "0"))}টা`,
-  water: Math.round(200 + Math.sin(h / 3) * 180 + ((h * 37) % 100)),
-  power: Math.round(3 + Math.sin(h / 3) * 2.5 + ((h * 13) % 10) / 10),
-}));
+type Bucket = { hourTs: number; runSec: number; waterL: number; powerKwh: number };
+type Row = { hour: string; water: number; power: number; runSec: number };
+
+const emptyData: Row[] = Array.from({ length: 24 }, (_, i) => {
+  const d = new Date();
+  d.setMinutes(0, 0, 0);
+  d.setHours(d.getHours() - (23 - i));
+  return { hour: `${bn(d.getHours().toString().padStart(2, "0"))}টা`, water: 0, power: 0, runSec: 0 };
+});
 
 export function UsageChart() {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [data, setData] = useState<Row[]>(emptyData);
+  const fetchHourly = useServerFn(getHourlyUsage);
+
+  useEffect(() => {
+    setMounted(true);
+    let active = true;
+    const load = async () => {
+      try {
+        const r = await fetchHourly({
+          data: {
+            deviceId: PUMP_SPEC.device_id,
+            ratedFlowLpm: PUMP_SPEC.ratedFlowLpm,
+            ratedVoltage: PUMP_SPEC.ratedVoltage,
+            ratedCurrent: PUMP_SPEC.ratedCurrent,
+          },
+        });
+        if (!active) return;
+        const rows: Row[] = (r?.buckets ?? []).map((b: Bucket) => {
+          const d = new Date(b.hourTs);
+          return {
+            hour: `${bn(d.getHours().toString().padStart(2, "0"))}টা`,
+            water: +b.waterL.toFixed(2),
+            // Watt-hours read more intuitively for a 6V demo pump than kWh
+            power: +(b.powerKwh * 1000).toFixed(2),
+            runSec: b.runSec,
+          };
+        });
+        if (rows.length) setData(rows);
+      } catch { /* ignore */ }
+    };
+    load();
+    const t = window.setInterval(load, 30000);
+    return () => { active = false; window.clearInterval(t); };
+  }, [fetchHourly]);
+
+  const totalWater = data.reduce((s, r) => s + r.water, 0);
+  const totalPower = data.reduce((s, r) => s + r.power, 0);
+  const totalSec = data.reduce((s, r) => s + r.runSec, 0);
+  const hasData = totalSec > 0;
 
   return (
     <div className="glass-card rounded-2xl p-5 hover-lift">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-base font-bold">২৪ ঘণ্টার ব্যবহার</h2>
-          <p className="text-[11px] text-muted-foreground">পানি (লিটার) · বিদ্যুৎ (কিলোওয়াট)</p>
+          <p className="text-[11px] text-muted-foreground">
+            পানি (লিটার) · বিদ্যুৎ (ওয়াট-ঘণ্টা) · মোট রানটাইম {bn(Math.round(totalSec / 60))} মি
+          </p>
         </div>
         <div className="flex items-center gap-3 text-[11px]">
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" /> পানি</span>
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-accent" /> বিদ্যুৎ</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" /> পানি {bn(totalWater.toFixed(1))} L</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-accent" /> বিদ্যুৎ {bn(totalPower.toFixed(1))} Wh</span>
         </div>
       </div>
 
-      <div className="mt-4 h-[200px]">
+      <div className="mt-4 h-[200px] relative">
+        {!hasData && mounted && (
+          <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground pointer-events-none z-10">
+            এখনো কোনো রানটাইম ডেটা নেই — মোটর চালু করলে এখানে রিয়েল গ্রাফ দেখাবে
+          </div>
+        )}
         {mounted && (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
@@ -49,6 +101,11 @@ export function UsageChart() {
                   borderRadius: 10,
                   fontSize: 12,
                   boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                }}
+                formatter={(value: number, name: string) => {
+                  if (name === "water") return [`${bn(Number(value).toFixed(2))} L`, "পানি"];
+                  if (name === "power") return [`${bn(Number(value).toFixed(2))} Wh`, "বিদ্যুৎ"];
+                  return [value, name];
                 }}
               />
               <Area type="monotone" dataKey="water" stroke="oklch(0.58 0.17 150)" strokeWidth={2} fill="url(#g1)" />
