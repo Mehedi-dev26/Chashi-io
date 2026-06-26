@@ -1264,6 +1264,81 @@ function HardwarePage() {
           </pre>
         </div>
 
+        {/* SUB-NODE WIRING — Professional per-device cards (mirrors master design) */}
+        <div className="glass-card rounded-2xl p-5 border-2 border-emerald-400/40 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-300/20">
+          <div className="flex items-center gap-2 mb-1">
+            <Plug className="h-5 w-5 text-emerald-500" />
+            <h2 className="text-base font-extrabold">সাব-নোড — পিন-বাই-পিন কানেকশন</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-5">
+            প্রতিটি ডিভাইসের জন্য আলাদা কার্ড। প্রতিটি সারিতে দেখানো আছে ESP8266 NodeMCU-এর কোন পিন থেকে ডিভাইসের কোন পিনে যাবে।
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            {subDeviceWiring.map((dev) => (
+              <div
+                key={dev.device}
+                className="rounded-2xl border-2 border-border bg-card/40 overflow-hidden hover-lift"
+              >
+                {/* Header: NodeMCU → Device */}
+                <div className={`bg-gradient-to-r ${dev.grad} text-white px-4 py-3`}>
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm shrink-0">
+                      <dev.icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-95">
+                        <span>ESP8266 NodeMCU</span>
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="truncate">{dev.device}</span>
+                      </div>
+                      <p className="text-[10px] opacity-85 leading-snug mt-0.5">{dev.desc}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pin pair rows */}
+                <div className="divide-y divide-border/60">
+                  <div className="grid grid-cols-[1fr_auto_1fr] gap-2 px-4 py-2 bg-muted/40 text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                    <span>NodeMCU পিন</span>
+                    <span className="text-center">↔</span>
+                    <span className="text-right">ডিভাইস পিন</span>
+                  </div>
+                  {dev.pairs.map((p, i) => (
+                    <div key={i} className="px-4 py-2.5">
+                      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                        <span className="font-mono text-xs font-extrabold text-primary truncate">{p.mcu}</span>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="font-mono text-xs font-extrabold text-chart-2 text-right truncate">{p.dev}</span>
+                      </div>
+                      {p.note && (
+                        <p className="text-[10.5px] text-muted-foreground mt-1 leading-snug">{p.note}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* legend cards */}
+          <div className="grid sm:grid-cols-3 gap-2 mt-5 text-xs">
+            <div className="rounded-lg glass-panel p-3 border border-lime-400/30">
+              <p className="font-extrabold text-lime-600">🌱 সয়েল ক্যালিব্রেশন</p>
+              <p className="text-[11px] text-muted-foreground mt-1">সেন্সরটি বাতাসে রেখে raw value দেখুন → <code>SOIL_AIR</code>; পানিতে ডুবিয়ে দেখুন → <code>SOIL_WATER</code>। নিজের মাটিতে ক্যালিব্রেট করলে নির্ভুলতা বাড়বে।</p>
+            </div>
+            <div className="rounded-lg glass-panel p-3 border border-amber-400/30">
+              <p className="font-extrabold text-amber-500">⚡ সার্ভো পাওয়ার</p>
+              <p className="text-[11px] text-muted-foreground mt-1">SG90-এর ইনরাশ কারেন্ট ESP8266-এর 3V3 রেগুলেটর হ্যান্ডেল করতে পারে না। সার্ভোকে সরাসরি ৫V অ্যাডাপ্টারের লাইন থেকে পাওয়ার দিন।</p>
+            </div>
+            <div className="rounded-lg glass-panel p-3 border border-emerald-400/30">
+              <p className="font-extrabold text-emerald-500">✓ কমন গ্রাউন্ড</p>
+              <p className="text-[11px] text-muted-foreground mt-1">NodeMCU GND, সার্ভো GND এবং অ্যাডাপ্টার GND — তিনটিই একসাথে যুক্ত রাখুন, না হলে PWM সিগনাল ঠিকমতো কাজ করবে না।</p>
+            </div>
+          </div>
+        </div>
+
+
         {/* Safety checklist */}
         <div className="glass-card rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-3">
