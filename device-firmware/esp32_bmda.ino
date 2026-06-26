@@ -418,11 +418,23 @@ void setup() {
   dht.begin();
   dhtWarmupUntil = millis() + 2500;  // give DHT22 ~2.5s to stabilise without external pull-up
 
+  // Render an immediate placeholder dashboard so OLED never sits on "Loading 100%"
+  drawDashboard(readTankPct(), 0.0, 0.0, 0.0, NAN, NAN);
+
   connectWifi();
 
   Serial.println("[MASTER] System online — sending boot heartbeat");
-  // Wait for warmup before first telemetry so first read is valid
-  while (millis() < dhtWarmupUntil) { delay(50); }
+  // Wait for warmup; keep refreshing the dashboard so the screen stays alive
+  while (millis() < dhtWarmupUntil) {
+    float t, h;
+    readDhtSafe(t, h);
+    drawDashboard(readTankPct(), 0.0, 0.0, 0.0, t, h);
+    delay(250);
+  }
+  // Prime DHT with one direct read so the first telemetry frame has real values
+  float pt = dht.readTemperature(false), ph = dht.readHumidity();
+  if (!isnan(pt)) lastGoodTemp = pt;
+  if (!isnan(ph)) lastGoodHum = ph;
   sendTelemetry();
   lastSend = millis();
 }
