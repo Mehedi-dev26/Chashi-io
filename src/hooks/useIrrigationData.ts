@@ -175,7 +175,7 @@ const applyTelemetry = (row: TelemetryRow) => {
   const zones = state.zones.map((z) => {
     if (z.id !== row.zone_id) return z;
     const sm = row.soil_moisture != null ? Number(row.soil_moisture) : z.soilMoisture;
-    // Water level derived from TDS-based soil moisture (real calculation):
+    // Water level derived from SM (soil moisture %) reading (real calculation):
     //   - <25% → severely dry (0–15% water column)
     //   - 25–60% → optimal growing (gentle slope)
     //   - >60% → saturated (asymptotic toward 100%)
