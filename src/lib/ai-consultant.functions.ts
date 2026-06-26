@@ -68,7 +68,7 @@ ${zoneSummary}
     let reply: string;
     try {
       const { text } = await generateText({
-        model: gateway("google/gemini-3-flash-preview"),
+        model: gateway("google/gemini-2.5-flash"),
         messages,
       });
       reply = text;
