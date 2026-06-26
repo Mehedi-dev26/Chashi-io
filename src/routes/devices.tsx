@@ -182,7 +182,7 @@ function DevicesPage() {
           <CardContent className="p-10 text-center space-y-3">
             <Cpu className="h-12 w-12 mx-auto text-muted-foreground" />
             <h3 className="font-bold text-lg">এখনো কোনো sub-node যোগ করা হয়নি</h3>
-            <p className="text-sm text-muted-foreground">উপরে "নতুন সাব-নোড" বোতাম থেকে শুরু করুন। প্রতিটি sub-node মাটির TDS sensor দিয়ে আর্দ্রতা পরিমাপ করবে এবং servo motor দিয়ে পানির লাইন on/off করবে।</p>
+            <p className="text-sm text-muted-foreground">উপরে "নতুন সাব-নোড" বোতাম থেকে শুরু করুন। প্রতিটি sub-node YL-69 SM (Soil Moisture) sensor দিয়ে মাটির আর্দ্রতা পরিমাপ করবে এবং SG90 servo motor দিয়ে পানির লাইন on/off করবে।</p>
           </CardContent>
         </Card>
       ) : (
