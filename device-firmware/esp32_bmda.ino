@@ -75,9 +75,16 @@ unsigned long dhtWarmupUntil = 0;
 
 int lastBtnOnState = HIGH;
 int lastBtnOffState = HIGH;
+int stableBtnOnState = HIGH;
+int stableBtnOffState = HIGH;
 unsigned long lastBtnOnMs = 0;
 unsigned long lastBtnOffMs = 0;
-const unsigned long BTN_DEBOUNCE_MS = 50;
+const unsigned long BTN_DEBOUNCE_MS = 40;
+
+// After a physical button press, ignore opposing server commands briefly
+// so a stale queued dashboard command can't immediately revert the user.
+unsigned long buttonOverrideUntil = 0;
+const unsigned long BUTTON_OVERRIDE_MS = 3000;
 
 void ledWrite(bool on) {
   digitalWrite(PIN_LED_ONLINE, (LED_ACTIVE_HIGH ? on : !on) ? HIGH : LOW);
