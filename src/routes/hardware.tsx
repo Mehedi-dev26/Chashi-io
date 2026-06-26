@@ -817,7 +817,7 @@ void setValve(bool on) {
   Serial.printf("[%s] SERVO → %s (%d°)\\n", ZONE_ID, on ? "OPEN" : "CLOSED", on ? SERVO_OPEN : SERVO_CLOSED);
 }
 
-// ---- Soil moisture: capacitive sensor (analog) ----
+// ---- Soil moisture: YL-69 resistive sensor (analog AO পিন) ----
 // raw ADC: শুকনো মাটিতে বড়, ভেজা মাটিতে ছোট → ক্যালিব্রেশন দিয়ে 0..100% map
 float readSoilMoisturePct() {
   long sum = 0;
