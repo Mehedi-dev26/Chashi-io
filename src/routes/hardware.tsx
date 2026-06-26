@@ -291,6 +291,22 @@ String fmtRuntime(unsigned long ms) {
   return String(buf);
 }
 
+// ✅ DHT22 safe read: invalid/corrupted reads (যেমন 793°C / 169%) dashboard বা OLED-এ যাবে না
+bool readDhtSafe(float &tempC, float &humidity) {
+  float t = dht.readTemperature(false);  // false = Celsius
+  float h = dht.readHumidity();
+
+  bool tOk = !isnan(t) && t >= -40.0 && t <= 80.0;
+  bool hOk = !isnan(h) && h >= 0.0 && h <= 100.0;
+
+  if (tOk) lastGoodTemp = t;
+  if (hOk) lastGoodHum = h;
+
+  tempC = !isnan(lastGoodTemp) ? lastGoodTemp : NAN;
+  humidity = !isnan(lastGoodHum) ? lastGoodHum : NAN;
+  return !isnan(tempC) || !isnan(humidity);
+}
+
 // 🆕 প্রফেশনাল ড্যাশবোর্ড লেআউট
 //   ┌──────────────── header bar (inverse) ──────────────────┐
 //   │   PUMP  ON    (বড়, কেন্দ্রে)                            │
