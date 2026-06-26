@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Cpu, Wifi, WifiOff, Plus, Trash2, Droplets, Sun, Signal, Power, FlaskConical, Activity, Sprout, MapPin } from "lucide-react";
+import { Cpu, Wifi, WifiOff, Plus, Trash2, Droplets, Sun, Signal, Power, FlaskConical, Activity, Sprout, MapPin, Eye, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +27,7 @@ type Telemetry = {
 };
 
 const ONLINE_MS = 15000;
+const BACKEND_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
 const ago = (iso: string) => {
@@ -46,7 +47,14 @@ function DevicesPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ device_id: "", label: "", zone_id: "", notes: "" });
   const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [infoNode, setInfoNode] = useState<FieldNode | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
   const [, tick] = useState(0);
+
+  const copy = async (key: string, text: string) => {
+    try { await navigator.clipboard.writeText(text); setCopied(key); toast.success("কপি হয়েছে"); setTimeout(() => setCopied(null), 1500); }
+    catch { toast.error("কপি করা যায়নি"); }
+  };
 
   useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 3000); return () => clearInterval(t); }, []);
 
@@ -273,9 +281,22 @@ function DevicesPage() {
 
                   <div className="mt-3 pt-3 border-t flex items-center justify-between text-[10px] text-muted-foreground">
                     <span>{t ? `শেষ heartbeat: ${ago(t.updated_at)} আগে` : "ডেটা পাওয়া যায়নি"}</span>
-                    <button onClick={() => remove(n.id, n.device_id)} className="text-destructive hover:text-rose-600">
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setInfoNode(n)}
+                        title="কানেকশন তথ্য দেখুন"
+                        className="h-7 w-7 rounded-md grid place-items-center bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow shadow-indigo-500/30 hover:scale-110 transition"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => remove(n.id, n.device_id)}
+                        title="মুছে ফেলুন"
+                        className="h-7 w-7 rounded-md grid place-items-center bg-rose-500/15 text-rose-600 hover:bg-rose-500/25 transition"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -294,6 +315,85 @@ function DevicesPage() {
           <p>• <b className="text-foreground">Online check</b>: heartbeat ১৫ সেকেন্ডের বেশি না এলে নোড offline দেখানো হয়, valve বোতাম disable হয়ে যায়।</p>
         </CardContent>
       </Card>
+
+      <Dialog open={!!infoNode} onOpenChange={(o) => !o && setInfoNode(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-indigo-500" /> {infoNode?.device_id} · কানেকশন তথ্য
+            </DialogTitle>
+          </DialogHeader>
+          {infoNode && (() => {
+            const zoneId = infoNode.zone_id ?? "";
+            const snippet = `// ====== ${infoNode.label} ======
+// নিচের ৪টি লাইন ESP8266 firmware-এর উপরে paste করুন
+const char* WIFI_SSID   = "YOUR_WIFI_SSID";
+const char* WIFI_PASS   = "YOUR_WIFI_PASSWORD";
+const char* DEVICE_ID   = "${infoNode.device_id}";
+const char* ZONE_ID     = "${zoneId || "Z-XX"}";   // ${zoneId ? "Lovable Cloud-এ assigned" : "⚠ এখনো কোনো জমিতে assign করা হয়নি"}
+const char* SERVER_HOST = "${BACKEND_HOST}";
+// Endpoint: ${BACKEND_HOST}/api/public/telemetry`;
+            const rows: Array<[string, string, string]> = [
+              ["Device ID", infoNode.device_id, `dev-${infoNode.device_id}`],
+              ["Zone ID", zoneId || "— unassigned —", `zone-${infoNode.device_id}`],
+              ["Label / নাম", infoNode.label, `label-${infoNode.device_id}`],
+              ["Server Host", BACKEND_HOST, `host-${infoNode.device_id}`],
+              ["Telemetry POST", `${BACKEND_HOST}/api/public/telemetry`, `tele-${infoNode.device_id}`],
+              ["Commands GET", `${BACKEND_HOST}/api/public/commands`, `cmd-${infoNode.device_id}`],
+            ];
+            return (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3 text-xs leading-relaxed">
+                  <p className="font-bold text-indigo-700 dark:text-indigo-300 mb-1">📋 নতুন ESP8266-এ firmware flash করতে</p>
+                  <p className="text-muted-foreground">নিচের মানগুলো হুবহু কপি করে আপনার Arduino IDE-তে sub-node sketch-এর উপরে paste করুন। তারপর WiFi SSID/Password বসিয়ে upload করুন।</p>
+                </div>
+
+                <div className="grid gap-2">
+                  {rows.map(([k, v, key]) => (
+                    <div key={key} className="flex items-center gap-2 rounded-lg border bg-muted/30 p-2.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">{k}</p>
+                        <p className="font-mono text-xs break-all">{v}</p>
+                      </div>
+                      <button
+                        onClick={() => copy(key, v)}
+                        className="h-8 w-8 rounded-md grid place-items-center bg-background border hover:bg-muted shrink-0"
+                        title="কপি করুন"
+                      >
+                        {copied === key ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {!zoneId && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
+                    ⚠ এই নোডটি এখনো কোনো জমিতে assign করা হয়নি। উপরের কার্ড থেকে "জমিতে assign" drop-down ব্যবহার করুন, না হলে firmware-এ <code className="bg-black/10 px-1 rounded">ZONE_ID</code> placeholder থাকবে।
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Label className="text-xs font-bold">Arduino IDE-তে paste করার জন্য কনফিগ ব্লক</Label>
+                    <button
+                      onClick={() => copy(`snippet-${infoNode.device_id}`, snippet)}
+                      className="text-[11px] font-bold flex items-center gap-1 px-2 py-1 rounded-md bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow"
+                    >
+                      {copied === `snippet-${infoNode.device_id}` ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      পুরোটা কপি করুন
+                    </button>
+                  </div>
+                  <pre className="text-[11px] leading-relaxed bg-zinc-950 text-zinc-100 rounded-lg p-3 overflow-x-auto font-mono whitespace-pre">{snippet}</pre>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground">
+                  পূর্ণ sub-node firmware Hardware পেজ থেকে কপি করুন → এই ৪টি constant দিয়ে উপরের প্লেসহোল্ডার গুলো বদলে দিন → ESP8266-এ upload করুন। ৫–১০ সেকেন্ডের মধ্যে কার্ডে <b className="text-emerald-600">LIVE</b> badge দেখাবে।
+                </p>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
