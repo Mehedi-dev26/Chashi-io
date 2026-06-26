@@ -111,7 +111,7 @@ function MotorPage() {
               </div>
               <div>
                 <h2 className="text-base font-extrabold">ফিল্ড সাব-নোড নিয়ন্ত্রণ</h2>
-                <p className="text-xs text-muted-foreground">প্রতিটি জমির ভাল্ভ চালু/বন্ধ · TDS-ভিত্তিক মাটির আর্দ্রতা · derived পানির স্তর (real-time)।</p>
+                <p className="text-xs text-muted-foreground">প্রতিটি জমির ভাল্ভ চালু/বন্ধ · SM (YL-69) মাটির আর্দ্রতা · derived পানির স্তর (real-time)।</p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-xs">
