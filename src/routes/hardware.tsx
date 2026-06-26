@@ -297,11 +297,11 @@ String fmtRuntime(unsigned long ms) {
 //    dashboard দুটোই blank দেখাত। এখন সেন্সর যা দেয়, তাই দেখাবে।
 bool readDhtSafe(float &tempC, float &humidity) {
   float t = NAN, h = NAN;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 5; i++) {
     t = dht.readTemperature(false);  // Celsius
     h = dht.readHumidity();
     if (!isnan(t) && !isnan(h)) break;
-    delay(60);
+    delay(80);
   }
 
   if (!isnan(t)) lastGoodTemp = t;
