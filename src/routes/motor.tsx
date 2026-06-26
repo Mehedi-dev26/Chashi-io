@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MotorPanel } from "@/components/dashboard/MotorPanel";
+import { SubNodesNetwork } from "@/components/dashboard/SubNodesNetwork";
 import { useIrrigationData } from "@/hooks/useIrrigationData";
-import { Gauge, Zap, Timer, ShieldCheck, Wrench, Activity, Brain, Power, Droplets, Wifi, WifiOff, Sprout, Waves } from "lucide-react";
+import { Gauge, Zap, Timer, ShieldCheck, Wrench, Activity, Brain, Power } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
