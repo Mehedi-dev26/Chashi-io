@@ -342,11 +342,19 @@ void drawDashboard(float tank, float lpm, float volt, float curr, float t, float
   oled.setCursor(68, 38);
   oled.printf("FLOW %4.1f", lpm);
 
-  // === DATA ROW 2 : V/A + temp/humid ===
+  // === DATA ROW 2 : V/A + temp/humid (fixed width, never wraps/cuts) ===
   oled.setCursor(2, 48);
   oled.printf("%3.1fV %4.2fA", volt, curr);
-  oled.setCursor(78, 48);
-  oled.printf("%2dC %2d%%", (int)t, (int)h);
+  oled.setCursor(76, 48);
+  if (!isnan(t) && !isnan(h)) {
+    oled.printf("%4.1fC %2d%%", t, (int)round(h));
+  } else if (!isnan(t)) {
+    oled.printf("%4.1fC --%%", t);
+  } else if (!isnan(h)) {
+    oled.printf("--.-C %2d%%", (int)round(h));
+  } else {
+    oled.print("--.-C --%");
+  }
 
   // === DATA ROW 3 : RUNTIME (compact HH:MM:SS, never overflows) ===
   oled.setCursor(2, 57);
