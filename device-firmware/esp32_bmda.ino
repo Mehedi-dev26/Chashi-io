@@ -69,6 +69,9 @@ unsigned long lastWifiAttempt = 0;
 const unsigned long WIFI_RETRY_MS = 5000;
 float lastGoodTemp = NAN;
 float lastGoodHum = NAN;
+unsigned long lastDhtReadMs = 0;
+const unsigned long DHT_MIN_INTERVAL = 2200;  // DHT22 needs >= 2s between reads
+unsigned long dhtWarmupUntil = 0;
 
 int lastBtnOnState = HIGH;
 int lastBtnOffState = HIGH;
@@ -130,6 +133,21 @@ String fmtRuntime(unsigned long ms) {
 }
 
 bool readDhtSafe(float &tempC, float &humidity) {
+  // Skip until sensor warmup completes (DHT22 needs ~1.5s after power-on)
+  if (millis() < dhtWarmupUntil) {
+    tempC = lastGoodTemp;
+    humidity = lastGoodHum;
+    return !isnan(tempC) || !isnan(humidity);
+  }
+
+  // Throttle: DHT22 returns NaN if polled < 2s apart. Serve from cache otherwise.
+  if (lastDhtReadMs != 0 && (millis() - lastDhtReadMs) < DHT_MIN_INTERVAL) {
+    tempC = lastGoodTemp;
+    humidity = lastGoodHum;
+    return !isnan(tempC) || !isnan(humidity);
+  }
+  lastDhtReadMs = millis();
+
   float t = dht.readTemperature(false);  // Celsius
   float h = dht.readHumidity();
 
@@ -141,6 +159,10 @@ bool readDhtSafe(float &tempC, float &humidity) {
 
   tempC = !isnan(lastGoodTemp) ? lastGoodTemp : NAN;
   humidity = !isnan(lastGoodHum) ? lastGoodHum : NAN;
+
+  if (!tOk && !hOk) {
+    Serial.println("[DHT] read failed (NaN) — check wiring & 4.7k pull-up on DATA→3.3V");
+  }
   return !isnan(tempC) || !isnan(humidity);
 }
 
@@ -383,9 +405,12 @@ void setup() {
   bootAnimation();
 
   dht.begin();
+  dhtWarmupUntil = millis() + 1800;  // give DHT22 ~1.8s to stabilise
   connectWifi();
 
   Serial.println("[MASTER] System online — sending boot heartbeat");
+  // Wait for warmup before first telemetry so first read is valid
+  while (millis() < dhtWarmupUntil) { delay(50); }
   sendTelemetry();
   lastSend = millis();
 }
