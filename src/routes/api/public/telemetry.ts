@@ -12,6 +12,22 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+const cleanNumber = (value: unknown) => {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+const cleanTemperature = (value: unknown) => {
+  const n = cleanNumber(value);
+  return n != null && n >= -40 && n <= 80 ? Number(n.toFixed(1)) : null;
+};
+
+const cleanHumidity = (value: unknown) => {
+  const n = cleanNumber(value);
+  return n != null && n >= 0 && n <= 100 ? Number(n.toFixed(0)) : null;
+};
+
 export const Route = createFileRoute("/api/public/telemetry")({
   server: {
     handlers: {
@@ -44,14 +60,17 @@ export const Route = createFileRoute("/api/public/telemetry")({
             .eq("zone_id", effectiveZoneId)
             .maybeSingle();
 
+          const temperature = cleanTemperature(body.temperature);
+          const humidity = cleanHumidity(body.humidity);
+
           const row = {
             zone_id: effectiveZoneId,
             device_id: String(body.deviceId),
             soil_moisture: body.soilMoisture != null ? Number(body.soilMoisture) : 0,
             water_level: body.waterLevel != null ? Number(body.waterLevel) : 0,
             ldr: body.ldr != null ? Number(body.ldr) : 0,
-            temperature: body.temperature != null ? Number(body.temperature) : null,
-            humidity: body.humidity != null ? Number(body.humidity) : null,
+            temperature,
+            humidity,
             valve_open: Boolean(body.valveOpen ?? false),
             motor_on: body.motorOn != null ? Boolean(body.motorOn) : false,
             flow_lpm: body.flowLpm != null ? Number(body.flowLpm) : null,

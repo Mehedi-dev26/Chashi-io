@@ -135,6 +135,21 @@ const recomputeMetrics = () => {
 const applyTelemetry = (row: TelemetryRow) => {
   const ts = new Date(row.updated_at).getTime();
 
+  // DHT22 sanity guard: reject corrupted reads like 793°C / 169% RH.
+  // Valid DHT22 envelope is roughly -40..80°C and 0..100% humidity.
+  const tNum = row.temperature != null ? Number(row.temperature) : null;
+  const hNum = row.humidity != null ? Number(row.humidity) : null;
+  const validTemp = tNum != null && Number.isFinite(tNum) && tNum >= -40 && tNum <= 80;
+  const validHum = hNum != null && Number.isFinite(hNum) && hNum >= 0 && hNum <= 100;
+  const weather = validTemp || validHum
+    ? {
+        temperature: validTemp ? Number(tNum.toFixed(1)) : state.weather.temperature,
+        humidity: validHum ? Number(hNum.toFixed(0)) : state.weather.humidity,
+        sourceZone: row.zone_id === PUMP_SPEC.zone_id ? row.device_id : row.zone_id,
+        lastSeen: ts,
+      }
+    : state.weather;
+
   // Master (pump) node
   if (row.zone_id === PUMP_SPEC.zone_id) {
     const wasOnline = state.motor.online;
@@ -149,7 +164,7 @@ const applyTelemetry = (row: TelemetryRow) => {
       pressure: row.motor_on ? +(2.5 + Number(row.flow_lpm ?? PUMP_SPEC.ratedFlowLpm) * 0.4).toFixed(1) : 0,
       health: 100,
     };
-    setState({ ...state, motor });
+    setState({ ...state, motor, weather });
     if (!wasOnline) pushActivity({ type: "success", message: "✓ পাম্প অনলাইন · মাস্টার নোড সংযুক্ত" });
     if (wasOn !== motor.isOn) pushActivity({ type: motor.isOn ? "success" : "info", message: `পাম্প ${motor.isOn ? "চালু" : "বন্ধ"} হলো (হার্ডওয়্যার নিশ্চিতকরণ)` });
     return;
@@ -175,18 +190,6 @@ const applyTelemetry = (row: TelemetryRow) => {
     return { ...z, soilMoisture: sm, waterLevel: wl, valveOpen: !!valve, status, online: true, lastSeen: ts };
   });
 
-  // Capture latest DHT22 weather reading from this sub-node (if present)
-  let weather = state.weather;
-  const tNum = row.temperature != null ? Number(row.temperature) : null;
-  const hNum = row.humidity != null ? Number(row.humidity) : null;
-  if ((tNum != null && !Number.isNaN(tNum)) || (hNum != null && !Number.isNaN(hNum))) {
-    weather = {
-      temperature: tNum != null && !Number.isNaN(tNum) ? tNum : weather.temperature,
-      humidity:    hNum != null && !Number.isNaN(hNum) ? hNum : weather.humidity,
-      sourceZone:  row.zone_id,
-      lastSeen:    ts,
-    };
-  }
   setState({ ...state, zones, weather, metrics: recomputeMetrics() });
 };
 
@@ -248,7 +251,7 @@ const loadFields = async () => {
   setState({ ...state, zones, metrics: { ...state.metrics, totalNodes: zones.length } });
 
   // hydrate latest telemetry
-  const { data: tel } = await supabase.from("device_telemetry").select("*");
+  const { data: tel } = await supabase.from("device_telemetry").select("*").order("updated_at", { ascending: true });
   (tel ?? []).forEach((t) => applyTelemetry(t as TelemetryRow));
 };
 
