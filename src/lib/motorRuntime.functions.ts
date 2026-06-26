@@ -9,16 +9,26 @@ const HourlyInput = z.object({
   ratedCurrent: z.number().default(0.20),
 });
 
-/**
- * Returns total motor running seconds in the current calendar month
- * (UTC month boundary) for the given device.
- */
 export const getMonthlyRuntime = createServerFn({ method: "POST" })
-  .handler(async () => "hello");
+  .inputValidator((d: unknown) => MonthlyInput.parse(d ?? {}))
+  .handler(async ({ data }) => {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const now = new Date();
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+      const { data: rows, error } = await supabaseAdmin
+        .from("motor_runtime_log")
+        .select("delta_sec")
+        .eq("device_id", data.deviceId)
+        .gte("recorded_at", monthStart);
+      if (error) return { totalSec: 0, error: String(error.message ?? error) };
+      const totalSec = (rows ?? []).reduce((s, r) => s + Number(r.delta_sec || 0), 0);
+      return { totalSec };
+    } catch (e) {
+      return { totalSec: 0, error: String((e as Error)?.message ?? e) };
+    }
+  });
 
-/**
- * Returns last 24 hours of motor runtime aggregated into hourly buckets.
- */
 export const getHourlyUsage = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => HourlyInput.parse(d ?? {}))
   .handler(async ({ data }) => {
