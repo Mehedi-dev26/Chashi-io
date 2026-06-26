@@ -138,16 +138,66 @@ const masterDeviceWiring: DeviceWiring[] = [
 
 
 const subDevices = [
-  { icon: Radio,        name: "ESP8266 NodeMCU v3",       role: "সাব-নোড MCU (WiFi)",                pin: "—",            price: "৩৫০ ৳" },
-  { icon: FlaskConical, name: "TDS Sensor (Gravity)",     role: "মাটির আর্দ্রতা (ppm → %)",          pin: "A0 (ADC)",     price: "৪৫০ ৳" },
-  { icon: Thermometer,  name: "DHT22",                    role: "তাপমাত্রা ও আর্দ্রতা",              pin: "D6",           price: "৩৫০ ৳" },
-  { icon: Sun,          name: "LDR + 10kΩ",               role: "সূর্যালোক/দিন-রাত",                 pin: "D5",           price: "৩০ ৳" },
-  { icon: RotateCw,     name: "SG90 Servo Motor (৯g)",    role: "পানির লাইন on/off (০°↔৯০°)",        pin: "D2 (PWM)",     price: "১৮০ ৳" },
-  { icon: Cable,        name: "পানির লাইন + ফিটিং",       role: "জোনের irrigation pipe",             pin: "Servo arm",    price: "১২০ ৳" },
-  { icon: Zap,          name: "৫V ২A অ্যাডাপ্টার",        role: "সাব-নোড পাওয়ার",                    pin: "VIN",          price: "৩৫০ ৳" },
+  { icon: Radio,        name: "ESP8266 NodeMCU v3",              role: "সাব-নোড MCU (WiFi)",                       pin: "—",            price: "৩৫০ ৳" },
+  { icon: Sprout,       name: "Capacitive Soil Moisture v1.2",   role: "জমির আর্দ্রতা (analog → %)",               pin: "A0 (ADC)",     price: "১৮০ ৳" },
+  { icon: Thermometer,  name: "DHT22",                           role: "তাপমাত্রা ও আর্দ্রতা",                      pin: "D6",           price: "৩৫০ ৳" },
+  { icon: RotateCw,     name: "SG90 Servo Motor (৯g)",           role: "পানির লাইন on/off (০°↔৯০°)",                pin: "D2 (PWM)",     price: "১৮০ ৳" },
+  { icon: Cable,        name: "পানির লাইন + ফিটিং",              role: "জোনের irrigation pipe",                     pin: "Servo arm",    price: "১২০ ৳" },
+  { icon: Zap,          name: "৫V ২A অ্যাডাপ্টার",                role: "সাব-নোড পাওয়ার",                            pin: "VIN",          price: "৩৫০ ৳" },
 ];
 
-const subTotalPerNode = "১,৮৩০ ৳";
+const subTotalPerNode = "১,৫৩০ ৳";
+
+/* ---------------- SUB-NODE PIN-BY-PIN WIRING (grouped by device) ---------------- */
+const subDeviceWiring: DeviceWiring[] = [
+  {
+    device: "Capacitive Soil Moisture Sensor v1.2",
+    icon: Sprout,
+    color: "lime",
+    grad: "from-lime-500 to-green-500",
+    desc: "Analog আউটপুট — মাটি যত ভেজা, ভোল্টেজ তত কম। AIR=শুকনো reference, WATER=ভেজা reference দিয়ে ক্যালিব্রেট করুন।",
+    pairs: [
+      { mcu: "3V3", dev: "VCC",  note: "৩.৩V পাওয়ার (ESP8266 ADC-safe)" },
+      { mcu: "GND", dev: "GND",  note: "কমন গ্রাউন্ড" },
+      { mcu: "A0",  dev: "AOUT", note: "ESP8266-এর একমাত্র ADC পিন" },
+    ],
+  },
+  {
+    device: "DHT22 (তাপমাত্রা + আর্দ্রতা)",
+    icon: Thermometer,
+    color: "emerald",
+    grad: "from-emerald-500 to-teal-500",
+    desc: "DATA ↔ VCC এর মাঝে ১০kΩ পুল-আপ রেজিস্টর লাগান।",
+    pairs: [
+      { mcu: "3V3", dev: "VCC (Pin 1)",  note: "১০kΩ pull-up → DATA" },
+      { mcu: "D6",  dev: "DATA (Pin 2)", note: "GPIO 12 · ওয়ান-ওয়্যার" },
+      { mcu: "GND", dev: "GND (Pin 4)",  note: "—" },
+    ],
+  },
+  {
+    device: "SG90 Servo Motor (ভাল্ভ)",
+    icon: RotateCw,
+    color: "amber",
+    grad: "from-amber-500 to-orange-500",
+    desc: "০° = বন্ধ, ৯০° = খোলা। সার্ভোর ইনরাশ কারেন্ট বেশি — ESP8266-এর 3V3 থেকে নয়, ৫V লাইন থেকে পাওয়ার দিন।",
+    pairs: [
+      { mcu: "VIN (5V)", dev: "VCC (লাল)",  note: "অ্যাডাপ্টারের ৫V" },
+      { mcu: "GND",      dev: "GND (বাদামি)", note: "কমন গ্রাউন্ড" },
+      { mcu: "D2",       dev: "Signal (কমলা)", note: "GPIO 4 · PWM আউট" },
+    ],
+  },
+  {
+    device: "৫V ২A রেগুলেটেড অ্যাডাপ্টার",
+    icon: Zap,
+    color: "rose",
+    grad: "from-rose-500 to-pink-500",
+    desc: "সাব-নোড + সার্ভো পাওয়ার। ESP8266-এর VIN-এ ৫V দিলে অনবোর্ড রেগুলেটর 3V3 বানাবে।",
+    pairs: [
+      { mcu: "VIN", dev: "+V (৫V)", note: "NodeMCU VIN পিন" },
+      { mcu: "GND", dev: "−V",      note: "সার্ভো GND এর সাথেও শেয়ার্ড" },
+    ],
+  },
+];
 
 /* ---------------- MASTER FIRMWARE ---------------- */
 const buildMasterCode = (serverHost: string) => `/**
