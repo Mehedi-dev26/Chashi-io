@@ -27,6 +27,7 @@ type Telemetry = {
 };
 
 const ONLINE_MS = 15000;
+const BACKEND_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
 const ago = (iso: string) => {
