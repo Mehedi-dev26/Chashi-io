@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   Cpu, Droplets, Sun, Thermometer, Waves, Zap, Cable, CircuitBoard, Wifi,
   Code2, Wrench, ShieldCheck, Copy, CheckCheck, Network, Radio, Server, Plug,
-  FlaskConical, RotateCw, Globe, ArrowRight,
+  FlaskConical, RotateCw, Globe, ArrowRight, Sprout,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
