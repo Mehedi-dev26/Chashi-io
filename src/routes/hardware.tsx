@@ -498,15 +498,22 @@ void sendTelemetry() {
                 code, tank, lpm, volt, t, h, systemOnline ? 1 : 0);
 
   // dashboard কমান্ড প্রসেস → রিয়েল-টাইম মোটর ON/OFF
+  // ⚠ বাটন চাপের ৩ সেকেন্ডের মধ্যে dashboard-এর পুরোনো উল্টো command ignore
   bool motorChanged = false;
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
+    bool inOverride = (millis() < buttonOverrideUntil);
     for (JsonObject c : r["commands"].as<JsonArray>()) {
       String a = c["action"].as<String>();
-      bool before = motorOn;
-      if      (a == "motor_on")  setMotor(true);
-      else if (a == "motor_off") setMotor(false);
-      if (before != motorOn) motorChanged = true;
+      bool target = motorOn;
+      if      (a == "motor_on")  target = true;
+      else if (a == "motor_off") target = false;
+      else continue;
+      if (inOverride && target != motorOn) {
+        Serial.printf("[CMD] ignored %s (button override)\\n", a.c_str());
+        continue;
+      }
+      if (target != motorOn) { setMotor(target); motorChanged = true; }
     }
   }
   // ⚡ মোটর state বদলালে পরের লুপেই আবার POST হবে (lastSend=0)
@@ -516,36 +523,42 @@ void sendTelemetry() {
   drawDashboard(tank, lpm, volt, curr, t, h);
 }
 
-// 🆕 ম্যানুয়াল পুশ-বাটন পোলিং (ডিবাউন্স সহ)
-//    PIN_BTN_ON  চাপলে  → মোটর ON  + সাথে সাথে dashboard সিঙ্ক
-//    PIN_BTN_OFF চাপলে  → মোটর OFF + সাথে সাথে dashboard সিঙ্ক
+// 🆕 মোমেন্টারি পুশ-বাটন: ১ চাপ = ১ signal (চাপ ছেড়ে দিলে কিছু হবে না)
+//   - Stable-state edge detection: bounce-এ ডবল-ট্রিগার অসম্ভব
+//   - ON বাটন শুধু START, OFF বাটন শুধু STOP
+//   - চাপের সাথে সাথে instant telemetry → dashboard + OLED রিয়েল-টাইম sync
+void handleButtonEdge(bool isOnButton) {
+  if (isOnButton) {
+    if (motorOn) { Serial.println("[BTN] ON (already running)"); return; }
+    Serial.println("[BTN] ON  → motor START");
+    setMotor(true);
+  } else {
+    if (!motorOn) { Serial.println("[BTN] OFF (already stopped)"); return; }
+    Serial.println("[BTN] OFF → motor STOP");
+    setMotor(false);
+  }
+  buttonOverrideUntil = millis() + BUTTON_OVERRIDE_MS;
+  sendTelemetry();           // ⚡ instant dashboard + OLED sync
+  lastSend = millis();
+}
+
 void pollButtons() {
-  int onState  = digitalRead(PIN_BTN_ON);
-  int offState = digitalRead(PIN_BTN_OFF);
+  int rawOn  = digitalRead(PIN_BTN_ON);
+  int rawOff = digitalRead(PIN_BTN_OFF);
 
-  // ON button — falling edge (HIGH → LOW)
-  if (onState != lastBtnOnState) lastBtnOnMs = millis();
-  if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && onState == LOW && lastBtnOnState == HIGH) {
-    Serial.println("[BTN] ON pressed");
-    if (!motorOn) {
-      setMotor(true);
-      sendTelemetry();             // ⚡ instant dashboard real-time update
-      lastSend = millis();
-    }
+  // ON — stable-state edge after debounce
+  if (rawOn != lastBtnOnState) { lastBtnOnMs = millis(); lastBtnOnState = rawOn; }
+  if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOnState) {
+    stableBtnOnState = rawOn;
+    if (stableBtnOnState == LOW) handleButtonEdge(true);   // press edge only
   }
-  lastBtnOnState = onState;
 
-  // OFF button — falling edge
-  if (offState != lastBtnOffState) lastBtnOffMs = millis();
-  if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && offState == LOW && lastBtnOffState == HIGH) {
-    Serial.println("[BTN] OFF pressed");
-    if (motorOn) {
-      setMotor(false);
-      sendTelemetry();             // ⚡ instant dashboard real-time update
-      lastSend = millis();
-    }
+  // OFF — stable-state edge after debounce
+  if (rawOff != lastBtnOffState) { lastBtnOffMs = millis(); lastBtnOffState = rawOff; }
+  if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOffState) {
+    stableBtnOffState = rawOff;
+    if (stableBtnOffState == LOW) handleButtonEdge(false); // press edge only
   }
-  lastBtnOffState = offState;
 }
 
 // =================== LIFECYCLE ===================
