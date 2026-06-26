@@ -47,7 +47,14 @@ function DevicesPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ device_id: "", label: "", zone_id: "", notes: "" });
   const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [infoNode, setInfoNode] = useState<FieldNode | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
   const [, tick] = useState(0);
+
+  const copy = async (key: string, text: string) => {
+    try { await navigator.clipboard.writeText(text); setCopied(key); toast.success("কপি হয়েছে"); setTimeout(() => setCopied(null), 1500); }
+    catch { toast.error("কপি করা যায়নি"); }
+  };
 
   useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 3000); return () => clearInterval(t); }, []);
 
