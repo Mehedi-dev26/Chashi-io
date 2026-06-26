@@ -402,9 +402,37 @@ float computeFlowLpm() {
 // =================== NETWORK ===================
 void connectWifi() {
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(false);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  while (WiFi.status() != WL_CONNECTED) { delay(300); Serial.print("."); }
-  Serial.printf("\\n[MASTER] WiFi OK  IP=%s\\n", WiFi.localIP().toString().c_str());
+  unsigned long start = millis();
+  Serial.print("[MASTER] WiFi connecting");
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000UL) {
+    delay(300);
+    Serial.print(".");
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("\\n[MASTER] WiFi OK  IP=%s\\n", WiFi.localIP().toString().c_str());
+  } else {
+    Serial.println("\\n[MASTER] WiFi timeout — system will retry automatically");
+  }
+}
+
+bool ensureWifi() {
+  if (WiFi.status() == WL_CONNECTED) return true;
+  systemOnline = false;
+  if (motorOn) setMotor(false);  // নিরাপত্তা: WiFi/backend হারালে মেইন মোটর সাথে সাথে OFF
+
+  if (millis() - lastWifiAttempt >= WIFI_RETRY_MS) {
+    lastWifiAttempt = millis();
+    Serial.println("[MASTER] WiFi lost — reconnecting...");
+    WiFi.disconnect(false);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+  }
+  float t, h;
+  readDhtSafe(t, h);
+  drawDashboard(readTankPct(), 0.0, 0.0, 0.0, t, h);
+  return false;
 }
 
 void sendTelemetry() {
