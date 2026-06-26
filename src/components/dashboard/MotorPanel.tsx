@@ -2,7 +2,7 @@ import { Power, Zap, Gauge, Droplets, Timer, Activity, Wifi, WifiOff, CalendarRa
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import type { MotorState } from "@/hooks/useIrrigationData";
-import { getMonthlyRuntime } from "@/lib/motor-runtime.functions";
+import { getMonthlyRuntime } from "@/lib/motorRuntime.functions";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 

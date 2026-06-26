@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useServerFn } from "@tanstack/react-start";
-import { getHourlyUsage } from "@/lib/motor-runtime.functions";
+import { getHourlyUsage } from "@/lib/motorRuntime.functions";
 import { PUMP_SPEC } from "@/hooks/useIrrigationData";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
