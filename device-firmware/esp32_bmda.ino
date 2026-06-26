@@ -73,24 +73,25 @@ unsigned long lastDhtReadMs = 0;
 const unsigned long DHT_MIN_INTERVAL = 2200;  // DHT22 needs >= 2s between reads
 unsigned long dhtWarmupUntil = 0;
 
-int lastBtnOnState = HIGH;
-int lastBtnOffState = HIGH;
-int stableBtnOnState = HIGH;
-int stableBtnOffState = HIGH;
-unsigned long lastBtnOnMs = 0;
-unsigned long lastBtnOffMs = 0;
-const unsigned long BTN_DEBOUNCE_MS = 40;
-
-// Auto-detected idle level for each button. Captured at boot from the
-// actual pin reading, so the firmware works whether the button is wired
-// to GND (active LOW with pull-up) OR to 3.3V (active HIGH with pull-down).
-int btnOnIdle  = HIGH;
-int btnOffIdle = HIGH;
+// Buttons: wired between GPIO and GND. INPUT_PULLUP → idle=HIGH, press=LOW.
+// Trigger ONLY on the HIGH→LOW edge (press); never on release. A hard
+// lockout window ensures a single tap can never produce two events.
+int lastBtnOnRaw  = HIGH;
+int lastBtnOffRaw = HIGH;
+unsigned long btnOnChangeMs  = 0;
+unsigned long btnOffChangeMs = 0;
+int stableBtnOn  = HIGH;
+int stableBtnOff = HIGH;
+unsigned long btnOnLockoutUntil  = 0;
+unsigned long btnOffLockoutUntil = 0;
+const unsigned long BTN_DEBOUNCE_MS = 30;
+const unsigned long BTN_LOCKOUT_MS  = 400;
 
 // After a physical button press, ignore opposing server commands briefly
 // so a stale queued dashboard command can't immediately revert the user.
 unsigned long buttonOverrideUntil = 0;
 const unsigned long BUTTON_OVERRIDE_MS = 3000;
+
 
 void ledWrite(bool on) {
   digitalWrite(PIN_LED_ONLINE, (LED_ACTIVE_HIGH ? on : !on) ? HIGH : LOW);
@@ -260,20 +261,27 @@ float computeFlowLpm() {
 }
 
 void connectWifi() {
+  WiFi.persistent(true);              // let ESP32 cache creds in NVS
+  WiFi.mode(WIFI_OFF);
+  delay(100);
   WiFi.mode(WIFI_STA);
+  WiFi.disconnect(true, true);        // clean any stale config
+  delay(100);
   WiFi.setAutoReconnect(true);
-  WiFi.persistent(false);
+  WiFi.setSleep(false);               // more reliable for long-running IoT
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   unsigned long start = millis();
-  Serial.print("[MASTER] WiFi connecting");
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000UL) {
-    delay(300);
+  Serial.printf("[MASTER] WiFi connecting to \"%s\"", WIFI_SSID);
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 20000UL) {
+    delay(400);
     Serial.print(".");
   }
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("\n[MASTER] WiFi OK  IP=%s\n", WiFi.localIP().toString().c_str());
+    Serial.printf("\n[MASTER] WiFi OK  IP=%s  RSSI=%d\n",
+                  WiFi.localIP().toString().c_str(), WiFi.RSSI());
   } else {
-    Serial.println("\n[MASTER] WiFi timeout — system will retry automatically");
+    Serial.printf("\n[MASTER] WiFi timeout (status=%d) — will keep retrying\n",
+                  WiFi.status());
   }
 }
 
@@ -285,8 +293,8 @@ bool ensureWifi() {
 
   if (millis() - lastWifiAttempt >= WIFI_RETRY_MS) {
     lastWifiAttempt = millis();
-    Serial.println("[MASTER] WiFi lost — reconnecting...");
-    WiFi.disconnect(false);
+    Serial.printf("[MASTER] WiFi lost (status=%d) — reconnecting...\n", WiFi.status());
+    WiFi.disconnect(false, false);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
   }
 
@@ -295,6 +303,7 @@ bool ensureWifi() {
   drawDashboard(readTankPct(), 0.0, 0.0, 0.0, t, h);
   return false;
 }
+
 
 void sendTelemetry() {
   if (!ensureWifi()) return;
@@ -369,9 +378,8 @@ void sendTelemetry() {
   drawDashboard(tank, lpm, volt, curr, t, h);
 }
 
-// Momentary push-button handler — single press = one toggle signal.
-// Edge fires on the STABLE state transition (after debounce), so a release
-// or bounce cannot retrigger. ON button only turns motor ON; OFF only OFF.
+// Momentary push-button handler — single press = one signal.
+// Press edge only (HIGH→LOW). ON button only turns motor ON; OFF only OFF.
 void handleButtonEdge(bool isOnButton) {
   if (isOnButton) {
     if (motorOn) { Serial.println("[BTN] ON pressed (already running)"); return; }
@@ -390,33 +398,40 @@ void handleButtonEdge(bool isOnButton) {
 void pollButtons() {
   int rawOn  = digitalRead(PIN_BTN_ON);
   int rawOff = digitalRead(PIN_BTN_OFF);
+  unsigned long now = millis();
 
-  // Diagnostic heartbeat — prints raw button states every 3s.
-  // Use this in Serial Monitor (115200) to verify your wiring:
-  //   "[BTN] raw ON=1 OFF=1" idle → pressing should flip to 0 (or vice-versa).
+  // Diagnostic heartbeat every 3s
   static unsigned long lastBtnLog = 0;
-  if (millis() - lastBtnLog > 3000) {
-    lastBtnLog = millis();
+  if (now - lastBtnLog > 3000) {
+    lastBtnLog = now;
     Serial.print("[BTN] raw ON="); Serial.print(rawOn);
-    Serial.print(" OFF="); Serial.print(rawOff);
-    Serial.print("  idle ON="); Serial.print(btnOnIdle);
-    Serial.print(" OFF="); Serial.println(btnOffIdle);
+    Serial.print(" OFF="); Serial.println(rawOff);
   }
 
-  // ON button — debounce on stable state; trigger when leaving idle level
-  if (rawOn != lastBtnOnState) { lastBtnOnMs = millis(); lastBtnOnState = rawOn; }
-  if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOnState) {
-    stableBtnOnState = rawOn;
-    if (stableBtnOnState != btnOnIdle) handleButtonEdge(true);   // press edge only
+  // -------- ON button --------
+  if (rawOn != lastBtnOnRaw) { btnOnChangeMs = now; lastBtnOnRaw = rawOn; }
+  if ((now - btnOnChangeMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOn) {
+    int prev = stableBtnOn;
+    stableBtnOn = rawOn;
+    // Press edge ONLY: HIGH→LOW, and not within lockout window
+    if (prev == HIGH && stableBtnOn == LOW && now >= btnOnLockoutUntil) {
+      btnOnLockoutUntil = now + BTN_LOCKOUT_MS;
+      handleButtonEdge(true);
+    }
   }
 
-  // OFF button — debounce on stable state; trigger when leaving idle level
-  if (rawOff != lastBtnOffState) { lastBtnOffMs = millis(); lastBtnOffState = rawOff; }
-  if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOffState) {
-    stableBtnOffState = rawOff;
-    if (stableBtnOffState != btnOffIdle) handleButtonEdge(false); // press edge only
+  // -------- OFF button --------
+  if (rawOff != lastBtnOffRaw) { btnOffChangeMs = now; lastBtnOffRaw = rawOff; }
+  if ((now - btnOffChangeMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOff) {
+    int prev = stableBtnOff;
+    stableBtnOff = rawOff;
+    if (prev == HIGH && stableBtnOff == LOW && now >= btnOffLockoutUntil) {
+      btnOffLockoutUntil = now + BTN_LOCKOUT_MS;
+      handleButtonEdge(false);
+    }
   }
 }
+
 
 void updateOnlineLed() {
   static unsigned long lastToggle = 0;
@@ -448,17 +463,13 @@ void setup() {
   pinMode(PIN_ECHO, INPUT);
   pinMode(PIN_BTN_ON, INPUT_PULLUP);
   pinMode(PIN_BTN_OFF, INPUT_PULLUP);
-  // Sample the resting state of each button right after pinMode. Whatever the
-  // pin reads while idle becomes the "not pressed" baseline — so any wiring
-  // that produces a CHANGE on press will trigger correctly. Button must be
-  // wired between the GPIO and GND (active-LOW with internal pull-up).
+  // Canonical wiring: button between GPIO and GND. Idle=HIGH, Press=LOW.
   delay(20);
-  btnOnIdle  = digitalRead(PIN_BTN_ON);
-  btnOffIdle = digitalRead(PIN_BTN_OFF);
-  lastBtnOnState = stableBtnOnState = btnOnIdle;
-  lastBtnOffState = stableBtnOffState = btnOffIdle;
-  Serial.print("[BTN] idle captured  ON="); Serial.print(btnOnIdle);
-  Serial.print("  OFF="); Serial.println(btnOffIdle);
+  lastBtnOnRaw  = stableBtnOn  = digitalRead(PIN_BTN_ON);
+  lastBtnOffRaw = stableBtnOff = digitalRead(PIN_BTN_OFF);
+  Serial.print("[BTN] init  ON="); Serial.print(stableBtnOn);
+  Serial.print(" OFF="); Serial.println(stableBtnOff);
+
   pinMode(PIN_LED_ONLINE, OUTPUT);
   ledWrite(false);
 

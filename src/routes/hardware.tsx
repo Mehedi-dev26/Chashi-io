@@ -231,23 +231,23 @@ const unsigned long WIFI_RETRY_MS = 5000;   // WiFi গেলে প্রতি
 float lastGoodTemp = NAN;
 float lastGoodHum  = NAN;
 
-// Button debounce state (momentary push: ১ চাপ = ১ signal)
-int  lastBtnOnState  = HIGH;
-int  lastBtnOffState = HIGH;
-int  stableBtnOnState  = HIGH;
-int  stableBtnOffState = HIGH;
-unsigned long lastBtnOnMs  = 0;
-unsigned long lastBtnOffMs = 0;
-const unsigned long BTN_DEBOUNCE_MS = 40;
-
-// 🆕 Auto-captured idle level (boot-time). বাটন যেভাবেই wire করা থাকুক
-// (GPIO↔GND বা GPIO↔3.3V), idle level capture করে যেকোনো পরিবর্তনকেই press ধরা হবে।
-int btnOnIdle  = HIGH;
-int btnOffIdle = HIGH;
+// Button debounce state — canonical wiring: button between GPIO and GND.
+// INPUT_PULLUP → idle=HIGH, press=LOW. Trigger ONLY on HIGH→LOW edge.
+int lastBtnOnRaw  = HIGH;
+int lastBtnOffRaw = HIGH;
+unsigned long btnOnChangeMs  = 0;
+unsigned long btnOffChangeMs = 0;
+int stableBtnOn  = HIGH;
+int stableBtnOff = HIGH;
+unsigned long btnOnLockoutUntil  = 0;
+unsigned long btnOffLockoutUntil = 0;
+const unsigned long BTN_DEBOUNCE_MS = 30;
+const unsigned long BTN_LOCKOUT_MS  = 400;   // hard lockout = no double-trigger
 
 // বাটন চাপলে ৩ সেকেন্ড dashboard-এর পুরোনো উল্টো command ignore করব
 unsigned long buttonOverrideUntil = 0;
 const unsigned long BUTTON_OVERRIDE_MS = 3000;
+
 
 // =================== DISPLAY HELPERS ===================
 void oledCenter(const String& s, int y, int sz = 1) {
@@ -424,32 +424,39 @@ float computeFlowLpm() {
 
 // =================== NETWORK ===================
 void connectWifi() {
+  WiFi.persistent(true);              // ESP32-এর NVS এ creds save রাখি
+  WiFi.mode(WIFI_OFF);
+  delay(100);
   WiFi.mode(WIFI_STA);
+  WiFi.disconnect(true, true);        // পুরোনো stale config clean
+  delay(100);
   WiFi.setAutoReconnect(true);
-  WiFi.persistent(false);
+  WiFi.setSleep(false);               // continuous IoT-এ stability বেশি
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   unsigned long start = millis();
-  Serial.print("[MASTER] WiFi connecting");
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000UL) {
-    delay(300);
+  Serial.printf("[MASTER] WiFi connecting to \\"%s\\"", WIFI_SSID);
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 20000UL) {
+    delay(400);
     Serial.print(".");
   }
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("\\n[MASTER] WiFi OK  IP=%s\\n", WiFi.localIP().toString().c_str());
+    Serial.printf("\\n[MASTER] WiFi OK  IP=%s  RSSI=%d\\n",
+                  WiFi.localIP().toString().c_str(), WiFi.RSSI());
   } else {
-    Serial.println("\\n[MASTER] WiFi timeout — system will retry automatically");
+    Serial.printf("\\n[MASTER] WiFi timeout (status=%d) — auto retry চলবে\\n",
+                  WiFi.status());
   }
 }
 
 bool ensureWifi() {
   if (WiFi.status() == WL_CONNECTED) return true;
   systemOnline = false;
-  if (motorOn) setMotor(false);  // নিরাপত্তা: WiFi/backend হারালে মেইন মোটর সাথে সাথে OFF
+  if (motorOn) setMotor(false);  // নিরাপত্তা: WiFi হারালে মোটর সাথে সাথে OFF
 
   if (millis() - lastWifiAttempt >= WIFI_RETRY_MS) {
     lastWifiAttempt = millis();
-    Serial.println("[MASTER] WiFi lost — reconnecting...");
-    WiFi.disconnect(false);
+    Serial.printf("[MASTER] WiFi lost (status=%d) — reconnecting...\\n", WiFi.status());
+    WiFi.disconnect(false, false);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
   }
   float t, h;
@@ -457,6 +464,8 @@ bool ensureWifi() {
   drawDashboard(readTankPct(), 0.0, 0.0, 0.0, t, h);
   return false;
 }
+
+
 
 void sendTelemetry() {
   if (!ensureWifi()) return;
@@ -550,30 +559,37 @@ void handleButtonEdge(bool isOnButton) {
 void pollButtons() {
   int rawOn  = digitalRead(PIN_BTN_ON);
   int rawOff = digitalRead(PIN_BTN_OFF);
+  unsigned long now = millis();
 
-  // 🔍 Diagnostic — প্রতি 3s এ raw state print হবে, Serial Monitor (115200)
-  //    এ দেখুন: idle → "raw ON=1 OFF=1", চাপলে → "raw ON=0" (বা wiring ভেদে 1)
+  // 🔍 Diagnostic — প্রতি 3s এ raw state print হবে (Serial Monitor 115200)
+  //    idle → "raw ON=1 OFF=1", চাপলে → 0
   static unsigned long lastBtnLog = 0;
-  if (millis() - lastBtnLog > 3000) {
-    lastBtnLog = millis();
+  if (now - lastBtnLog > 3000) {
+    lastBtnLog = now;
     Serial.print("[BTN] raw ON="); Serial.print(rawOn);
-    Serial.print(" OFF="); Serial.print(rawOff);
-    Serial.print("  idle ON="); Serial.print(btnOnIdle);
-    Serial.print(" OFF="); Serial.println(btnOffIdle);
+    Serial.print(" OFF="); Serial.println(rawOff);
   }
 
-  // ON — stable-state edge after debounce; trigger যখন idle level থেকে সরে যায়
-  if (rawOn != lastBtnOnState) { lastBtnOnMs = millis(); lastBtnOnState = rawOn; }
-  if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOnState) {
-    stableBtnOnState = rawOn;
-    if (stableBtnOnState != btnOnIdle) handleButtonEdge(true);   // press edge only
+  // ON — শুধু HIGH→LOW edge (press), release এ trigger হবে না
+  if (rawOn != lastBtnOnRaw) { btnOnChangeMs = now; lastBtnOnRaw = rawOn; }
+  if ((now - btnOnChangeMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOn) {
+    int prev = stableBtnOn;
+    stableBtnOn = rawOn;
+    if (prev == HIGH && stableBtnOn == LOW && now >= btnOnLockoutUntil) {
+      btnOnLockoutUntil = now + BTN_LOCKOUT_MS;
+      handleButtonEdge(true);
+    }
   }
 
-  // OFF — stable-state edge after debounce
-  if (rawOff != lastBtnOffState) { lastBtnOffMs = millis(); lastBtnOffState = rawOff; }
-  if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOffState) {
-    stableBtnOffState = rawOff;
-    if (stableBtnOffState != btnOffIdle) handleButtonEdge(false); // press edge only
+  // OFF — একই press-edge logic
+  if (rawOff != lastBtnOffRaw) { btnOffChangeMs = now; lastBtnOffRaw = rawOff; }
+  if ((now - btnOffChangeMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOff) {
+    int prev = stableBtnOff;
+    stableBtnOff = rawOff;
+    if (prev == HIGH && stableBtnOff == LOW && now >= btnOffLockoutUntil) {
+      btnOffLockoutUntil = now + BTN_LOCKOUT_MS;
+      handleButtonEdge(false);
+    }
   }
 }
 
@@ -585,18 +601,19 @@ void setup() {
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
 
-  // 🆕 push buttons — INPUT_PULLUP (একপাশ GPIO, অন্যপাশ GND)
+  // push buttons — wiring: এক পা GPIO, অন্য পা GND (INPUT_PULLUP)
   pinMode(PIN_BTN_ON,  INPUT_PULLUP);
   pinMode(PIN_BTN_OFF, INPUT_PULLUP);
-  // 🆕 Auto-capture idle level — pinMode-এর পর pin যা পড়ে সেটাই "not pressed"
-  //    baseline। যেকোনো wiring (button→GND বা button→3.3V) এতে কাজ করবে।
   delay(20);
-  btnOnIdle  = digitalRead(PIN_BTN_ON);
-  btnOffIdle = digitalRead(PIN_BTN_OFF);
-  lastBtnOnState  = stableBtnOnState  = btnOnIdle;
-  lastBtnOffState = stableBtnOffState = btnOffIdle;
-  Serial.print("[BTN] idle captured  ON="); Serial.print(btnOnIdle);
-  Serial.print("  OFF="); Serial.println(btnOffIdle);
+  lastBtnOnRaw  = stableBtnOn  = digitalRead(PIN_BTN_ON);
+  lastBtnOffRaw = stableBtnOff = digitalRead(PIN_BTN_OFF);
+  Serial.print("[BTN] init  ON="); Serial.print(stableBtnOn);
+  Serial.print(" OFF="); Serial.println(stableBtnOff);
+
+  // অনলাইন স্ট্যাটাস LED
+  pinMode(PIN_LED_ONLINE, OUTPUT);
+  digitalWrite(PIN_LED_ONLINE, LED_ACTIVE_HIGH ? LOW : HIGH);  // OFF initially
+
 
   // 🆕 অনলাইন স্ট্যাটাস LED
   pinMode(PIN_LED_ONLINE, OUTPUT);
