@@ -559,30 +559,37 @@ void handleButtonEdge(bool isOnButton) {
 void pollButtons() {
   int rawOn  = digitalRead(PIN_BTN_ON);
   int rawOff = digitalRead(PIN_BTN_OFF);
+  unsigned long now = millis();
 
-  // 🔍 Diagnostic — প্রতি 3s এ raw state print হবে, Serial Monitor (115200)
-  //    এ দেখুন: idle → "raw ON=1 OFF=1", চাপলে → "raw ON=0" (বা wiring ভেদে 1)
+  // 🔍 Diagnostic — প্রতি 3s এ raw state print হবে (Serial Monitor 115200)
+  //    idle → "raw ON=1 OFF=1", চাপলে → 0
   static unsigned long lastBtnLog = 0;
-  if (millis() - lastBtnLog > 3000) {
-    lastBtnLog = millis();
+  if (now - lastBtnLog > 3000) {
+    lastBtnLog = now;
     Serial.print("[BTN] raw ON="); Serial.print(rawOn);
-    Serial.print(" OFF="); Serial.print(rawOff);
-    Serial.print("  idle ON="); Serial.print(btnOnIdle);
-    Serial.print(" OFF="); Serial.println(btnOffIdle);
+    Serial.print(" OFF="); Serial.println(rawOff);
   }
 
-  // ON — stable-state edge after debounce; trigger যখন idle level থেকে সরে যায়
-  if (rawOn != lastBtnOnState) { lastBtnOnMs = millis(); lastBtnOnState = rawOn; }
-  if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOnState) {
-    stableBtnOnState = rawOn;
-    if (stableBtnOnState != btnOnIdle) handleButtonEdge(true);   // press edge only
+  // ON — শুধু HIGH→LOW edge (press), release এ trigger হবে না
+  if (rawOn != lastBtnOnRaw) { btnOnChangeMs = now; lastBtnOnRaw = rawOn; }
+  if ((now - btnOnChangeMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOn) {
+    int prev = stableBtnOn;
+    stableBtnOn = rawOn;
+    if (prev == HIGH && stableBtnOn == LOW && now >= btnOnLockoutUntil) {
+      btnOnLockoutUntil = now + BTN_LOCKOUT_MS;
+      handleButtonEdge(true);
+    }
   }
 
-  // OFF — stable-state edge after debounce
-  if (rawOff != lastBtnOffState) { lastBtnOffMs = millis(); lastBtnOffState = rawOff; }
-  if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOffState) {
-    stableBtnOffState = rawOff;
-    if (stableBtnOffState != btnOffIdle) handleButtonEdge(false); // press edge only
+  // OFF — একই press-edge logic
+  if (rawOff != lastBtnOffRaw) { btnOffChangeMs = now; lastBtnOffRaw = rawOff; }
+  if ((now - btnOffChangeMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOff) {
+    int prev = stableBtnOff;
+    stableBtnOff = rawOff;
+    if (prev == HIGH && stableBtnOff == LOW && now >= btnOffLockoutUntil) {
+      btnOffLockoutUntil = now + BTN_LOCKOUT_MS;
+      handleButtonEdge(false);
+    }
   }
 }
 
@@ -594,18 +601,19 @@ void setup() {
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
 
-  // 🆕 push buttons — INPUT_PULLUP (একপাশ GPIO, অন্যপাশ GND)
+  // push buttons — wiring: এক পা GPIO, অন্য পা GND (INPUT_PULLUP)
   pinMode(PIN_BTN_ON,  INPUT_PULLUP);
   pinMode(PIN_BTN_OFF, INPUT_PULLUP);
-  // 🆕 Auto-capture idle level — pinMode-এর পর pin যা পড়ে সেটাই "not pressed"
-  //    baseline। যেকোনো wiring (button→GND বা button→3.3V) এতে কাজ করবে।
   delay(20);
-  btnOnIdle  = digitalRead(PIN_BTN_ON);
-  btnOffIdle = digitalRead(PIN_BTN_OFF);
-  lastBtnOnState  = stableBtnOnState  = btnOnIdle;
-  lastBtnOffState = stableBtnOffState = btnOffIdle;
-  Serial.print("[BTN] idle captured  ON="); Serial.print(btnOnIdle);
-  Serial.print("  OFF="); Serial.println(btnOffIdle);
+  lastBtnOnRaw  = stableBtnOn  = digitalRead(PIN_BTN_ON);
+  lastBtnOffRaw = stableBtnOff = digitalRead(PIN_BTN_OFF);
+  Serial.print("[BTN] init  ON="); Serial.print(stableBtnOn);
+  Serial.print(" OFF="); Serial.println(stableBtnOff);
+
+  // অনলাইন স্ট্যাটাস LED
+  pinMode(PIN_LED_ONLINE, OUTPUT);
+  digitalWrite(PIN_LED_ONLINE, LED_ACTIVE_HIGH ? LOW : HIGH);  // OFF initially
+
 
   // 🆕 অনলাইন স্ট্যাটাস LED
   pinMode(PIN_LED_ONLINE, OUTPUT);
