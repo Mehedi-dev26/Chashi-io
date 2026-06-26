@@ -9,10 +9,6 @@ const HourlyInput = z.object({
   ratedCurrent: z.number().default(0.20),
 });
 
-/**
- * Returns total motor running seconds in the current calendar month
- * (UTC month boundary) for the given device.
- */
 export const getMonthlyRuntime = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => MonthlyInput.parse(d ?? {}))
   .handler(async ({ data }) => {
@@ -33,9 +29,6 @@ export const getMonthlyRuntime = createServerFn({ method: "POST" })
     }
   });
 
-/**
- * Returns last 24 hours of motor runtime aggregated into hourly buckets.
- */
 export const getHourlyUsage = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => HourlyInput.parse(d ?? {}))
   .handler(async ({ data }) => {
