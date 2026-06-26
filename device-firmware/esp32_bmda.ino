@@ -148,13 +148,13 @@ bool readDhtSafe(float &tempC, float &humidity) {
   }
   lastDhtReadMs = millis();
 
-  // Retry up to 3 times to ride out single-frame CRC errors
+  // Retry up to 5 times to ride out CRC errors with internal pull-up
   float t = NAN, h = NAN;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 5; i++) {
     t = dht.readTemperature(false);
     h = dht.readHumidity();
     if (!isnan(t) && !isnan(h)) break;
-    delay(60);
+    delay(80);
   }
 
   // ⚠️ Show whatever the sensor reports — NaN-only guard.
