@@ -405,9 +405,12 @@ void setup() {
   bootAnimation();
 
   dht.begin();
+  dhtWarmupUntil = millis() + 1800;  // give DHT22 ~1.8s to stabilise
   connectWifi();
 
   Serial.println("[MASTER] System online — sending boot heartbeat");
+  // Wait for warmup before first telemetry so first read is valid
+  while (millis() < dhtWarmupUntil) { delay(50); }
   sendTelemetry();
   lastSend = millis();
 }
