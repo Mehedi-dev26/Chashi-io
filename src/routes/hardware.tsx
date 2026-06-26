@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   Cpu, Droplets, Sun, Thermometer, Waves, Zap, Cable, CircuitBoard, Wifi,
   Code2, Wrench, ShieldCheck, Copy, CheckCheck, Network, Radio, Server, Plug,
-  FlaskConical, RotateCw, Globe, ArrowRight,
+  FlaskConical, RotateCw, Globe, ArrowRight, Sprout,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -29,9 +29,9 @@ export const Route = createFileRoute("/hardware")({
 /*    ┌────────────┼────────────┐                                       */
 /*    ▼            ▼            ▼                                       */
 /*  SUB-01       SUB-02       SUB-03   (ESP8266 NodeMCU — জমিতে)       */
-/*  • Soil       • Soil       • Soil                                    */
-/*  • LDR        • LDR        • LDR                                     */
-/*  • Valve      • Valve      • Valve                                   */
+/*  • Soil       • Soil       • Soil   (Capacitive Soil Moisture v1.2) */
+/*  • DHT22      • DHT22      • DHT22                                  */
+/*  • Valve      • Valve      • Valve  (SG90 Servo)                    */
 /* ------------------------------------------------------------------ */
 
 const masterDevices = [
@@ -138,16 +138,66 @@ const masterDeviceWiring: DeviceWiring[] = [
 
 
 const subDevices = [
-  { icon: Radio,        name: "ESP8266 NodeMCU v3",       role: "সাব-নোড MCU (WiFi)",                pin: "—",            price: "৩৫০ ৳" },
-  { icon: FlaskConical, name: "TDS Sensor (Gravity)",     role: "মাটির আর্দ্রতা (ppm → %)",          pin: "A0 (ADC)",     price: "৪৫০ ৳" },
-  { icon: Thermometer,  name: "DHT22",                    role: "তাপমাত্রা ও আর্দ্রতা",              pin: "D6",           price: "৩৫০ ৳" },
-  { icon: Sun,          name: "LDR + 10kΩ",               role: "সূর্যালোক/দিন-রাত",                 pin: "D5",           price: "৩০ ৳" },
-  { icon: RotateCw,     name: "SG90 Servo Motor (৯g)",    role: "পানির লাইন on/off (০°↔৯০°)",        pin: "D2 (PWM)",     price: "১৮০ ৳" },
-  { icon: Cable,        name: "পানির লাইন + ফিটিং",       role: "জোনের irrigation pipe",             pin: "Servo arm",    price: "১২০ ৳" },
-  { icon: Zap,          name: "৫V ২A অ্যাডাপ্টার",        role: "সাব-নোড পাওয়ার",                    pin: "VIN",          price: "৩৫০ ৳" },
+  { icon: Radio,        name: "ESP8266 NodeMCU v3",              role: "সাব-নোড MCU (WiFi)",                       pin: "—",            price: "৩৫০ ৳" },
+  { icon: Sprout,       name: "Capacitive Soil Moisture v1.2",   role: "জমির আর্দ্রতা (analog → %)",               pin: "A0 (ADC)",     price: "১৮০ ৳" },
+  { icon: Thermometer,  name: "DHT22",                           role: "তাপমাত্রা ও আর্দ্রতা",                      pin: "D6",           price: "৩৫০ ৳" },
+  { icon: RotateCw,     name: "SG90 Servo Motor (৯g)",           role: "পানির লাইন on/off (০°↔৯০°)",                pin: "D2 (PWM)",     price: "১৮০ ৳" },
+  { icon: Cable,        name: "পানির লাইন + ফিটিং",              role: "জোনের irrigation pipe",                     pin: "Servo arm",    price: "১২০ ৳" },
+  { icon: Zap,          name: "৫V ২A অ্যাডাপ্টার",                role: "সাব-নোড পাওয়ার",                            pin: "VIN",          price: "৩৫০ ৳" },
 ];
 
-const subTotalPerNode = "১,৮৩০ ৳";
+const subTotalPerNode = "১,৫৩০ ৳";
+
+/* ---------------- SUB-NODE PIN-BY-PIN WIRING (grouped by device) ---------------- */
+const subDeviceWiring: DeviceWiring[] = [
+  {
+    device: "Capacitive Soil Moisture Sensor v1.2",
+    icon: Sprout,
+    color: "lime",
+    grad: "from-lime-500 to-green-500",
+    desc: "Analog আউটপুট — মাটি যত ভেজা, ভোল্টেজ তত কম। AIR=শুকনো reference, WATER=ভেজা reference দিয়ে ক্যালিব্রেট করুন।",
+    pairs: [
+      { mcu: "3V3", dev: "VCC",  note: "৩.৩V পাওয়ার (ESP8266 ADC-safe)" },
+      { mcu: "GND", dev: "GND",  note: "কমন গ্রাউন্ড" },
+      { mcu: "A0",  dev: "AOUT", note: "ESP8266-এর একমাত্র ADC পিন" },
+    ],
+  },
+  {
+    device: "DHT22 (তাপমাত্রা + আর্দ্রতা)",
+    icon: Thermometer,
+    color: "emerald",
+    grad: "from-emerald-500 to-teal-500",
+    desc: "DATA ↔ VCC এর মাঝে ১০kΩ পুল-আপ রেজিস্টর লাগান।",
+    pairs: [
+      { mcu: "3V3", dev: "VCC (Pin 1)",  note: "১০kΩ pull-up → DATA" },
+      { mcu: "D6",  dev: "DATA (Pin 2)", note: "GPIO 12 · ওয়ান-ওয়্যার" },
+      { mcu: "GND", dev: "GND (Pin 4)",  note: "—" },
+    ],
+  },
+  {
+    device: "SG90 Servo Motor (ভাল্ভ)",
+    icon: RotateCw,
+    color: "amber",
+    grad: "from-amber-500 to-orange-500",
+    desc: "০° = বন্ধ, ৯০° = খোলা। সার্ভোর ইনরাশ কারেন্ট বেশি — ESP8266-এর 3V3 থেকে নয়, ৫V লাইন থেকে পাওয়ার দিন।",
+    pairs: [
+      { mcu: "VIN (5V)", dev: "VCC (লাল)",  note: "অ্যাডাপ্টারের ৫V" },
+      { mcu: "GND",      dev: "GND (বাদামি)", note: "কমন গ্রাউন্ড" },
+      { mcu: "D2",       dev: "Signal (কমলা)", note: "GPIO 4 · PWM আউট" },
+    ],
+  },
+  {
+    device: "৫V ২A রেগুলেটেড অ্যাডাপ্টার",
+    icon: Zap,
+    color: "rose",
+    grad: "from-rose-500 to-pink-500",
+    desc: "সাব-নোড + সার্ভো পাওয়ার। ESP8266-এর VIN-এ ৫V দিলে অনবোর্ড রেগুলেটর 3V3 বানাবে।",
+    pairs: [
+      { mcu: "VIN", dev: "+V (৫V)", note: "NodeMCU VIN পিন" },
+      { mcu: "GND", dev: "−V",      note: "সার্ভো GND এর সাথেও শেয়ার্ড" },
+    ],
+  },
+];
 
 /* ---------------- MASTER FIRMWARE ---------------- */
 const buildMasterCode = (serverHost: string) => `/**
@@ -711,9 +761,8 @@ const buildSubCode = (serverHost: string) => `/**
 
  *  BMDA Smart Irrigation — SUB NODE (ESP8266 NodeMCU)
  *  স্থান : জমিতে — প্রতিটি জোনে একটি
- *  সেন্সর: TDS sensor (Gravity/generic) → মাটির আর্দ্রতা %
+ *  সেন্সর: Capacitive Soil Moisture Sensor v1.2 → জমির আর্দ্রতা %
  *         DHT22 → তাপমাত্রা (°C) + আর্দ্রতা (%RH)
- *         LDR → দিন/রাত
  *  অ্যাকচুয়েটর: SG90 Servo Motor → পানির লাইন on/off (০°=বন্ধ, ৯০°=খোলা)
  *  কাজ  : প্রতি ৫ সেকেন্ডে heartbeat + dashboard থেকে valve কমান্ড গ্রহণ।
  *
@@ -736,15 +785,16 @@ const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 // ========================
 
 // ---- Pins ----
-#define PIN_TDS     A0     // TDS sensor analog (ESP8266-এ একটাই ADC)
-#define PIN_LDR     D5     // LDR digital
+#define PIN_SOIL    A0     // Capacitive Soil Moisture analog (ESP8266-এ একটাই ADC)
 #define PIN_SERVO   D2     // SG90 servo PWM (GPIO4)
 #define PIN_DHT     D6     // DHT22 data (GPIO12)
 #define DHT_TYPE    DHT22
 
-// ---- TDS reference voltage (NodeMCU ADC 0..1023 → 0..3.3V via onboard divider) ----
-const float VREF = 3.3;
-const float ADC_MAX = 1023.0;
+// ---- Soil sensor calibration (নিজের সেন্সরে একবার মাপুন) ----
+// AIR  : সেন্সর বাতাসে → শুকনো reference (raw বড়)
+// WATER: সেন্সর পানিতে → ভেজা reference (raw ছোট)
+const int SOIL_AIR   = 750;   // dry (০%)
+const int SOIL_WATER = 320;   // saturated (১০০%)
 
 // ---- Servo ----
 Servo valveServo;
@@ -766,30 +816,13 @@ void setValve(bool on) {
   Serial.printf("[%s] SERVO → %s (%d°)\\n", ZONE_ID, on ? "OPEN" : "CLOSED", on ? SERVO_OPEN : SERVO_CLOSED);
 }
 
-// ---- TDS → soil moisture conversion ----
-// raw ADC → voltage → (with temp comp.) → TDS ppm → mapped to moisture %
-// dry মাটি = কম conductivity = কম ppm; ভেজা মাটি = বেশি conductivity = বেশি ppm
-float readTdsPpm(float tempC = 25.0) {
-  // ৩০টি স্যাম্পল গড় — noise কমায়
+// ---- Soil moisture: capacitive sensor (analog) ----
+// raw ADC: শুকনো মাটিতে বড়, ভেজা মাটিতে ছোট → ক্যালিব্রেশন দিয়ে 0..100% map
+float readSoilMoisturePct() {
   long sum = 0;
-  for (int i = 0; i < 30; i++) { sum += analogRead(PIN_TDS); delay(2); }
+  for (int i = 0; i < 30; i++) { sum += analogRead(PIN_SOIL); delay(2); }
   float avg = sum / 30.0;
-  float voltage = avg * VREF / ADC_MAX;
-  float compCoef = 1.0 + 0.02 * (tempC - 25.0);
-  float compV = voltage / compCoef;
-  // Gravity TDS standard polynomial
-  float tds = (133.42 * compV * compV * compV
-             - 255.86 * compV * compV
-             + 857.39 * compV) * 0.5;
-  if (tds < 0) tds = 0;
-  return tds;
-}
-
-float ppmToMoisturePct(float ppm) {
-  // ক্যালিব্রেশন: dry ≈ 0 ppm, saturated ≈ 1000 ppm (নিজের মাটিতে ক্যালিব্রেট করুন)
-  const float PPM_DRY = 0.0;
-  const float PPM_WET = 1000.0;
-  float pct = (ppm - PPM_DRY) * 100.0 / (PPM_WET - PPM_DRY);
+  float pct = (float)(SOIL_AIR - avg) * 100.0 / (float)(SOIL_AIR - SOIL_WATER);
   if (pct < 0) pct = 0; if (pct > 100) pct = 100;
   return pct;
 }
@@ -836,17 +869,13 @@ void sendTelemetry() {
 
   float tempC, humidity;
   readDhtSafe(tempC, humidity);
-  float ppm  = readTdsPpm(25.0);
-  float soil = ppmToMoisturePct(ppm);
-  bool  dayLight = digitalRead(PIN_LDR) == LOW;
+  float soil = readSoilMoisturePct();
 
   JsonDocument doc;
   doc["deviceId"]     = DEVICE_ID;
   doc["zoneId"]       = ZONE_ID;
   doc["role"]         = "sub";
   doc["soilMoisture"] = soil;
-  doc["tdsPpm"]       = ppm;
-  doc["ldr"]          = dayLight ? 85 : 10;
   doc["valveOpen"]    = valveOpen;
   doc["rssi"]         = WiFi.RSSI();
   if (!isnan(tempC))   doc["temperature"] = round(tempC * 10.0) / 10.0;
@@ -862,8 +891,8 @@ void sendTelemetry() {
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
-  Serial.printf("[%s] POST %d  ppm=%.0f soil=%.0f%% T=%.1fC H=%.0f%% valve=%d\\n",
-                ZONE_ID, code, ppm, soil, tempC, humidity, valveOpen);
+  Serial.printf("[%s] POST %d  soil=%.0f%% T=%.1fC H=%.0f%% valve=%d\\n",
+                ZONE_ID, code, soil, tempC, humidity, valveOpen);
 
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
@@ -877,7 +906,6 @@ void sendTelemetry() {
 
 void setup() {
   Serial.begin(115200);
-  pinMode(PIN_LDR, INPUT);
   dht.begin();
   valveServo.attach(PIN_SERVO);
   setValve(false);              // boot হলে valve বন্ধ থাকবে
@@ -984,9 +1012,9 @@ function HardwarePage() {
               </div>
               <p className="text-[11px] text-muted-foreground mb-3">স্থান: প্রতিটি জোনে একটি করে</p>
               <ul className="text-xs space-y-1.5 text-foreground/80">
-                <li>• ক্যাপাসিটিভ সয়েল মইশ্চার</li>
-                <li>• LDR (আলো/দিন-রাত)</li>
-                <li>• ১-চ্যানেল রিলে → সোলিনয়েড ভাল্ভ</li>
+                <li>• ক্যাপাসিটিভ সয়েল মইশ্চার v1.2</li>
+                <li>• DHT22 (তাপমাত্রা + আর্দ্রতা)</li>
+                <li>• SG90 Servo → পানির লাইন ভাল্ভ</li>
                 <li>• প্রতি ৫ সেকেন্ডে মাস্টারকে রিপোর্ট</li>
                 <li>• Dashboard-এর কমান্ডে ভাল্ভ চালু/বন্ধ</li>
               </ul>
@@ -1235,6 +1263,81 @@ function HardwarePage() {
             <code>{subCode}</code>
           </pre>
         </div>
+
+        {/* SUB-NODE WIRING — Professional per-device cards (mirrors master design) */}
+        <div className="glass-card rounded-2xl p-5 border-2 border-emerald-400/40 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-300/20">
+          <div className="flex items-center gap-2 mb-1">
+            <Plug className="h-5 w-5 text-emerald-500" />
+            <h2 className="text-base font-extrabold">সাব-নোড — পিন-বাই-পিন কানেকশন</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-5">
+            প্রতিটি ডিভাইসের জন্য আলাদা কার্ড। প্রতিটি সারিতে দেখানো আছে ESP8266 NodeMCU-এর কোন পিন থেকে ডিভাইসের কোন পিনে যাবে।
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            {subDeviceWiring.map((dev) => (
+              <div
+                key={dev.device}
+                className="rounded-2xl border-2 border-border bg-card/40 overflow-hidden hover-lift"
+              >
+                {/* Header: NodeMCU → Device */}
+                <div className={`bg-gradient-to-r ${dev.grad} text-white px-4 py-3`}>
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm shrink-0">
+                      <dev.icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-95">
+                        <span>ESP8266 NodeMCU</span>
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="truncate">{dev.device}</span>
+                      </div>
+                      <p className="text-[10px] opacity-85 leading-snug mt-0.5">{dev.desc}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pin pair rows */}
+                <div className="divide-y divide-border/60">
+                  <div className="grid grid-cols-[1fr_auto_1fr] gap-2 px-4 py-2 bg-muted/40 text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                    <span>NodeMCU পিন</span>
+                    <span className="text-center">↔</span>
+                    <span className="text-right">ডিভাইস পিন</span>
+                  </div>
+                  {dev.pairs.map((p, i) => (
+                    <div key={i} className="px-4 py-2.5">
+                      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                        <span className="font-mono text-xs font-extrabold text-primary truncate">{p.mcu}</span>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="font-mono text-xs font-extrabold text-chart-2 text-right truncate">{p.dev}</span>
+                      </div>
+                      {p.note && (
+                        <p className="text-[10.5px] text-muted-foreground mt-1 leading-snug">{p.note}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* legend cards */}
+          <div className="grid sm:grid-cols-3 gap-2 mt-5 text-xs">
+            <div className="rounded-lg glass-panel p-3 border border-lime-400/30">
+              <p className="font-extrabold text-lime-600">🌱 সয়েল ক্যালিব্রেশন</p>
+              <p className="text-[11px] text-muted-foreground mt-1">সেন্সরটি বাতাসে রেখে raw value দেখুন → <code>SOIL_AIR</code>; পানিতে ডুবিয়ে দেখুন → <code>SOIL_WATER</code>। নিজের মাটিতে ক্যালিব্রেট করলে নির্ভুলতা বাড়বে।</p>
+            </div>
+            <div className="rounded-lg glass-panel p-3 border border-amber-400/30">
+              <p className="font-extrabold text-amber-500">⚡ সার্ভো পাওয়ার</p>
+              <p className="text-[11px] text-muted-foreground mt-1">SG90-এর ইনরাশ কারেন্ট ESP8266-এর 3V3 রেগুলেটর হ্যান্ডেল করতে পারে না। সার্ভোকে সরাসরি ৫V অ্যাডাপ্টারের লাইন থেকে পাওয়ার দিন।</p>
+            </div>
+            <div className="rounded-lg glass-panel p-3 border border-emerald-400/30">
+              <p className="font-extrabold text-emerald-500">✓ কমন গ্রাউন্ড</p>
+              <p className="text-[11px] text-muted-foreground mt-1">NodeMCU GND, সার্ভো GND এবং অ্যাডাপ্টার GND — তিনটিই একসাথে যুক্ত রাখুন, না হলে PWM সিগনাল ঠিকমতো কাজ করবে না।</p>
+            </div>
+          </div>
+        </div>
+
 
         {/* Safety checklist */}
         <div className="glass-card rounded-2xl p-5">
