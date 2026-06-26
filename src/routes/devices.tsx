@@ -341,7 +341,7 @@ function DevicesPage() {
         <CardHeader><CardTitle className="text-base flex items-center gap-2"><Power className="h-4 w-4" />কীভাবে কাজ করে?</CardTitle></CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>• প্রতিটি sub-node (ESP8266) প্রতি ৫ সেকেন্ডে heartbeat পাঠায় → আপনি এখানে লাইভ ডেটা দেখেন।</p>
-          <p>• <b className="text-foreground">TDS sensor</b> (Gravity TDS / generic) থেকে raw analog পড়া → temperature compensation → মাটির আর্দ্রতা শতাংশে রূপান্তর।</p>
+          <p>• <b className="text-foreground">YL-69 soil moisture sensor</b> থেকে raw analog পড়া → calibration mapping (SOIL_AIR/SOIL_WATER) → মাটির আর্দ্রতা শতাংশে (SM%) রূপান্তর।</p>
           <p>• <b className="text-foreground">Servo motor (SG90)</b> দিয়ে পানির লাইন on/off — solenoid valve-এর সাশ্রয়ী বিকল্প।</p>
           <p>• <b className="text-foreground">জমিতে assign</b>: যেকোনো sub-node-কে drop-down থেকে একটি জমিতে যুক্ত করুন → তখন থেকে সেই জমির ডেটা ও ভাল্ভ এই নোড থেকে আসবে।</p>
           <p>• <b className="text-foreground">Online check</b>: heartbeat ১৫ সেকেন্ডের বেশি না এলে নোড offline দেখানো হয়, valve বোতাম disable হয়ে যায়।</p>
@@ -429,3 +429,31 @@ const char* SERVER_HOST = "${BACKEND_HOST}";
     </DashboardLayout>
   );
 }
+
+// WiFi signal bars (4-level) based on RSSI dBm
+function WifiBars({ rssi, online }: { rssi: number | null; online: boolean }) {
+  // RSSI: -50≈excellent, -60 good, -70 fair, -80 weak, < -85 very weak
+  const level = !online || rssi == null ? 0
+    : rssi >= -55 ? 4
+    : rssi >= -65 ? 3
+    : rssi >= -75 ? 2
+    : 1;
+  const colorFor = (i: number) => {
+    if (i > level) return "bg-muted-foreground/25";
+    if (level >= 3) return "bg-emerald-500";
+    if (level === 2) return "bg-amber-500";
+    return "bg-rose-500";
+  };
+  const labelEn = level === 0 ? "No signal" : level === 4 ? "Excellent" : level === 3 ? "Good" : level === 2 ? "Fair" : "Weak";
+  return (
+    <div
+      className="flex items-end gap-0.5 h-3.5"
+      title={rssi != null ? `${rssi} dBm · ${labelEn}` : "No signal"}
+    >
+      {[1, 2, 3, 4].map((i) => (
+        <span key={i} className={`w-1 rounded-sm transition-colors ${colorFor(i)}`} style={{ height: `${i * 25}%` }} />
+      ))}
+    </div>
+  );
+}
+
