@@ -551,18 +551,29 @@ void pollButtons() {
   int rawOn  = digitalRead(PIN_BTN_ON);
   int rawOff = digitalRead(PIN_BTN_OFF);
 
-  // ON — stable-state edge after debounce
+  // 🔍 Diagnostic — প্রতি 3s এ raw state print হবে, Serial Monitor (115200)
+  //    এ দেখুন: idle → "raw ON=1 OFF=1", চাপলে → "raw ON=0" (বা wiring ভেদে 1)
+  static unsigned long lastBtnLog = 0;
+  if (millis() - lastBtnLog > 3000) {
+    lastBtnLog = millis();
+    Serial.print("[BTN] raw ON="); Serial.print(rawOn);
+    Serial.print(" OFF="); Serial.print(rawOff);
+    Serial.print("  idle ON="); Serial.print(btnOnIdle);
+    Serial.print(" OFF="); Serial.println(btnOffIdle);
+  }
+
+  // ON — stable-state edge after debounce; trigger যখন idle level থেকে সরে যায়
   if (rawOn != lastBtnOnState) { lastBtnOnMs = millis(); lastBtnOnState = rawOn; }
   if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOnState) {
     stableBtnOnState = rawOn;
-    if (stableBtnOnState == LOW) handleButtonEdge(true);   // press edge only
+    if (stableBtnOnState != btnOnIdle) handleButtonEdge(true);   // press edge only
   }
 
   // OFF — stable-state edge after debounce
   if (rawOff != lastBtnOffState) { lastBtnOffMs = millis(); lastBtnOffState = rawOff; }
   if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOffState) {
     stableBtnOffState = rawOff;
-    if (stableBtnOffState == LOW) handleButtonEdge(false); // press edge only
+    if (stableBtnOffState != btnOffIdle) handleButtonEdge(false); // press edge only
   }
 }
 
