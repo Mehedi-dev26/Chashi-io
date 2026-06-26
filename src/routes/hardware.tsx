@@ -231,23 +231,23 @@ const unsigned long WIFI_RETRY_MS = 5000;   // WiFi গেলে প্রতি
 float lastGoodTemp = NAN;
 float lastGoodHum  = NAN;
 
-// Button debounce state (momentary push: ১ চাপ = ১ signal)
-int  lastBtnOnState  = HIGH;
-int  lastBtnOffState = HIGH;
-int  stableBtnOnState  = HIGH;
-int  stableBtnOffState = HIGH;
-unsigned long lastBtnOnMs  = 0;
-unsigned long lastBtnOffMs = 0;
-const unsigned long BTN_DEBOUNCE_MS = 40;
-
-// 🆕 Auto-captured idle level (boot-time). বাটন যেভাবেই wire করা থাকুক
-// (GPIO↔GND বা GPIO↔3.3V), idle level capture করে যেকোনো পরিবর্তনকেই press ধরা হবে।
-int btnOnIdle  = HIGH;
-int btnOffIdle = HIGH;
+// Button debounce state — canonical wiring: button between GPIO and GND.
+// INPUT_PULLUP → idle=HIGH, press=LOW. Trigger ONLY on HIGH→LOW edge.
+int lastBtnOnRaw  = HIGH;
+int lastBtnOffRaw = HIGH;
+unsigned long btnOnChangeMs  = 0;
+unsigned long btnOffChangeMs = 0;
+int stableBtnOn  = HIGH;
+int stableBtnOff = HIGH;
+unsigned long btnOnLockoutUntil  = 0;
+unsigned long btnOffLockoutUntil = 0;
+const unsigned long BTN_DEBOUNCE_MS = 30;
+const unsigned long BTN_LOCKOUT_MS  = 400;   // hard lockout = no double-trigger
 
 // বাটন চাপলে ৩ সেকেন্ড dashboard-এর পুরোনো উল্টো command ignore করব
 unsigned long buttonOverrideUntil = 0;
 const unsigned long BUTTON_OVERRIDE_MS = 3000;
+
 
 // =================== DISPLAY HELPERS ===================
 void oledCenter(const String& s, int y, int sz = 1) {
