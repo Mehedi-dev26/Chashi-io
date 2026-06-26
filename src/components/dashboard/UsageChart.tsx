@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useEffect, useMemo, useState } from "react";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useServerFn } from "@tanstack/react-start";
 import { getHourlyUsage } from "@/lib/motorRuntime.functions";
 import { PUMP_SPEC } from "@/hooks/useIrrigationData";
+import { Activity, RefreshCw } from "lucide-react";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
@@ -19,6 +20,8 @@ const emptyData: Row[] = Array.from({ length: 24 }, (_, i) => {
 export function UsageChart() {
   const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<Row[]>(emptyData);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const fetchHourly = useServerFn(getHourlyUsage);
 
   useEffect(() => {
@@ -26,6 +29,7 @@ export function UsageChart() {
     let active = true;
     const load = async () => {
       try {
+        setIsRefreshing(true);
         const r = await fetchHourly({
           data: {
             deviceId: PUMP_SPEC.device_id,
@@ -45,11 +49,17 @@ export function UsageChart() {
             runSec: b.runSec,
           };
         });
-        if (rows.length) setData(rows);
+        if (rows.length) {
+          setData(rows);
+          setLastUpdated(new Date());
+        }
       } catch { /* ignore */ }
+      finally {
+        if (active) setIsRefreshing(false);
+      }
     };
     load();
-    const t = window.setInterval(load, 30000);
+    const t = window.setInterval(load, 5000);
     return () => { active = false; window.clearInterval(t); };
   }, [fetchHourly]);
 
@@ -57,19 +67,31 @@ export function UsageChart() {
   const totalPower = data.reduce((s, r) => s + r.power, 0);
   const totalSec = data.reduce((s, r) => s + r.runSec, 0);
   const hasData = totalSec > 0;
+  const yMax = useMemo(() => Math.max(1, ...data.map((r) => Math.max(r.water, r.power))), [data]);
+  const lastUpdatedText = lastUpdated
+    ? lastUpdated.toLocaleTimeString("bn-BD", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : "লোড হচ্ছে";
 
   return (
     <div className="glass-card rounded-2xl p-5 hover-lift">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-base font-bold">২৪ ঘণ্টার ব্যবহার</h2>
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/12 text-primary ring-1 ring-primary/20">
+              <Activity className="h-4 w-4" />
+            </span>
+            <h2 className="text-base font-bold">২৪ ঘণ্টার ব্যবহার</h2>
+          </div>
           <p className="text-[11px] text-muted-foreground">
             পানি (লিটার) · বিদ্যুৎ (ওয়াট-ঘণ্টা) · মোট রানটাইম {bn(Math.round(totalSec / 60))} মি
           </p>
         </div>
-        <div className="flex items-center gap-3 text-[11px]">
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" /> পানি {bn(totalWater.toFixed(1))} L</span>
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-accent" /> বিদ্যুৎ {bn(totalPower.toFixed(1))} Wh</span>
+        <div className="flex items-center gap-3 text-[11px] flex-wrap justify-end">
+          <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary"><span className="h-2 w-2 rounded-full bg-primary" /> পানি {bn(totalWater.toFixed(1))} L</span>
+          <span className="flex items-center gap-1.5 rounded-full bg-accent/20 px-2.5 py-1 font-semibold text-accent-foreground"><span className="h-2 w-2 rounded-full bg-accent" /> বিদ্যুৎ {bn(totalPower.toFixed(1))} Wh</span>
+          <span className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+            <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} /> {lastUpdatedText}
+          </span>
         </div>
       </div>
 
@@ -92,8 +114,9 @@ export function UsageChart() {
                   <stop offset="95%" stopColor="oklch(0.75 0.15 85)" stopOpacity={0} />
                 </linearGradient>
               </defs>
+              <CartesianGrid stroke="oklch(0.88 0.025 105 / 0.55)" strokeDasharray="4 6" vertical={false} />
               <XAxis dataKey="hour" stroke="oklch(0.55 0.04 160)" tick={{ fontSize: 10 }} interval={3} />
-              <YAxis stroke="oklch(0.55 0.04 160)" tick={{ fontSize: 10 }} />
+              <YAxis stroke="oklch(0.55 0.04 160)" tick={{ fontSize: 10 }} domain={[0, yMax]} allowDecimals />
               <Tooltip
                 contentStyle={{
                   background: "oklch(1 0 0 / 0.95)",
