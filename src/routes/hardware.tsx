@@ -140,13 +140,14 @@ const masterDeviceWiring: DeviceWiring[] = [
 const subDevices = [
   { icon: Radio,        name: "ESP8266 NodeMCU v3",       role: "সাব-নোড MCU (WiFi)",                pin: "—",            price: "৩৫০ ৳" },
   { icon: FlaskConical, name: "TDS Sensor (Gravity)",     role: "মাটির আর্দ্রতা (ppm → %)",          pin: "A0 (ADC)",     price: "৪৫০ ৳" },
+  { icon: Thermometer,  name: "DHT22",                    role: "তাপমাত্রা ও আর্দ্রতা",              pin: "D6",           price: "৩৫০ ৳" },
   { icon: Sun,          name: "LDR + 10kΩ",               role: "সূর্যালোক/দিন-রাত",                 pin: "D5",           price: "৩০ ৳" },
   { icon: RotateCw,     name: "SG90 Servo Motor (৯g)",    role: "পানির লাইন on/off (০°↔৯০°)",        pin: "D2 (PWM)",     price: "১৮০ ৳" },
   { icon: Cable,        name: "পানির লাইন + ফিটিং",       role: "জোনের irrigation pipe",             pin: "Servo arm",    price: "১২০ ৳" },
   { icon: Zap,          name: "৫V ২A অ্যাডাপ্টার",        role: "সাব-নোড পাওয়ার",                    pin: "VIN",          price: "৩৫০ ৳" },
 ];
 
-const subTotalPerNode = "১,৪৮০ ৳";
+const subTotalPerNode = "১,৮৩০ ৳";
 
 /* ---------------- MASTER FIRMWARE ---------------- */
 const buildMasterCode = (serverHost: string) => `/**
@@ -225,6 +226,10 @@ unsigned long motorStartMs  = 0;
 unsigned long motorTotalMs  = 0;            // মোট রানটাইম (ms)
 unsigned long lastSend      = 0;
 const unsigned long SEND_INTERVAL = 2000;   // ⚡ 2s — snappy dashboard sync
+unsigned long lastWifiAttempt = 0;
+const unsigned long WIFI_RETRY_MS = 5000;   // WiFi গেলে প্রতি ৫ সেকেন্ডে auto reconnect
+float lastGoodTemp = NAN;
+float lastGoodHum  = NAN;
 
 // Button debounce state
 int  lastBtnOnState  = HIGH;
@@ -287,6 +292,22 @@ String fmtRuntime(unsigned long ms) {
   return String(buf);
 }
 
+// ✅ DHT22 safe read: invalid/corrupted reads (যেমন 793°C / 169%) dashboard বা OLED-এ যাবে না
+bool readDhtSafe(float &tempC, float &humidity) {
+  float t = dht.readTemperature(false);  // false = Celsius
+  float h = dht.readHumidity();
+
+  bool tOk = !isnan(t) && t >= -40.0 && t <= 80.0;
+  bool hOk = !isnan(h) && h >= 0.0 && h <= 100.0;
+
+  if (tOk) lastGoodTemp = t;
+  if (hOk) lastGoodHum = h;
+
+  tempC = !isnan(lastGoodTemp) ? lastGoodTemp : NAN;
+  humidity = !isnan(lastGoodHum) ? lastGoodHum : NAN;
+  return !isnan(tempC) || !isnan(humidity);
+}
+
 // 🆕 প্রফেশনাল ড্যাশবোর্ড লেআউট
 //   ┌──────────────── header bar (inverse) ──────────────────┐
 //   │   PUMP  ON    (বড়, কেন্দ্রে)                            │
@@ -322,11 +343,19 @@ void drawDashboard(float tank, float lpm, float volt, float curr, float t, float
   oled.setCursor(68, 38);
   oled.printf("FLOW %4.1f", lpm);
 
-  // === DATA ROW 2 : V/A + temp/humid ===
+  // === DATA ROW 2 : V/A + temp/humid (fixed width, never wraps/cuts) ===
   oled.setCursor(2, 48);
   oled.printf("%3.1fV %4.2fA", volt, curr);
-  oled.setCursor(78, 48);
-  oled.printf("%2dC %2d%%", (int)t, (int)h);
+  oled.setCursor(74, 48);
+  if (!isnan(t) && !isnan(h)) {
+    oled.printf("%4.1fC%3d%%", t, (int)round(h));
+  } else if (!isnan(t)) {
+    oled.printf("%4.1fC--%%", t);
+  } else if (!isnan(h)) {
+    oled.printf("--.-C%3d%%", (int)round(h));
+  } else {
+    oled.print("--.-C--%");
+  }
 
   // === DATA ROW 3 : RUNTIME (compact HH:MM:SS, never overflows) ===
   oled.setCursor(2, 57);
@@ -374,18 +403,48 @@ float computeFlowLpm() {
 // =================== NETWORK ===================
 void connectWifi() {
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(false);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  while (WiFi.status() != WL_CONNECTED) { delay(300); Serial.print("."); }
-  Serial.printf("\\n[MASTER] WiFi OK  IP=%s\\n", WiFi.localIP().toString().c_str());
+  unsigned long start = millis();
+  Serial.print("[MASTER] WiFi connecting");
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000UL) {
+    delay(300);
+    Serial.print(".");
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("\\n[MASTER] WiFi OK  IP=%s\\n", WiFi.localIP().toString().c_str());
+  } else {
+    Serial.println("\\n[MASTER] WiFi timeout — system will retry automatically");
+  }
+}
+
+bool ensureWifi() {
+  if (WiFi.status() == WL_CONNECTED) return true;
+  systemOnline = false;
+  if (motorOn) setMotor(false);  // নিরাপত্তা: WiFi/backend হারালে মেইন মোটর সাথে সাথে OFF
+
+  if (millis() - lastWifiAttempt >= WIFI_RETRY_MS) {
+    lastWifiAttempt = millis();
+    Serial.println("[MASTER] WiFi lost — reconnecting...");
+    WiFi.disconnect(false);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+  }
+  float t, h;
+  readDhtSafe(t, h);
+  drawDashboard(readTankPct(), 0.0, 0.0, 0.0, t, h);
+  return false;
 }
 
 void sendTelemetry() {
+  if (!ensureWifi()) return;
+
   float tank = readTankPct();
   float lpm  = computeFlowLpm();
   float volt = motorOn ? PUMP_RATED_VOLTAGE : 0.0;
   float curr = motorOn ? PUMP_RATED_CURRENT : 0.0;
-  float t    = dht.readTemperature();
-  float h    = dht.readHumidity();
+  float t, h;
+  readDhtSafe(t, h);
   unsigned long runMs = motorTotalMs + (motorOn ? (millis() - motorStartMs) : 0);
 
   JsonDocument doc;
@@ -399,21 +458,27 @@ void sendTelemetry() {
   doc["current"]     = curr;
   doc["runtimeSec"]  = runMs / 1000;
   doc["rssi"]        = WiFi.RSSI();
-  if (!isnan(t)) doc["temperature"] = t;
-  if (!isnan(h)) doc["humidity"]    = h;
+  if (!isnan(t)) doc["temperature"] = round(t * 10.0) / 10.0;   // Celsius, ১ decimal
+  if (!isnan(h)) doc["humidity"]    = round(h);                 // 0..100 %RH
 
   String body; serializeJson(doc, body);
   WiFiClientSecure client;
   client.setInsecure();
   HTTPClient http;
   http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
+  http.setTimeout(5000);
   http.addHeader("Content-Type", "application/json");
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
   systemOnline = (code == 200);    // ✅ OLED-এর system status এই ফ্ল্যাগ থেকে আসে
-  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f online=%d\\n",
-                code, tank, lpm, volt, systemOnline ? 1 : 0);
+  if (!systemOnline && motorOn) {
+    setMotor(false);                 // backend unreachable হলে safety OFF
+    lpm = 0.0; volt = 0.0; curr = 0.0;
+    lastSend = 0;                    // মোটর OFF status দ্রুত dashboard-এ sync হবে
+  }
+  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f T=%.1fC H=%.0f%% online=%d\\n",
+                code, tank, lpm, volt, t, h, systemOnline ? 1 : 0);
 
   // dashboard কমান্ড প্রসেস → রিয়েল-টাইম মোটর ON/OFF
   bool motorChanged = false;
@@ -431,7 +496,7 @@ void sendTelemetry() {
   //    → dashboard <১ সেকেন্ডে কনফার্মেশন পায়।
   if (motorChanged) lastSend = 0;
 
-  drawDashboard(tank, lpm, volt, curr, isnan(t) ? 0 : t, isnan(h) ? 0 : h);
+  drawDashboard(tank, lpm, volt, curr, t, h);
 }
 
 // 🆕 ম্যানুয়াল পুশ-বাটন পোলিং (ডিবাউন্স সহ)
@@ -528,6 +593,7 @@ void updateOnlineLed() {
 }
 
 void loop() {
+  ensureWifi();                             // ⬅ WiFi গেলে reboot ছাড়াই auto reconnect
   pollButtons();                           // ⬅ প্রতিটি লুপে বাটন চেক
   updateOnlineLed();                       // ⬅ নীল LED অনলাইন ইন্ডিকেটর
 
@@ -539,8 +605,10 @@ void loop() {
     static unsigned long lastTick = 0;
     if (millis() - lastTick >= 1000) {
       lastTick = millis();
+      float t, h;
+      readDhtSafe(t, h);
       drawDashboard(readTankPct(), computeFlowLpm(), PUMP_RATED_VOLTAGE,
-                    PUMP_RATED_CURRENT, dht.readTemperature(), dht.readHumidity());
+                    PUMP_RATED_CURRENT, t, h);
     }
   }
 }`;
@@ -553,18 +621,20 @@ const buildSubCode = (serverHost: string) => `/**
  *  BMDA Smart Irrigation — SUB NODE (ESP8266 NodeMCU)
  *  স্থান : জমিতে — প্রতিটি জোনে একটি
  *  সেন্সর: TDS sensor (Gravity/generic) → মাটির আর্দ্রতা %
+ *         DHT22 → তাপমাত্রা (°C) + আর্দ্রতা (%RH)
  *         LDR → দিন/রাত
  *  অ্যাকচুয়েটর: SG90 Servo Motor → পানির লাইন on/off (০°=বন্ধ, ৯০°=খোলা)
  *  কাজ  : প্রতি ৫ সেকেন্ডে heartbeat + dashboard থেকে valve কমান্ড গ্রহণ।
  *
  *  Board    : NodeMCU 1.0 (ESP-12E Module)
- *  Libraries: ESP8266WiFi, ESP8266HTTPClient, ArduinoJson, Servo
+ *  Libraries: ESP8266WiFi, ESP8266HTTPClient, ArduinoJson, Servo, DHT sensor library
  */
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecureBearSSL.h>
 #include <ArduinoJson.h>
 #include <Servo.h>
+#include <DHT.h>
 
 // ====== EDIT THESE ======
 const char* WIFI_SSID   = "YOUR_WIFI";
@@ -578,6 +648,8 @@ const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 #define PIN_TDS     A0     // TDS sensor analog (ESP8266-এ একটাই ADC)
 #define PIN_LDR     D5     // LDR digital
 #define PIN_SERVO   D2     // SG90 servo PWM (GPIO4)
+#define PIN_DHT     D6     // DHT22 data (GPIO12)
+#define DHT_TYPE    DHT22
 
 // ---- TDS reference voltage (NodeMCU ADC 0..1023 → 0..3.3V via onboard divider) ----
 const float VREF = 3.3;
@@ -585,12 +657,17 @@ const float ADC_MAX = 1023.0;
 
 // ---- Servo ----
 Servo valveServo;
+DHT dht(PIN_DHT, DHT_TYPE);
 const int SERVO_CLOSED = 0;
 const int SERVO_OPEN   = 90;
 
 bool valveOpen = false;
 unsigned long lastSend = 0;
 const unsigned long SEND_INTERVAL = 5000;
+unsigned long lastWifiAttempt = 0;
+const unsigned long WIFI_RETRY_MS = 5000;
+float lastGoodTemp = NAN;
+float lastGoodHum  = NAN;
 
 void setValve(bool on) {
   valveOpen = on;
@@ -626,14 +703,48 @@ float ppmToMoisturePct(float ppm) {
   return pct;
 }
 
+bool readDhtSafe(float &tempC, float &humidity) {
+  float t = dht.readTemperature(false);  // Celsius
+  float h = dht.readHumidity();
+  bool tOk = !isnan(t) && t >= -40.0 && t <= 80.0;
+  bool hOk = !isnan(h) && h >= 0.0 && h <= 100.0;
+  if (tOk) lastGoodTemp = t;
+  if (hOk) lastGoodHum = h;
+  tempC = !isnan(lastGoodTemp) ? lastGoodTemp : NAN;
+  humidity = !isnan(lastGoodHum) ? lastGoodHum : NAN;
+  return !isnan(tempC) || !isnan(humidity);
+}
+
 void connectWifi() {
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(false);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  while (WiFi.status() != WL_CONNECTED) { delay(300); Serial.print("."); }
-  Serial.printf("\\n[%s] WiFi OK  IP=%s\\n", DEVICE_ID, WiFi.localIP().toString().c_str());
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000UL) { delay(300); Serial.print("."); }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("\\n[%s] WiFi OK  IP=%s\\n", DEVICE_ID, WiFi.localIP().toString().c_str());
+  } else {
+    Serial.printf("\\n[%s] WiFi timeout — retrying in background\\n", DEVICE_ID);
+  }
+}
+
+bool ensureWifi() {
+  if (WiFi.status() == WL_CONNECTED) return true;
+  if (millis() - lastWifiAttempt >= WIFI_RETRY_MS) {
+    lastWifiAttempt = millis();
+    Serial.printf("[%s] WiFi lost — reconnecting...\\n", DEVICE_ID);
+    WiFi.disconnect(false);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+  }
+  return false;
 }
 
 void sendTelemetry() {
+  if (!ensureWifi()) return;
+
+  float tempC, humidity;
+  readDhtSafe(tempC, humidity);
   float ppm  = readTdsPpm(25.0);
   float soil = ppmToMoisturePct(ppm);
   bool  dayLight = digitalRead(PIN_LDR) == LOW;
@@ -647,18 +758,21 @@ void sendTelemetry() {
   doc["ldr"]          = dayLight ? 85 : 10;
   doc["valveOpen"]    = valveOpen;
   doc["rssi"]         = WiFi.RSSI();
+  if (!isnan(tempC))   doc["temperature"] = round(tempC * 10.0) / 10.0;
+  if (!isnan(humidity)) doc["humidity"]   = round(humidity);
 
   String body; serializeJson(doc, body);
   BearSSL::WiFiClientSecure client;
   client.setInsecure();
   HTTPClient http;
   http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
+  http.setTimeout(5000);
   http.addHeader("Content-Type", "application/json");
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
-  Serial.printf("[%s] POST %d  ppm=%.0f soil=%.0f%% valve=%d\\n",
-                ZONE_ID, code, ppm, soil, valveOpen);
+  Serial.printf("[%s] POST %d  ppm=%.0f soil=%.0f%% T=%.1fC H=%.0f%% valve=%d\\n",
+                ZONE_ID, code, ppm, soil, tempC, humidity, valveOpen);
 
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
@@ -673,6 +787,7 @@ void sendTelemetry() {
 void setup() {
   Serial.begin(115200);
   pinMode(PIN_LDR, INPUT);
+  dht.begin();
   valveServo.attach(PIN_SERVO);
   setValve(false);              // boot হলে valve বন্ধ থাকবে
   connectWifi();
@@ -683,6 +798,7 @@ void setup() {
 }
 
 void loop() {
+  ensureWifi();
   if (millis() - lastSend >= SEND_INTERVAL) {
     lastSend = millis();
     sendTelemetry();
