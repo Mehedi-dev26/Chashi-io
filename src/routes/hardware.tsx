@@ -561,7 +561,10 @@ void setup() {
   oled.clearDisplay(); oled.display();
   bootAnimation();
 
+  pinMode(PIN_DHT, INPUT_PULLUP);   // ✅ ESP32 internal pull-up — external 4.7k resistor লাগবে না
   dht.begin();
+  delay(2500);                       // DHT22 warmup (without external pull-up একটু বেশি সময় লাগে)
+
   connectWifi();
 
   // ✅ Boot-time heartbeat — dashboard সাথে সাথে ONLINE বুঝবে
