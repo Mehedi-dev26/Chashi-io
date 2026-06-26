@@ -293,6 +293,7 @@ void sendTelemetry() {
   if (!systemOnline && motorOn) {
     setMotor(false);
     lpm = 0.0; volt = 0.0; curr = 0.0;
+    lastSend = 0;
   }
 
   Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f T=%.1fC H=%.0f%% online=%d\n",

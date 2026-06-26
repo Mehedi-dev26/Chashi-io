@@ -475,6 +475,7 @@ void sendTelemetry() {
   if (!systemOnline && motorOn) {
     setMotor(false);                 // backend unreachable হলে safety OFF
     lpm = 0.0; volt = 0.0; curr = 0.0;
+    lastSend = 0;                    // মোটর OFF status দ্রুত dashboard-এ sync হবে
   }
   Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f T=%.1fC H=%.0f%% online=%d\\n",
                 code, tank, lpm, volt, t, h, systemOnline ? 1 : 0);
