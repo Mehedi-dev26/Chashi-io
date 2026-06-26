@@ -148,8 +148,14 @@ bool readDhtSafe(float &tempC, float &humidity) {
   }
   lastDhtReadMs = millis();
 
-  float t = dht.readTemperature(false);  // Celsius
-  float h = dht.readHumidity();
+  // Retry up to 3 times — works reliably without external pull-up using INPUT_PULLUP
+  float t = NAN, h = NAN;
+  for (int i = 0; i < 3; i++) {
+    t = dht.readTemperature(false);
+    h = dht.readHumidity();
+    if (!isnan(t) && !isnan(h)) break;
+    delay(60);
+  }
 
   bool tOk = !isnan(t) && t >= -40.0 && t <= 80.0;
   bool hOk = !isnan(h) && h >= 0.0 && h <= 100.0;
@@ -161,8 +167,9 @@ bool readDhtSafe(float &tempC, float &humidity) {
   humidity = !isnan(lastGoodHum) ? lastGoodHum : NAN;
 
   if (!tOk && !hOk) {
-    Serial.println("[DHT] read failed (NaN) — check wiring & 4.7k pull-up on DATA→3.3V");
+    Serial.println("[DHT] read failed — using internal pull-up; check DATA wire to GPIO 4");
   }
+
   return !isnan(tempC) || !isnan(humidity);
 }
 
