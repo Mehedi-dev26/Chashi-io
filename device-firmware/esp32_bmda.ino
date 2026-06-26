@@ -133,14 +133,14 @@ String fmtRuntime(unsigned long ms) {
 }
 
 bool readDhtSafe(float &tempC, float &humidity) {
-  // Skip until sensor warmup completes (DHT22 needs ~1.5s after power-on)
+  // Warmup window: serve cache (likely NaN at first) while DHT22 stabilises
   if (millis() < dhtWarmupUntil) {
     tempC = lastGoodTemp;
     humidity = lastGoodHum;
     return !isnan(tempC) || !isnan(humidity);
   }
 
-  // Throttle: DHT22 returns NaN if polled < 2s apart. Serve from cache otherwise.
+  // Throttle: DHT22 needs >= 2s between physical reads — serve cache between
   if (lastDhtReadMs != 0 && (millis() - lastDhtReadMs) < DHT_MIN_INTERVAL) {
     tempC = lastGoodTemp;
     humidity = lastGoodHum;
@@ -148,7 +148,7 @@ bool readDhtSafe(float &tempC, float &humidity) {
   }
   lastDhtReadMs = millis();
 
-  // Retry up to 3 times — works reliably without external pull-up using INPUT_PULLUP
+  // Retry up to 3 times to ride out single-frame CRC errors
   float t = NAN, h = NAN;
   for (int i = 0; i < 3; i++) {
     t = dht.readTemperature(false);
@@ -157,17 +157,20 @@ bool readDhtSafe(float &tempC, float &humidity) {
     delay(60);
   }
 
-  bool tOk = !isnan(t) && t >= -40.0 && t <= 80.0;
-  bool hOk = !isnan(h) && h >= 0.0 && h <= 100.0;
+  // ⚠️ Show whatever the sensor reports — NaN-only guard.
+  // Tight bounds (e.g. 0–100%RH) previously dropped real readings whenever
+  // the sensor briefly returned high values like 173 → both OLED and dashboard
+  // went blank. Trust the sensor; user-facing display is the truth.
+  if (!isnan(t)) lastGoodTemp = t;
+  if (!isnan(h)) lastGoodHum = h;
 
-  if (tOk) lastGoodTemp = t;
-  if (hOk) lastGoodHum = h;
+  tempC = lastGoodTemp;
+  humidity = lastGoodHum;
 
-  tempC = !isnan(lastGoodTemp) ? lastGoodTemp : NAN;
-  humidity = !isnan(lastGoodHum) ? lastGoodHum : NAN;
-
-  if (!tOk && !hOk) {
-    Serial.println("[DHT] read failed — using internal pull-up; check DATA wire to GPIO 4");
+  if (isnan(t) && isnan(h)) {
+    Serial.println("[DHT] read failed (NaN) — wiring / power / sensor issue");
+  } else {
+    Serial.printf("[DHT] raw t=%.1fC h=%.1f%%\n", t, h);
   }
 
   return !isnan(tempC) || !isnan(humidity);
