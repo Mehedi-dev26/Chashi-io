@@ -205,54 +205,28 @@ function DevicesPage() {
                 key={n.id}
                 className="rounded-2xl border-2 bg-card/70 backdrop-blur p-4 transition-all hover:shadow-lg animate-fade-in"
                 style={{
-                  borderColor: !online
-                    ? "color-mix(in oklab, var(--color-destructive) 35%, transparent)"
-                    : valveOpen
-                      ? "color-mix(in oklab, var(--color-success) 55%, transparent)"
-                      : "color-mix(in oklab, var(--color-border) 100%, transparent)",
+                  borderColor: valveOpen
+                    ? "color-mix(in oklab, var(--color-success) 50%, transparent)"
+                    : "color-mix(in oklab, var(--color-border) 100%, transparent)",
                   animationDelay: `${i * 40}ms`,
                 }}
               >
-                {/* Header */}
+                {/* Header — মোটর পেজের মতো */}
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className={`h-9 w-9 rounded-xl grid place-items-center shrink-0 ${online ? "bg-gradient-to-br from-emerald-500 to-sky-500 text-white" : "bg-rose-500/15 text-rose-600"}`}>
-                      <Cpu className="h-4.5 w-4.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-mono text-[10px] text-muted-foreground">{n.device_id}</p>
-                      <p className="text-sm font-extrabold leading-tight truncate">{n.label}</p>
-                    </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-mono text-muted-foreground">{n.device_id}</p>
+                    <p className="text-sm font-extrabold truncate">{n.label}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {assignedZone ? `${assignedZone.id} · ${assignedZone.nameBn}` : "— unassigned —"}
+                    </p>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <Badge variant={online ? "default" : "destructive"} className="gap-1 text-[10px] h-5 px-2">
-                      {online ? <Wifi className="h-2.5 w-2.5" /> : <WifiOff className="h-2.5 w-2.5" />}
-                      {online ? "LIVE" : "OFFLINE"}
-                    </Badge>
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${online ? "bg-success animate-pulse" : "bg-muted-foreground/40"}`}
+                      title={online ? "অনলাইন" : "অফলাইন"}
+                    />
                     <WifiBars rssi={t?.rssi ?? null} online={online} />
                   </div>
-                </div>
-
-                {/* Field assignment */}
-                <div className="mb-3 rounded-lg bg-muted/40 p-2.5">
-                  <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-3 w-3" /> জমিতে assign
-                  </Label>
-                  <select
-                    value={n.zone_id ?? ""}
-                    onChange={(e) => onAssign(n, e.target.value)}
-                    className="mt-1 w-full h-9 px-2 rounded-md border border-input bg-background text-xs"
-                  >
-                    <option value="">— unassigned —</option>
-                    {zones.map((z) => (
-                      <option key={z.id} value={z.id} disabled={z.hasNode && z.valveNodeId !== n.device_id}>
-                        {z.id} · {z.nameBn} {z.hasNode && z.valveNodeId !== n.device_id ? "(নেওয়া)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                  {assignedZone && (
-                    <p className="text-[10px] text-emerald-600 mt-1 font-semibold">✓ {assignedZone.nameBn}-এর সাথে যুক্ত</p>
-                  )}
                 </div>
 
                 {/* মাটির আর্দ্রতা (SM) */}
@@ -283,37 +257,54 @@ function DevicesPage() {
                   </div>
                 </div>
 
-                {/* Status + Valve */}
-                <div className="flex items-center justify-between gap-2 mb-3">
+                {/* Status pill + Valve toggle (মোটর পেজের সাব-নোড কার্ডের মতো) */}
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: `${status.color}22`, color: status.color }}>
                     ● {status.label}
                   </span>
-                  {t?.temperature != null && (
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1 font-mono">
-                      <Thermometer className="h-3 w-3" /> {bn(t.temperature.toFixed(0))}°C
-                    </span>
-                  )}
+                  <button
+                    onClick={() => toggleValve(n)}
+                    disabled={!online || pending[n.device_id] || !n.zone_id}
+                    className={`h-8 px-3 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                      !online || !n.zone_id ? "bg-muted text-muted-foreground/60 cursor-not-allowed"
+                      : valveOpen
+                        ? "bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-md hover:shadow-lg"
+                        : "bg-gradient-to-r from-emerald-500 to-sky-500 text-white shadow-md hover:shadow-lg"
+                    }`}
+                  >
+                    <Droplets className="h-3 w-3" />
+                    {!n.zone_id ? "assign করুন"
+                      : pending[n.device_id] ? "পাঠানো…"
+                      : !online ? "অফলাইন"
+                      : valveOpen ? "বন্ধ করুন" : "চালু করুন"}
+                  </button>
                 </div>
 
-                <button
-                  onClick={() => toggleValve(n)}
-                  disabled={!online || pending[n.device_id] || !n.zone_id}
-                  className={`w-full rounded-lg py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                    !online || !n.zone_id ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : valveOpen ? "bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow shadow-rose-500/30 hover:shadow-lg"
-                    : "bg-gradient-to-r from-emerald-500 to-sky-500 text-white shadow shadow-emerald-500/30 hover:shadow-lg"
-                  }`}
-                >
-                  <Droplets className="h-4 w-4" />
-                  {!n.zone_id ? "জমিতে assign করুন"
-                    : pending[n.device_id] ? "পাঠানো হচ্ছে…"
-                    : !online ? "অফলাইন"
-                    : valveOpen ? "Servo বন্ধ করুন" : "Servo খুলুন"}
-                  {online && valveOpen && <span className="h-2 w-2 rounded-full bg-white animate-pulse" />}
-                </button>
+                {/* Assign dropdown — কম্প্যাক্ট ভাবে */}
+                <div className="mt-3 rounded-lg bg-muted/40 p-2">
+                  <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> জমিতে assign
+                  </Label>
+                  <select
+                    value={n.zone_id ?? ""}
+                    onChange={(e) => onAssign(n, e.target.value)}
+                    className="mt-1 w-full h-8 px-2 rounded-md border border-input bg-background text-xs"
+                  >
+                    <option value="">— unassigned —</option>
+                    {zones.map((z) => (
+                      <option key={z.id} value={z.id} disabled={z.hasNode && z.valveNodeId !== n.device_id}>
+                        {z.id} · {z.nameBn} {z.hasNode && z.valveNodeId !== n.device_id ? "(নেওয়া)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
+                {/* Footer: heartbeat + eye/delete */}
                 <div className="mt-3 pt-3 border-t flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span>{t ? `heartbeat: ${ago(t.updated_at)} আগে` : "ডেটা নেই"}</span>
+                  <span className="flex items-center gap-1.5">
+                    {online ? <Wifi className="h-3 w-3 text-success" /> : <WifiOff className="h-3 w-3 text-rose-500" />}
+                    {t ? `${ago(t.updated_at)} আগে` : "ডেটা নেই"}
+                  </span>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setInfoNode(n)}
