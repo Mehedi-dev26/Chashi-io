@@ -761,9 +761,8 @@ const buildSubCode = (serverHost: string) => `/**
 
  *  BMDA Smart Irrigation — SUB NODE (ESP8266 NodeMCU)
  *  স্থান : জমিতে — প্রতিটি জোনে একটি
- *  সেন্সর: TDS sensor (Gravity/generic) → মাটির আর্দ্রতা %
+ *  সেন্সর: Capacitive Soil Moisture Sensor v1.2 → জমির আর্দ্রতা %
  *         DHT22 → তাপমাত্রা (°C) + আর্দ্রতা (%RH)
- *         LDR → দিন/রাত
  *  অ্যাকচুয়েটর: SG90 Servo Motor → পানির লাইন on/off (০°=বন্ধ, ৯০°=খোলা)
  *  কাজ  : প্রতি ৫ সেকেন্ডে heartbeat + dashboard থেকে valve কমান্ড গ্রহণ।
  *
@@ -786,15 +785,16 @@ const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 // ========================
 
 // ---- Pins ----
-#define PIN_TDS     A0     // TDS sensor analog (ESP8266-এ একটাই ADC)
-#define PIN_LDR     D5     // LDR digital
+#define PIN_SOIL    A0     // Capacitive Soil Moisture analog (ESP8266-এ একটাই ADC)
 #define PIN_SERVO   D2     // SG90 servo PWM (GPIO4)
 #define PIN_DHT     D6     // DHT22 data (GPIO12)
 #define DHT_TYPE    DHT22
 
-// ---- TDS reference voltage (NodeMCU ADC 0..1023 → 0..3.3V via onboard divider) ----
-const float VREF = 3.3;
-const float ADC_MAX = 1023.0;
+// ---- Soil sensor calibration (নিজের সেন্সরে একবার মাপুন) ----
+// AIR  : সেন্সর বাতাসে → শুকনো reference (raw বড়)
+// WATER: সেন্সর পানিতে → ভেজা reference (raw ছোট)
+const int SOIL_AIR   = 750;   // dry (০%)
+const int SOIL_WATER = 320;   // saturated (১০০%)
 
 // ---- Servo ----
 Servo valveServo;
@@ -816,30 +816,13 @@ void setValve(bool on) {
   Serial.printf("[%s] SERVO → %s (%d°)\\n", ZONE_ID, on ? "OPEN" : "CLOSED", on ? SERVO_OPEN : SERVO_CLOSED);
 }
 
-// ---- TDS → soil moisture conversion ----
-// raw ADC → voltage → (with temp comp.) → TDS ppm → mapped to moisture %
-// dry মাটি = কম conductivity = কম ppm; ভেজা মাটি = বেশি conductivity = বেশি ppm
-float readTdsPpm(float tempC = 25.0) {
-  // ৩০টি স্যাম্পল গড় — noise কমায়
+// ---- Soil moisture: capacitive sensor (analog) ----
+// raw ADC: শুকনো মাটিতে বড়, ভেজা মাটিতে ছোট → ক্যালিব্রেশন দিয়ে 0..100% map
+float readSoilMoisturePct() {
   long sum = 0;
-  for (int i = 0; i < 30; i++) { sum += analogRead(PIN_TDS); delay(2); }
+  for (int i = 0; i < 30; i++) { sum += analogRead(PIN_SOIL); delay(2); }
   float avg = sum / 30.0;
-  float voltage = avg * VREF / ADC_MAX;
-  float compCoef = 1.0 + 0.02 * (tempC - 25.0);
-  float compV = voltage / compCoef;
-  // Gravity TDS standard polynomial
-  float tds = (133.42 * compV * compV * compV
-             - 255.86 * compV * compV
-             + 857.39 * compV) * 0.5;
-  if (tds < 0) tds = 0;
-  return tds;
-}
-
-float ppmToMoisturePct(float ppm) {
-  // ক্যালিব্রেশন: dry ≈ 0 ppm, saturated ≈ 1000 ppm (নিজের মাটিতে ক্যালিব্রেট করুন)
-  const float PPM_DRY = 0.0;
-  const float PPM_WET = 1000.0;
-  float pct = (ppm - PPM_DRY) * 100.0 / (PPM_WET - PPM_DRY);
+  float pct = (float)(SOIL_AIR - avg) * 100.0 / (float)(SOIL_AIR - SOIL_WATER);
   if (pct < 0) pct = 0; if (pct > 100) pct = 100;
   return pct;
 }
@@ -886,17 +869,13 @@ void sendTelemetry() {
 
   float tempC, humidity;
   readDhtSafe(tempC, humidity);
-  float ppm  = readTdsPpm(25.0);
-  float soil = ppmToMoisturePct(ppm);
-  bool  dayLight = digitalRead(PIN_LDR) == LOW;
+  float soil = readSoilMoisturePct();
 
   JsonDocument doc;
   doc["deviceId"]     = DEVICE_ID;
   doc["zoneId"]       = ZONE_ID;
   doc["role"]         = "sub";
   doc["soilMoisture"] = soil;
-  doc["tdsPpm"]       = ppm;
-  doc["ldr"]          = dayLight ? 85 : 10;
   doc["valveOpen"]    = valveOpen;
   doc["rssi"]         = WiFi.RSSI();
   if (!isnan(tempC))   doc["temperature"] = round(tempC * 10.0) / 10.0;
@@ -912,8 +891,8 @@ void sendTelemetry() {
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
-  Serial.printf("[%s] POST %d  ppm=%.0f soil=%.0f%% T=%.1fC H=%.0f%% valve=%d\\n",
-                ZONE_ID, code, ppm, soil, tempC, humidity, valveOpen);
+  Serial.printf("[%s] POST %d  soil=%.0f%% T=%.1fC H=%.0f%% valve=%d\\n",
+                ZONE_ID, code, soil, tempC, humidity, valveOpen);
 
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
@@ -927,7 +906,6 @@ void sendTelemetry() {
 
 void setup() {
   Serial.begin(115200);
-  pinMode(PIN_LDR, INPUT);
   dht.begin();
   valveServo.attach(PIN_SERVO);
   setValve(false);              // boot হলে valve বন্ধ থাকবে
