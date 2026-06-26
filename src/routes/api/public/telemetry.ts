@@ -59,12 +59,31 @@ export const Route = createFileRoute("/api/public/telemetry")({
           // Read previous row to compute runtime delta for the monthly log
           const { data: prev } = await supabaseAdmin
             .from("device_telemetry")
-            .select("runtime_sec, motor_on, temperature, humidity")
+            .select("runtime_sec, motor_on, temperature, humidity, updated_at")
             .eq("zone_id", effectiveZoneId)
             .maybeSingle();
 
           const temperature = cleanTemperature(body.temperature) ?? cleanTemperature(prev?.temperature);
           const humidity = cleanHumidity(body.humidity) ?? cleanHumidity(prev?.humidity);
+
+          const nowMs = Date.now();
+          const motorOnNow = body.motorOn != null ? Boolean(body.motorOn) : false;
+
+          // Wall-clock based runtime delta — survives ESP32 reboots.
+          // Counts seconds whenever the motor was ON at the previous sample
+          // OR at this sample, capped at 60s per sample so long offline gaps
+          // don't inflate the counter.
+          let wallDeltaSec = 0;
+          if (prev?.updated_at) {
+            const elapsed = Math.floor((nowMs - new Date(prev.updated_at).getTime()) / 1000);
+            if (elapsed > 0 && elapsed <= 60 && (motorOnNow || prev?.motor_on)) {
+              wallDeltaSec = elapsed;
+            }
+          }
+
+          // Cumulative server-tracked runtime — independent of firmware boot state.
+          const prevServerRt = Number(prev?.runtime_sec ?? 0);
+          const cumulativeRt = prevServerRt + wallDeltaSec;
 
           const row = {
             zone_id: effectiveZoneId,
@@ -75,14 +94,14 @@ export const Route = createFileRoute("/api/public/telemetry")({
             temperature,
             humidity,
             valve_open: Boolean(body.valveOpen ?? false),
-            motor_on: body.motorOn != null ? Boolean(body.motorOn) : false,
+            motor_on: motorOnNow,
             flow_lpm: body.flowLpm != null ? Number(body.flowLpm) : null,
             voltage: body.voltage != null ? Number(body.voltage) : null,
             current: body.current != null ? Number(body.current) : null,
-            runtime_sec: newRuntimeSec,
+            runtime_sec: cumulativeRt,
             rssi: body.rssi != null ? Number(body.rssi) : null,
             tds_ppm: body.tdsPpm != null ? Number(body.tdsPpm) : null,
-            updated_at: new Date().toISOString(),
+            updated_at: new Date(nowMs).toISOString(),
           };
 
           const { error: upErr } = await supabaseAdmin
@@ -90,18 +109,12 @@ export const Route = createFileRoute("/api/public/telemetry")({
             .upsert(row, { onConflict: "zone_id" });
           if (upErr) console.error("[telemetry] upsert", upErr);
 
-          // Append runtime delta (only when motor ran between samples)
-          if (newRuntimeSec != null && prev?.runtime_sec != null) {
-            const prevRt = Number(prev.runtime_sec);
-            let delta = newRuntimeSec - prevRt;
-            if (delta < 0) delta = row.motor_on ? newRuntimeSec : 0; // reboot
-            if (delta > 600) delta = 0;                              // gap too big
-            if (delta > 0) {
-              await supabaseAdmin.from("motor_runtime_log").insert({
-                device_id: String(body.deviceId),
-                delta_sec: Math.round(delta),
-              });
-            }
+          // Persist runtime delta for hourly/monthly aggregation.
+          if (wallDeltaSec > 0) {
+            await supabaseAdmin.from("motor_runtime_log").insert({
+              device_id: String(body.deviceId),
+              delta_sec: wallDeltaSec,
+            });
           }
 
           // Pop pending commands for this device
