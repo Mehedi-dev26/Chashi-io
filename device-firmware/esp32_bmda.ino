@@ -81,6 +81,12 @@ unsigned long lastBtnOnMs = 0;
 unsigned long lastBtnOffMs = 0;
 const unsigned long BTN_DEBOUNCE_MS = 40;
 
+// Auto-detected idle level for each button. Captured at boot from the
+// actual pin reading, so the firmware works whether the button is wired
+// to GND (active LOW with pull-up) OR to 3.3V (active HIGH with pull-down).
+int btnOnIdle  = HIGH;
+int btnOffIdle = HIGH;
+
 // After a physical button press, ignore opposing server commands briefly
 // so a stale queued dashboard command can't immediately revert the user.
 unsigned long buttonOverrideUntil = 0;
@@ -385,18 +391,30 @@ void pollButtons() {
   int rawOn  = digitalRead(PIN_BTN_ON);
   int rawOff = digitalRead(PIN_BTN_OFF);
 
-  // ON button — debounce on stable state
+  // Diagnostic heartbeat — prints raw button states every 3s.
+  // Use this in Serial Monitor (115200) to verify your wiring:
+  //   "[BTN] raw ON=1 OFF=1" idle → pressing should flip to 0 (or vice-versa).
+  static unsigned long lastBtnLog = 0;
+  if (millis() - lastBtnLog > 3000) {
+    lastBtnLog = millis();
+    Serial.print("[BTN] raw ON="); Serial.print(rawOn);
+    Serial.print(" OFF="); Serial.print(rawOff);
+    Serial.print("  idle ON="); Serial.print(btnOnIdle);
+    Serial.print(" OFF="); Serial.println(btnOffIdle);
+  }
+
+  // ON button — debounce on stable state; trigger when leaving idle level
   if (rawOn != lastBtnOnState) { lastBtnOnMs = millis(); lastBtnOnState = rawOn; }
   if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOnState) {
     stableBtnOnState = rawOn;
-    if (stableBtnOnState == LOW) handleButtonEdge(true);   // press edge only
+    if (stableBtnOnState != btnOnIdle) handleButtonEdge(true);   // press edge only
   }
 
-  // OFF button — debounce on stable state
+  // OFF button — debounce on stable state; trigger when leaving idle level
   if (rawOff != lastBtnOffState) { lastBtnOffMs = millis(); lastBtnOffState = rawOff; }
   if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOffState) {
     stableBtnOffState = rawOff;
-    if (stableBtnOffState == LOW) handleButtonEdge(false); // press edge only
+    if (stableBtnOffState != btnOffIdle) handleButtonEdge(false); // press edge only
   }
 }
 
@@ -430,6 +448,17 @@ void setup() {
   pinMode(PIN_ECHO, INPUT);
   pinMode(PIN_BTN_ON, INPUT_PULLUP);
   pinMode(PIN_BTN_OFF, INPUT_PULLUP);
+  // Sample the resting state of each button right after pinMode. Whatever the
+  // pin reads while idle becomes the "not pressed" baseline — so any wiring
+  // that produces a CHANGE on press will trigger correctly. Button must be
+  // wired between the GPIO and GND (active-LOW with internal pull-up).
+  delay(20);
+  btnOnIdle  = digitalRead(PIN_BTN_ON);
+  btnOffIdle = digitalRead(PIN_BTN_OFF);
+  lastBtnOnState = stableBtnOnState = btnOnIdle;
+  lastBtnOffState = stableBtnOffState = btnOffIdle;
+  Serial.print("[BTN] idle captured  ON="); Serial.print(btnOnIdle);
+  Serial.print("  OFF="); Serial.println(btnOffIdle);
   pinMode(PIN_LED_ONLINE, OUTPUT);
   ledWrite(false);
 

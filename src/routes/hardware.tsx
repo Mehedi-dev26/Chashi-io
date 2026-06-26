@@ -240,6 +240,11 @@ unsigned long lastBtnOnMs  = 0;
 unsigned long lastBtnOffMs = 0;
 const unsigned long BTN_DEBOUNCE_MS = 40;
 
+// 🆕 Auto-captured idle level (boot-time). বাটন যেভাবেই wire করা থাকুক
+// (GPIO↔GND বা GPIO↔3.3V), idle level capture করে যেকোনো পরিবর্তনকেই press ধরা হবে।
+int btnOnIdle  = HIGH;
+int btnOffIdle = HIGH;
+
 // বাটন চাপলে ৩ সেকেন্ড dashboard-এর পুরোনো উল্টো command ignore করব
 unsigned long buttonOverrideUntil = 0;
 const unsigned long BUTTON_OVERRIDE_MS = 3000;
@@ -546,18 +551,29 @@ void pollButtons() {
   int rawOn  = digitalRead(PIN_BTN_ON);
   int rawOff = digitalRead(PIN_BTN_OFF);
 
-  // ON — stable-state edge after debounce
+  // 🔍 Diagnostic — প্রতি 3s এ raw state print হবে, Serial Monitor (115200)
+  //    এ দেখুন: idle → "raw ON=1 OFF=1", চাপলে → "raw ON=0" (বা wiring ভেদে 1)
+  static unsigned long lastBtnLog = 0;
+  if (millis() - lastBtnLog > 3000) {
+    lastBtnLog = millis();
+    Serial.print("[BTN] raw ON="); Serial.print(rawOn);
+    Serial.print(" OFF="); Serial.print(rawOff);
+    Serial.print("  idle ON="); Serial.print(btnOnIdle);
+    Serial.print(" OFF="); Serial.println(btnOffIdle);
+  }
+
+  // ON — stable-state edge after debounce; trigger যখন idle level থেকে সরে যায়
   if (rawOn != lastBtnOnState) { lastBtnOnMs = millis(); lastBtnOnState = rawOn; }
   if ((millis() - lastBtnOnMs) > BTN_DEBOUNCE_MS && rawOn != stableBtnOnState) {
     stableBtnOnState = rawOn;
-    if (stableBtnOnState == LOW) handleButtonEdge(true);   // press edge only
+    if (stableBtnOnState != btnOnIdle) handleButtonEdge(true);   // press edge only
   }
 
   // OFF — stable-state edge after debounce
   if (rawOff != lastBtnOffState) { lastBtnOffMs = millis(); lastBtnOffState = rawOff; }
   if ((millis() - lastBtnOffMs) > BTN_DEBOUNCE_MS && rawOff != stableBtnOffState) {
     stableBtnOffState = rawOff;
-    if (stableBtnOffState == LOW) handleButtonEdge(false); // press edge only
+    if (stableBtnOffState != btnOffIdle) handleButtonEdge(false); // press edge only
   }
 }
 
@@ -572,6 +588,15 @@ void setup() {
   // 🆕 push buttons — INPUT_PULLUP (একপাশ GPIO, অন্যপাশ GND)
   pinMode(PIN_BTN_ON,  INPUT_PULLUP);
   pinMode(PIN_BTN_OFF, INPUT_PULLUP);
+  // 🆕 Auto-capture idle level — pinMode-এর পর pin যা পড়ে সেটাই "not pressed"
+  //    baseline। যেকোনো wiring (button→GND বা button→3.3V) এতে কাজ করবে।
+  delay(20);
+  btnOnIdle  = digitalRead(PIN_BTN_ON);
+  btnOffIdle = digitalRead(PIN_BTN_OFF);
+  lastBtnOnState  = stableBtnOnState  = btnOnIdle;
+  lastBtnOffState = stableBtnOffState = btnOffIdle;
+  Serial.print("[BTN] idle captured  ON="); Serial.print(btnOnIdle);
+  Serial.print("  OFF="); Serial.println(btnOffIdle);
 
   // 🆕 অনলাইন স্ট্যাটাস LED
   pinMode(PIN_LED_ONLINE, OUTPUT);
