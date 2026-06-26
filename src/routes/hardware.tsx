@@ -231,12 +231,18 @@ const unsigned long WIFI_RETRY_MS = 5000;   // WiFi গেলে প্রতি
 float lastGoodTemp = NAN;
 float lastGoodHum  = NAN;
 
-// Button debounce state
+// Button debounce state (momentary push: ১ চাপ = ১ signal)
 int  lastBtnOnState  = HIGH;
 int  lastBtnOffState = HIGH;
+int  stableBtnOnState  = HIGH;
+int  stableBtnOffState = HIGH;
 unsigned long lastBtnOnMs  = 0;
 unsigned long lastBtnOffMs = 0;
-const unsigned long BTN_DEBOUNCE_MS = 50;
+const unsigned long BTN_DEBOUNCE_MS = 40;
+
+// বাটন চাপলে ৩ সেকেন্ড dashboard-এর পুরোনো উল্টো command ignore করব
+unsigned long buttonOverrideUntil = 0;
+const unsigned long BUTTON_OVERRIDE_MS = 3000;
 
 // =================== DISPLAY HELPERS ===================
 void oledCenter(const String& s, int y, int sz = 1) {
