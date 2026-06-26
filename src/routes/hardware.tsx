@@ -140,6 +140,7 @@ const masterDeviceWiring: DeviceWiring[] = [
 const subDevices = [
   { icon: Radio,        name: "ESP8266 NodeMCU v3",       role: "সাব-নোড MCU (WiFi)",                pin: "—",            price: "৩৫০ ৳" },
   { icon: FlaskConical, name: "TDS Sensor (Gravity)",     role: "মাটির আর্দ্রতা (ppm → %)",          pin: "A0 (ADC)",     price: "৪৫০ ৳" },
+  { icon: Thermometer,  name: "DHT22",                    role: "তাপমাত্রা ও আর্দ্রতা",              pin: "D6",           price: "৩৫০ ৳" },
   { icon: Sun,          name: "LDR + 10kΩ",               role: "সূর্যালোক/দিন-রাত",                 pin: "D5",           price: "৩০ ৳" },
   { icon: RotateCw,     name: "SG90 Servo Motor (৯g)",    role: "পানির লাইন on/off (০°↔৯০°)",        pin: "D2 (PWM)",     price: "১৮০ ৳" },
   { icon: Cable,        name: "পানির লাইন + ফিটিং",       role: "জোনের irrigation pipe",             pin: "Servo arm",    price: "১২০ ৳" },
