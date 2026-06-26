@@ -786,16 +786,16 @@ const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 // ========================
 
 // ---- Pins ----
-#define PIN_SOIL    A0     // Capacitive Soil Moisture analog (ESP8266-এ একটাই ADC)
+#define PIN_SOIL    A0     // YL-69 (AO) analog (ESP8266-এ একটাই ADC)
 #define PIN_SERVO   D2     // SG90 servo PWM (GPIO4)
 #define PIN_DHT     D6     // DHT22 data (GPIO12)
 #define DHT_TYPE    DHT22
 
-// ---- Soil sensor calibration (নিজের সেন্সরে একবার মাপুন) ----
-// AIR  : সেন্সর বাতাসে → শুকনো reference (raw বড়)
-// WATER: সেন্সর পানিতে → ভেজা reference (raw ছোট)
-const int SOIL_AIR   = 750;   // dry (০%)
-const int SOIL_WATER = 320;   // saturated (১০০%)
+// ---- Soil sensor calibration (YL-69 resistive — নিজের সেন্সরে একবার মাপুন) ----
+// AIR  : প্রোব শুকনো বাতাসে → raw বড় (~900-1024)
+// WATER: প্রোব পানিতে ডুবানো → raw ছোট (~280-350)
+const int SOIL_AIR   = 900;   // dry (০%)
+const int SOIL_WATER = 300;   // saturated (১০০%)
 
 // ---- Servo ----
 Servo valveServo;
