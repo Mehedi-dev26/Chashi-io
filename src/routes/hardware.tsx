@@ -225,6 +225,10 @@ unsigned long motorStartMs  = 0;
 unsigned long motorTotalMs  = 0;            // মোট রানটাইম (ms)
 unsigned long lastSend      = 0;
 const unsigned long SEND_INTERVAL = 2000;   // ⚡ 2s — snappy dashboard sync
+unsigned long lastWifiAttempt = 0;
+const unsigned long WIFI_RETRY_MS = 5000;   // WiFi গেলে প্রতি ৫ সেকেন্ডে auto reconnect
+float lastGoodTemp = NAN;
+float lastGoodHum  = NAN;
 
 // Button debounce state
 int  lastBtnOnState  = HIGH;
