@@ -411,8 +411,10 @@ void setup() {
   oled.display();
   bootAnimation();
 
+  pinMode(PIN_DHT, INPUT_PULLUP);   // enable ESP32 internal pull-up — no external 4.7k needed
   dht.begin();
-  dhtWarmupUntil = millis() + 1800;  // give DHT22 ~1.8s to stabilise
+  dhtWarmupUntil = millis() + 2500;  // give DHT22 ~2.5s to stabilise without external pull-up
+
   connectWifi();
 
   Serial.println("[MASTER] System online — sending boot heartbeat");
