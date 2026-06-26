@@ -139,7 +139,7 @@ const masterDeviceWiring: DeviceWiring[] = [
 
 const subDevices = [
   { icon: Radio,        name: "ESP8266 NodeMCU v3",              role: "সাব-নোড MCU (WiFi)",                       pin: "—",            price: "৩৫০ ৳" },
-  { icon: Sprout,       name: "Capacitive Soil Moisture v1.2",   role: "জমির আর্দ্রতা (analog → %)",               pin: "A0 (ADC)",     price: "১৮০ ৳" },
+  { icon: Sprout,       name: "YL-69 Soil Moisture Sensor (+YL-38 comparator)",  role: "জমির আর্দ্রতা (২-প্রোব resistive → analog %)",  pin: "A0 (ADC)",     price: "১৫০ ৳" },
   { icon: Thermometer,  name: "DHT22",                           role: "তাপমাত্রা ও আর্দ্রতা",                      pin: "D6",           price: "৩৫০ ৳" },
   { icon: RotateCw,     name: "SG90 Servo Motor (৯g)",           role: "পানির লাইন on/off (০°↔৯০°)",                pin: "D2 (PWM)",     price: "১৮০ ৳" },
   { icon: Cable,        name: "পানির লাইন + ফিটিং",              role: "জোনের irrigation pipe",                     pin: "Servo arm",    price: "১২০ ৳" },
