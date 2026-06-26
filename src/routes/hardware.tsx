@@ -762,7 +762,7 @@ const buildSubCode = (serverHost: string) => `/**
 
  *  BMDA Smart Irrigation — SUB NODE (ESP8266 NodeMCU)
  *  স্থান : জমিতে — প্রতিটি জোনে একটি
- *  সেন্সর: Capacitive Soil Moisture Sensor v1.2 → জমির আর্দ্রতা %
+ *  সেন্সর: YL-69 + YL-38 Resistive Soil Moisture Sensor → জমির আর্দ্রতা %
  *         DHT22 → তাপমাত্রা (°C) + আর্দ্রতা (%RH)
  *  অ্যাকচুয়েটর: SG90 Servo Motor → পানির লাইন on/off (০°=বন্ধ, ৯০°=খোলা)
  *  কাজ  : প্রতি ৫ সেকেন্ডে heartbeat + dashboard থেকে valve কমান্ড গ্রহণ।
