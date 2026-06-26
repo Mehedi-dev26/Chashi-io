@@ -54,9 +54,8 @@ export const Route = createFileRoute("/api/public/telemetry")({
             .maybeSingle();
           if (nodeRow?.zone_id) effectiveZoneId = nodeRow.zone_id;
 
-          const newRuntimeSec = body.runtimeSec != null ? Number(body.runtimeSec) : null;
+          // Read previous row to compute wall-clock runtime delta
 
-          // Read previous row to compute runtime delta for the monthly log
           const { data: prev } = await supabaseAdmin
             .from("device_telemetry")
             .select("runtime_sec, motor_on, temperature, humidity, updated_at")
