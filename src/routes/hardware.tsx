@@ -139,7 +139,7 @@ const masterDeviceWiring: DeviceWiring[] = [
 
 const subDevices = [
   { icon: Radio,        name: "ESP8266 NodeMCU v3",              role: "সাব-নোড MCU (WiFi)",                       pin: "—",            price: "৩৫০ ৳" },
-  { icon: Sprout,       name: "Capacitive Soil Moisture v1.2",   role: "জমির আর্দ্রতা (analog → %)",               pin: "A0 (ADC)",     price: "১৮০ ৳" },
+  { icon: Sprout,       name: "YL-69 Soil Moisture Sensor (+YL-38 comparator)",  role: "জমির আর্দ্রতা (২-প্রোব resistive → analog %)",  pin: "A0 (ADC)",     price: "১৫০ ৳" },
   { icon: Thermometer,  name: "DHT22",                           role: "তাপমাত্রা ও আর্দ্রতা",                      pin: "D6",           price: "৩৫০ ৳" },
   { icon: RotateCw,     name: "SG90 Servo Motor (৯g)",           role: "পানির লাইন on/off (০°↔৯০°)",                pin: "D2 (PWM)",     price: "১৮০ ৳" },
   { icon: Cable,        name: "পানির লাইন + ফিটিং",              role: "জোনের irrigation pipe",                     pin: "Servo arm",    price: "১২০ ৳" },
@@ -151,15 +151,16 @@ const subTotalPerNode = "১,৫৩০ ৳";
 /* ---------------- SUB-NODE PIN-BY-PIN WIRING (grouped by device) ---------------- */
 const subDeviceWiring: DeviceWiring[] = [
   {
-    device: "Capacitive Soil Moisture Sensor v1.2",
+    device: "YL-69 + YL-38 Resistive Soil Moisture Sensor",
     icon: Sprout,
     color: "lime",
     grad: "from-lime-500 to-green-500",
-    desc: "Analog আউটপুট — মাটি যত ভেজা, ভোল্টেজ তত কম। AIR=শুকনো reference, WATER=ভেজা reference দিয়ে ক্যালিব্রেট করুন।",
+    desc: "২-প্রোব resistive সেন্সর — মাটি যত ভেজা, রোধ তত কম, AOUT-এ ভোল্টেজ তত কম। YL-38 কম্প্যারেটর বোর্ডের ৪টি পিন: VCC, GND, DO (digital threshold), AO (analog)। আমরা শুধু AO ব্যবহার করছি, DO পিন খালি থাকবে।",
     pairs: [
-      { mcu: "3V3", dev: "VCC",  note: "৩.৩V পাওয়ার (ESP8266 ADC-safe)" },
+      { mcu: "3V3", dev: "VCC",  note: "৩.৩V পাওয়ার (৫V দিলে AO রেঞ্জ ৩.৩V অতিক্রম করে ESP8266 ADC ক্ষতি করতে পারে)" },
       { mcu: "GND", dev: "GND",  note: "কমন গ্রাউন্ড" },
-      { mcu: "A0",  dev: "AOUT", note: "ESP8266-এর একমাত্র ADC পিন" },
+      { mcu: "A0",  dev: "AO",   note: "Analog আউটপুট → ESP8266-এর একমাত্র ADC পিন" },
+      { mcu: "—",   dev: "DO",   note: "ব্যবহার হচ্ছে না (খালি রাখুন)" },
     ],
   },
   {
@@ -761,7 +762,7 @@ const buildSubCode = (serverHost: string) => `/**
 
  *  BMDA Smart Irrigation — SUB NODE (ESP8266 NodeMCU)
  *  স্থান : জমিতে — প্রতিটি জোনে একটি
- *  সেন্সর: Capacitive Soil Moisture Sensor v1.2 → জমির আর্দ্রতা %
+ *  সেন্সর: YL-69 + YL-38 Resistive Soil Moisture Sensor → জমির আর্দ্রতা %
  *         DHT22 → তাপমাত্রা (°C) + আর্দ্রতা (%RH)
  *  অ্যাকচুয়েটর: SG90 Servo Motor → পানির লাইন on/off (০°=বন্ধ, ৯০°=খোলা)
  *  কাজ  : প্রতি ৫ সেকেন্ডে heartbeat + dashboard থেকে valve কমান্ড গ্রহণ।
@@ -785,16 +786,16 @@ const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 // ========================
 
 // ---- Pins ----
-#define PIN_SOIL    A0     // Capacitive Soil Moisture analog (ESP8266-এ একটাই ADC)
+#define PIN_SOIL    A0     // YL-69 (AO) analog (ESP8266-এ একটাই ADC)
 #define PIN_SERVO   D2     // SG90 servo PWM (GPIO4)
 #define PIN_DHT     D6     // DHT22 data (GPIO12)
 #define DHT_TYPE    DHT22
 
-// ---- Soil sensor calibration (নিজের সেন্সরে একবার মাপুন) ----
-// AIR  : সেন্সর বাতাসে → শুকনো reference (raw বড়)
-// WATER: সেন্সর পানিতে → ভেজা reference (raw ছোট)
-const int SOIL_AIR   = 750;   // dry (০%)
-const int SOIL_WATER = 320;   // saturated (১০০%)
+// ---- Soil sensor calibration (YL-69 resistive — নিজের সেন্সরে একবার মাপুন) ----
+// AIR  : প্রোব শুকনো বাতাসে → raw বড় (~900-1024)
+// WATER: প্রোব পানিতে ডুবানো → raw ছোট (~280-350)
+const int SOIL_AIR   = 900;   // dry (০%)
+const int SOIL_WATER = 300;   // saturated (১০০%)
 
 // ---- Servo ----
 Servo valveServo;
@@ -816,7 +817,7 @@ void setValve(bool on) {
   Serial.printf("[%s] SERVO → %s (%d°)\\n", ZONE_ID, on ? "OPEN" : "CLOSED", on ? SERVO_OPEN : SERVO_CLOSED);
 }
 
-// ---- Soil moisture: capacitive sensor (analog) ----
+// ---- Soil moisture: YL-69 resistive sensor (analog AO পিন) ----
 // raw ADC: শুকনো মাটিতে বড়, ভেজা মাটিতে ছোট → ক্যালিব্রেশন দিয়ে 0..100% map
 float readSoilMoisturePct() {
   long sum = 0;
@@ -1325,7 +1326,7 @@ function HardwarePage() {
           <div className="grid sm:grid-cols-3 gap-2 mt-5 text-xs">
             <div className="rounded-lg glass-panel p-3 border border-lime-400/30">
               <p className="font-extrabold text-lime-600">🌱 সয়েল ক্যালিব্রেশন</p>
-              <p className="text-[11px] text-muted-foreground mt-1">সেন্সরটি বাতাসে রেখে raw value দেখুন → <code>SOIL_AIR</code>; পানিতে ডুবিয়ে দেখুন → <code>SOIL_WATER</code>। নিজের মাটিতে ক্যালিব্রেট করলে নির্ভুলতা বাড়বে।</p>
+              <p className="text-[11px] text-muted-foreground mt-1">YL-69 প্রোব শুকনো বাতাসে রেখে Serial Monitor-এর raw value দেখুন → <code>SOIL_AIR</code>-এ বসান; এক গ্লাস পানিতে ডুবিয়ে দেখুন → <code>SOIL_WATER</code>-এ বসান। ইলেক্ট্রোলাইসিস কমাতে প্রোব দীর্ঘ সময় বিদ্যুতায়িত রাখবেন না — প্রয়োজনে VCC একটি GPIO থেকে দিয়ে শুধু পড়ার সময় ON করুন।</p>
             </div>
             <div className="rounded-lg glass-panel p-3 border border-amber-400/30">
               <p className="font-extrabold text-amber-500">⚡ সার্ভো পাওয়ার</p>
