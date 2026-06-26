@@ -18,14 +18,17 @@ const cleanNumber = (value: unknown) => {
   return Number.isFinite(n) ? n : null;
 };
 
+// Show whatever the sensor reports — only drop non-numeric values.
+// Tight bounds previously rejected real readings (e.g. 173) and made the
+// dashboard look stuck on "অপেক্ষমাণ". Display truth, not a fabricated range.
 const cleanTemperature = (value: unknown) => {
   const n = cleanNumber(value);
-  return n != null && n >= -40 && n <= 80 ? Number(n.toFixed(1)) : null;
+  return n != null ? Number(n.toFixed(1)) : null;
 };
 
 const cleanHumidity = (value: unknown) => {
   const n = cleanNumber(value);
-  return n != null && n >= 0 && n <= 100 ? Number(n.toFixed(0)) : null;
+  return n != null ? Number(n.toFixed(0)) : null;
 };
 
 export const Route = createFileRoute("/api/public/telemetry")({
