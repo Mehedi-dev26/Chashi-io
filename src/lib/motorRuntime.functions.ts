@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
  * Returns total motor running seconds in the current calendar month
  * (UTC month boundary) for the given device.
  */
-export const getMonthlyRuntime = createServerFn({ method: "GET" })
+export const getMonthlyRuntime = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => {
     const d = (data ?? {}) as { deviceId?: string };
     return { deviceId: String(d.deviceId ?? "MASTER-01") };
@@ -30,7 +30,7 @@ export const getMonthlyRuntime = createServerFn({ method: "GET" })
  *   - waterL: liters delivered, derived from rated flow (L/min)
  *   - powerKwh: energy used, derived from rated voltage × current
  */
-export const getHourlyUsage = createServerFn({ method: "GET" })
+export const getHourlyUsage = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => {
     const d = (data ?? {}) as { deviceId?: string; ratedFlowLpm?: number; ratedVoltage?: number; ratedCurrent?: number };
     return {
