@@ -151,15 +151,16 @@ const subTotalPerNode = "১,৫৩০ ৳";
 /* ---------------- SUB-NODE PIN-BY-PIN WIRING (grouped by device) ---------------- */
 const subDeviceWiring: DeviceWiring[] = [
   {
-    device: "Capacitive Soil Moisture Sensor v1.2",
+    device: "YL-69 + YL-38 Resistive Soil Moisture Sensor",
     icon: Sprout,
     color: "lime",
     grad: "from-lime-500 to-green-500",
-    desc: "Analog আউটপুট — মাটি যত ভেজা, ভোল্টেজ তত কম। AIR=শুকনো reference, WATER=ভেজা reference দিয়ে ক্যালিব্রেট করুন।",
+    desc: "২-প্রোব resistive সেন্সর — মাটি যত ভেজা, রোধ তত কম, AOUT-এ ভোল্টেজ তত কম। YL-38 কম্প্যারেটর বোর্ডের ৪টি পিন: VCC, GND, DO (digital threshold), AO (analog)। আমরা শুধু AO ব্যবহার করছি, DO পিন খালি থাকবে।",
     pairs: [
-      { mcu: "3V3", dev: "VCC",  note: "৩.৩V পাওয়ার (ESP8266 ADC-safe)" },
+      { mcu: "3V3", dev: "VCC",  note: "৩.৩V পাওয়ার (৫V দিলে AO রেঞ্জ ৩.৩V অতিক্রম করে ESP8266 ADC ক্ষতি করতে পারে)" },
       { mcu: "GND", dev: "GND",  note: "কমন গ্রাউন্ড" },
-      { mcu: "A0",  dev: "AOUT", note: "ESP8266-এর একমাত্র ADC পিন" },
+      { mcu: "A0",  dev: "AO",   note: "Analog আউটপুট → ESP8266-এর একমাত্র ADC পিন" },
+      { mcu: "—",   dev: "DO",   note: "ব্যবহার হচ্ছে না (খালি রাখুন)" },
     ],
   },
   {
