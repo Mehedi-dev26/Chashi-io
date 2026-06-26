@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Cpu, Wifi, WifiOff, Plus, Trash2, Droplets, Sun, Signal, Power, FlaskConical, Activity, Sprout, MapPin, Eye, Copy, Check } from "lucide-react";
+import { Cpu, Wifi, WifiOff, Plus, Trash2, Droplets, Sun, Signal, Power, Activity, Sprout, MapPin, Eye, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -182,7 +182,7 @@ function DevicesPage() {
           <CardContent className="p-10 text-center space-y-3">
             <Cpu className="h-12 w-12 mx-auto text-muted-foreground" />
             <h3 className="font-bold text-lg">এখনো কোনো sub-node যোগ করা হয়নি</h3>
-            <p className="text-sm text-muted-foreground">উপরে "নতুন সাব-নোড" বোতাম থেকে শুরু করুন। প্রতিটি sub-node মাটির TDS sensor দিয়ে আর্দ্রতা পরিমাপ করবে এবং servo motor দিয়ে পানির লাইন on/off করবে।</p>
+            <p className="text-sm text-muted-foreground">উপরে "নতুন সাব-নোড" বোতাম থেকে শুরু করুন। প্রতিটি sub-node YL-69 SM (Soil Moisture) sensor দিয়ে মাটির আর্দ্রতা পরিমাপ করবে এবং SG90 servo motor দিয়ে পানির লাইন on/off করবে।</p>
           </CardContent>
         </Card>
       ) : (
@@ -191,7 +191,10 @@ function DevicesPage() {
             const t = tele[n.device_id];
             const online = !!(t && Date.now() - new Date(t.updated_at).getTime() < ONLINE_MS);
             const moisture = t?.soil_moisture ?? 0;
-            const tds = t?.tds_ppm ?? 0;
+            const sMoist = Math.max(0, Math.min(100, moisture));
+            const waterLevel = sMoist < 25 ? sMoist * 0.6
+              : sMoist < 60 ? 15 + (sMoist - 25) * (55 / 35)
+              : 70 + (sMoist - 60) * (30 / 40);
             const valveOpen = !!t?.valve_open;
             const assignedZone = zones.find((z) => z.id === n.zone_id);
             return (
@@ -238,12 +241,12 @@ function DevicesPage() {
 
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     <div className="rounded-lg p-2.5 bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow shadow-sky-500/30">
-                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><Sprout className="h-3 w-3" />আর্দ্রতা</div>
+                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><Sprout className="h-3 w-3" />SM · মাটি</div>
                       <p className="mt-1 text-xl font-extrabold">{bn(moisture.toFixed(0))}<span className="text-xs">%</span></p>
                     </div>
-                    <div className="rounded-lg p-2.5 bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow shadow-amber-500/30">
-                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><FlaskConical className="h-3 w-3" />TDS</div>
-                      <p className="mt-1 text-xl font-extrabold">{bn(tds.toFixed(0))}<span className="text-xs"> ppm</span></p>
+                    <div className="rounded-lg p-2.5 bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow shadow-cyan-500/30">
+                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><Droplets className="h-3 w-3" />পানির স্তর</div>
+                      <p className="mt-1 text-xl font-extrabold">{bn(waterLevel.toFixed(0))}<span className="text-xs">%</span></p>
                     </div>
                   </div>
 
@@ -305,11 +308,94 @@ function DevicesPage() {
         </div>
       )}
 
+      {nodes.length > 0 && (() => {
+        const items = nodes.map((n) => {
+          const t = tele[n.device_id];
+          const online = !!(t && Date.now() - new Date(t.updated_at).getTime() < ONLINE_MS);
+          const sm = Math.max(0, Math.min(100, t?.soil_moisture ?? 0));
+          const wl = sm < 25 ? sm * 0.6 : sm < 60 ? 15 + (sm - 25) * (55 / 35) : 70 + (sm - 60) * (30 / 40);
+          return { n, online, sm, wl };
+        });
+        const liveItems = items.filter((x) => x.online);
+        const avgSm = liveItems.length ? liveItems.reduce((s, x) => s + x.sm, 0) / liveItems.length : 0;
+        const avgWl = liveItems.length ? liveItems.reduce((s, x) => s + x.wl, 0) / liveItems.length : 0;
+        const tone = (v: number) =>
+          v >= 60 ? "from-emerald-500 to-teal-600" :
+          v >= 25 ? "from-amber-500 to-orange-600" :
+                    "from-rose-500 to-red-600";
+        return (
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <Card className="overflow-hidden">
+              <div className={`h-1 bg-gradient-to-r ${tone(avgSm)}`} />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Sprout className="h-4 w-4 text-emerald-600" />মাটির আর্দ্রতা · SM</span>
+                  <span className="text-xs font-mono text-muted-foreground">YL-69 · গড় {bn(avgSm.toFixed(0))}%</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2.5">
+                {items.map(({ n, online, sm }) => (
+                  <div key={n.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${online ? "bg-emerald-500" : "bg-rose-500"}`} />
+                        <span className="font-semibold truncate">{n.label}</span>
+                        <span className="font-mono text-[10px] text-muted-foreground">{n.device_id}</span>
+                      </span>
+                      <span className="font-extrabold tabular-nums">{online ? `${bn(sm.toFixed(0))}%` : "—"}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full rounded-full bg-gradient-to-r ${tone(sm)} transition-all`}
+                        style={{ width: online ? `${Math.max(2, sm)}%` : "0%" }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {!items.length && <p className="text-xs text-muted-foreground">কোনো sub-node সক্রিয় নেই</p>}
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden">
+              <div className={`h-1 bg-gradient-to-r ${tone(avgWl)}`} />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Droplets className="h-4 w-4 text-cyan-600" />পানির স্তর</span>
+                  <span className="text-xs font-mono text-muted-foreground">SM থেকে derived · গড় {bn(avgWl.toFixed(0))}%</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2.5">
+                {items.map(({ n, online, wl }) => (
+                  <div key={n.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${online ? "bg-emerald-500" : "bg-rose-500"}`} />
+                        <span className="font-semibold truncate">{n.label}</span>
+                        <span className="font-mono text-[10px] text-muted-foreground">{n.device_id}</span>
+                      </span>
+                      <span className="font-extrabold tabular-nums">{online ? `${bn(wl.toFixed(0))}%` : "—"}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-teal-500 transition-all"
+                        style={{ width: online ? `${Math.max(2, wl)}%` : "0%" }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {!items.length && <p className="text-xs text-muted-foreground">কোনো sub-node সক্রিয় নেই</p>}
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
+
       <Card className="mt-6">
         <CardHeader><CardTitle className="text-base flex items-center gap-2"><Power className="h-4 w-4" />কীভাবে কাজ করে?</CardTitle></CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>• প্রতিটি sub-node (ESP8266) প্রতি ৫ সেকেন্ডে heartbeat পাঠায় → আপনি এখানে লাইভ ডেটা দেখেন।</p>
-          <p>• <b className="text-foreground">TDS sensor</b> (Gravity TDS / generic) থেকে raw analog পড়া → temperature compensation → মাটির আর্দ্রতা শতাংশে রূপান্তর।</p>
+          <p>• <b className="text-foreground">SM sensor</b> (YL-69 + YL-38 comparator) থেকে raw analog পড়া → calibration mapping → মাটির আর্দ্রতা শতাংশে (SM%) রূপান্তর। সংক্ষেপে <b>SM = Soil Moisture</b>।</p>
+          <p>• <b className="text-foreground">পানির স্তর</b> SM থেকে derived — শুকনা মাটিতে কম, সিক্ত মাটিতে বেশি (smooth piecewise mapping)।</p>
           <p>• <b className="text-foreground">Servo motor (SG90)</b> দিয়ে পানির লাইন on/off — solenoid valve-এর সাশ্রয়ী বিকল্প।</p>
           <p>• <b className="text-foreground">জমিতে assign</b>: যেকোনো sub-node-কে drop-down থেকে একটি জমিতে যুক্ত করুন → তখন থেকে সেই জমির ডেটা ও ভাল্ভ এই নোড থেকে আসবে।</p>
           <p>• <b className="text-foreground">Online check</b>: heartbeat ১৫ সেকেন্ডের বেশি না এলে নোড offline দেখানো হয়, valve বোতাম disable হয়ে যায়।</p>
