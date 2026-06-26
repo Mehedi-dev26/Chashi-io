@@ -424,32 +424,39 @@ float computeFlowLpm() {
 
 // =================== NETWORK ===================
 void connectWifi() {
+  WiFi.persistent(true);              // ESP32-এর NVS এ creds save রাখি
+  WiFi.mode(WIFI_OFF);
+  delay(100);
   WiFi.mode(WIFI_STA);
+  WiFi.disconnect(true, true);        // পুরোনো stale config clean
+  delay(100);
   WiFi.setAutoReconnect(true);
-  WiFi.persistent(false);
+  WiFi.setSleep(false);               // continuous IoT-এ stability বেশি
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   unsigned long start = millis();
-  Serial.print("[MASTER] WiFi connecting");
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000UL) {
-    delay(300);
+  Serial.printf("[MASTER] WiFi connecting to \\"%s\\"", WIFI_SSID);
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 20000UL) {
+    delay(400);
     Serial.print(".");
   }
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("\\n[MASTER] WiFi OK  IP=%s\\n", WiFi.localIP().toString().c_str());
+    Serial.printf("\\n[MASTER] WiFi OK  IP=%s  RSSI=%d\\n",
+                  WiFi.localIP().toString().c_str(), WiFi.RSSI());
   } else {
-    Serial.println("\\n[MASTER] WiFi timeout — system will retry automatically");
+    Serial.printf("\\n[MASTER] WiFi timeout (status=%d) — auto retry চলবে\\n",
+                  WiFi.status());
   }
 }
 
 bool ensureWifi() {
   if (WiFi.status() == WL_CONNECTED) return true;
   systemOnline = false;
-  if (motorOn) setMotor(false);  // নিরাপত্তা: WiFi/backend হারালে মেইন মোটর সাথে সাথে OFF
+  if (motorOn) setMotor(false);  // নিরাপত্তা: WiFi হারালে মোটর সাথে সাথে OFF
 
   if (millis() - lastWifiAttempt >= WIFI_RETRY_MS) {
     lastWifiAttempt = millis();
-    Serial.println("[MASTER] WiFi lost — reconnecting...");
-    WiFi.disconnect(false);
+    Serial.printf("[MASTER] WiFi lost (status=%d) — reconnecting...\\n", WiFi.status());
+    WiFi.disconnect(false, false);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
   }
   float t, h;
@@ -457,6 +464,8 @@ bool ensureWifi() {
   drawDashboard(readTankPct(), 0.0, 0.0, 0.0, t, h);
   return false;
 }
+
+
 
 void sendTelemetry() {
   if (!ensureWifi()) return;
