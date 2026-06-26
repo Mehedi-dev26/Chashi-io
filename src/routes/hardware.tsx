@@ -1326,7 +1326,7 @@ function HardwarePage() {
           <div className="grid sm:grid-cols-3 gap-2 mt-5 text-xs">
             <div className="rounded-lg glass-panel p-3 border border-lime-400/30">
               <p className="font-extrabold text-lime-600">🌱 সয়েল ক্যালিব্রেশন</p>
-              <p className="text-[11px] text-muted-foreground mt-1">সেন্সরটি বাতাসে রেখে raw value দেখুন → <code>SOIL_AIR</code>; পানিতে ডুবিয়ে দেখুন → <code>SOIL_WATER</code>। নিজের মাটিতে ক্যালিব্রেট করলে নির্ভুলতা বাড়বে।</p>
+              <p className="text-[11px] text-muted-foreground mt-1">YL-69 প্রোব শুকনো বাতাসে রেখে Serial Monitor-এর raw value দেখুন → <code>SOIL_AIR</code>-এ বসান; এক গ্লাস পানিতে ডুবিয়ে দেখুন → <code>SOIL_WATER</code>-এ বসান। ইলেক্ট্রোলাইসিস কমাতে প্রোব দীর্ঘ সময় বিদ্যুতায়িত রাখবেন না — প্রয়োজনে VCC একটি GPIO থেকে দিয়ে শুধু পড়ার সময় ON করুন।</p>
             </div>
             <div className="rounded-lg glass-panel p-3 border border-amber-400/30">
               <p className="font-extrabold text-amber-500">⚡ সার্ভো পাওয়ার</p>
