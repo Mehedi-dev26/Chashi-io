@@ -587,6 +587,7 @@ void updateOnlineLed() {
 }
 
 void loop() {
+  ensureWifi();                             // ⬅ WiFi গেলে reboot ছাড়াই auto reconnect
   pollButtons();                           // ⬅ প্রতিটি লুপে বাটন চেক
   updateOnlineLed();                       // ⬅ নীল LED অনলাইন ইন্ডিকেটর
 
@@ -598,8 +599,10 @@ void loop() {
     static unsigned long lastTick = 0;
     if (millis() - lastTick >= 1000) {
       lastTick = millis();
+      float t, h;
+      readDhtSafe(t, h);
       drawDashboard(readTankPct(), computeFlowLpm(), PUMP_RATED_VOLTAGE,
-                    PUMP_RATED_CURRENT, dht.readTemperature(), dht.readHumidity());
+                    PUMP_RATED_CURRENT, t, h);
     }
   }
 }`;
