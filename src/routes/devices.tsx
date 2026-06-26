@@ -281,9 +281,22 @@ function DevicesPage() {
 
                   <div className="mt-3 pt-3 border-t flex items-center justify-between text-[10px] text-muted-foreground">
                     <span>{t ? `শেষ heartbeat: ${ago(t.updated_at)} আগে` : "ডেটা পাওয়া যায়নি"}</span>
-                    <button onClick={() => remove(n.id, n.device_id)} className="text-destructive hover:text-rose-600">
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setInfoNode(n)}
+                        title="কানেকশন তথ্য দেখুন"
+                        className="h-7 w-7 rounded-md grid place-items-center bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow shadow-indigo-500/30 hover:scale-110 transition"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => remove(n.id, n.device_id)}
+                        title="মুছে ফেলুন"
+                        className="h-7 w-7 rounded-md grid place-items-center bg-rose-500/15 text-rose-600 hover:bg-rose-500/25 transition"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
