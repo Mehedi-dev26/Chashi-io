@@ -436,12 +436,14 @@ bool ensureWifi() {
 }
 
 void sendTelemetry() {
+  if (!ensureWifi()) return;
+
   float tank = readTankPct();
   float lpm  = computeFlowLpm();
   float volt = motorOn ? PUMP_RATED_VOLTAGE : 0.0;
   float curr = motorOn ? PUMP_RATED_CURRENT : 0.0;
-  float t    = dht.readTemperature();
-  float h    = dht.readHumidity();
+  float t, h;
+  readDhtSafe(t, h);
   unsigned long runMs = motorTotalMs + (motorOn ? (millis() - motorStartMs) : 0);
 
   JsonDocument doc;
@@ -455,8 +457,8 @@ void sendTelemetry() {
   doc["current"]     = curr;
   doc["runtimeSec"]  = runMs / 1000;
   doc["rssi"]        = WiFi.RSSI();
-  if (!isnan(t)) doc["temperature"] = t;
-  if (!isnan(h)) doc["humidity"]    = h;
+  if (!isnan(t)) doc["temperature"] = round(t * 10.0) / 10.0;   // Celsius, ১ decimal
+  if (!isnan(h)) doc["humidity"]    = round(h);                 // 0..100 %RH
 
   String body; serializeJson(doc, body);
   WiFiClientSecure client;
@@ -468,8 +470,9 @@ void sendTelemetry() {
   String resp = http.getString();
   http.end();
   systemOnline = (code == 200);    // ✅ OLED-এর system status এই ফ্ল্যাগ থেকে আসে
-  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f online=%d\\n",
-                code, tank, lpm, volt, systemOnline ? 1 : 0);
+  if (!systemOnline && motorOn) setMotor(false);  // backend unreachable হলে safety OFF
+  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f T=%.1fC H=%.0f%% online=%d\\n",
+                code, tank, lpm, volt, t, h, systemOnline ? 1 : 0);
 
   // dashboard কমান্ড প্রসেস → রিয়েল-টাইম মোটর ON/OFF
   bool motorChanged = false;
@@ -487,7 +490,7 @@ void sendTelemetry() {
   //    → dashboard <১ সেকেন্ডে কনফার্মেশন পায়।
   if (motorChanged) lastSend = 0;
 
-  drawDashboard(tank, lpm, volt, curr, isnan(t) ? 0 : t, isnan(h) ? 0 : h);
+  drawDashboard(tank, lpm, volt, curr, t, h);
 }
 
 // 🆕 ম্যানুয়াল পুশ-বাটন পোলিং (ডিবাউন্স সহ)
