@@ -38,7 +38,7 @@ export const askConsultant = createServerFn({ method: "POST" })
       ? fields.map((f) => {
           const t = tMap.get(f.zone_id);
           const online = t && now - new Date(t.updated_at).getTime() < 15000;
-          return `- ${f.zone_id} (${f.name_bn}, ${f.crop_type}, ${f.area_acres} একর): মাটি=${t?.soil_moisture ?? "?"}%, TDS=${t?.tds_ppm ?? "?"}ppm, ভাল্ভ=${t?.valve_open ? "খোলা":"বন্ধ"}, status=${online?"online":"offline"}`;
+          return `- ${f.zone_id} (${f.name_bn}, ${f.crop_type}, ${f.area_acres} একর): SM=${t?.soil_moisture ?? "?"}%, ভাল্ভ=${t?.valve_open ? "খোলা":"বন্ধ"}, status=${online?"online":"offline"}`;
         }).join("\n")
       : "(কোনো জমি যোগ করা হয়নি)";
 

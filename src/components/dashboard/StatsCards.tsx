@@ -30,7 +30,7 @@ export function StatsCards({ zones, motor, metrics, weather }: { zones: FieldZon
     { label: "পাম্পের চাপ",       value: bn(motor.pressure.toFixed(1)),           unit: "PSI",          icon: Gauge,     ratio: Math.min(1, motor.pressure / 10),     trend: motor.pressure, up: motor.isOn, ...P_AMBER },
     { label: "বিদ্যুৎ ব্যবহার",    value: bn(kw.toFixed(3)),                       unit: "কিলোওয়াট",    icon: Zap,       ratio: Math.min(1, kw / 0.005),              trend: motor.current, up: motor.isOn, ...P_VIOLET },
     { label: "প্রবাহ হার",         value: bn(motor.flowRate.toFixed(1)),          unit: "লিটার/মিনিট",  icon: Activity,  ratio: Math.min(1, motor.flowRate / 3),      trend: motor.flowRate, up: motor.isOn, ...P_AMBER },
-    { label: "গড় মাটির আর্দ্রতা",  value: `${bn(avgMoisture.toFixed(0))}%`,        unit: "TDS থেকে",      icon: CloudRain, ratio: avgMoisture / 100,                    trend: validMoisture.length, up: true, ...P_LIME },
+    { label: "গড় মাটির আর্দ্রতা",  value: `${bn(avgMoisture.toFixed(0))}%`,        unit: "SM সেন্সর",      icon: CloudRain, ratio: avgMoisture / 100,                    trend: validMoisture.length, up: true, ...P_LIME },
     { label: "তাপমাত্রা · আর্দ্রতা", value: `${tStr}°C`,                            unit: weatherSubtitle, icon: Thermometer, ratio: weather.temperature != null ? Math.min(1, Math.max(0, weather.temperature / 50)) : 0, trend: weather.humidity ?? 0, up: wFresh, ...P_SKY },
     { label: "AI স্বয়ংক্রিয়তা",   value: `${bn(metrics.aiActivity)}%`,            unit: "কমান্ড সম্পন্ন",  icon: Brain,     ratio: metrics.aiActivity / 100,             trend: metrics.aiActivity, up: metrics.aiActivity >= 50, ...P_VIOLET },
   ];
