@@ -69,6 +69,9 @@ unsigned long lastWifiAttempt = 0;
 const unsigned long WIFI_RETRY_MS = 5000;
 float lastGoodTemp = NAN;
 float lastGoodHum = NAN;
+unsigned long lastDhtReadMs = 0;
+const unsigned long DHT_MIN_INTERVAL = 2200;  // DHT22 needs >= 2s between reads
+unsigned long dhtWarmupUntil = 0;
 
 int lastBtnOnState = HIGH;
 int lastBtnOffState = HIGH;
