@@ -156,7 +156,7 @@ function MotorPage() {
                     <div className="mb-2.5">
                       <div className="flex items-center justify-between text-[11px] mb-1">
                         <span className="flex items-center gap-1 text-muted-foreground font-semibold">
-                          <Sprout className="h-3 w-3" /> মাটির আর্দ্রতা (TDS)
+                          <Sprout className="h-3 w-3" /> মাটির আর্দ্রতা (SM)
                         </span>
                         <span className="font-mono font-bold">{bn(sm)}%</span>
                       </div>
