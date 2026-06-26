@@ -81,6 +81,12 @@ unsigned long lastBtnOnMs = 0;
 unsigned long lastBtnOffMs = 0;
 const unsigned long BTN_DEBOUNCE_MS = 40;
 
+// Auto-detected idle level for each button. Captured at boot from the
+// actual pin reading, so the firmware works whether the button is wired
+// to GND (active LOW with pull-up) OR to 3.3V (active HIGH with pull-down).
+int btnOnIdle  = HIGH;
+int btnOffIdle = HIGH;
+
 // After a physical button press, ignore opposing server commands briefly
 // so a stale queued dashboard command can't immediately revert the user.
 unsigned long buttonOverrideUntil = 0;
