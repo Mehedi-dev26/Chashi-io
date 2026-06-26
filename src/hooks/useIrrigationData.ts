@@ -135,12 +135,13 @@ const recomputeMetrics = () => {
 const applyTelemetry = (row: TelemetryRow) => {
   const ts = new Date(row.updated_at).getTime();
 
-  // DHT22 sanity guard: reject corrupted reads like 793°C / 169% RH.
-  // Valid DHT22 envelope is roughly -40..80°C and 0..100% humidity.
+  // Show whatever DHT22 reports — only NaN/null is rejected.
+  // Bounded validation previously dropped real readings (e.g. 173) and made
+  // the card look stuck on "অপেক্ষমাণ" even when the sensor was alive.
   const tNum = row.temperature != null ? Number(row.temperature) : null;
   const hNum = row.humidity != null ? Number(row.humidity) : null;
-  const validTemp = tNum != null && Number.isFinite(tNum) && tNum >= -40 && tNum <= 80;
-  const validHum = hNum != null && Number.isFinite(hNum) && hNum >= 0 && hNum <= 100;
+  const validTemp = tNum != null && Number.isFinite(tNum);
+  const validHum = hNum != null && Number.isFinite(hNum);
   const weather = validTemp || validHum
     ? {
         temperature: validTemp ? Number(tNum!.toFixed(1)) : state.weather.temperature,
