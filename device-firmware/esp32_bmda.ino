@@ -283,13 +283,17 @@ void sendTelemetry() {
   client.setInsecure();
   HTTPClient http;
   http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
+  http.setTimeout(5000);
   http.addHeader("Content-Type", "application/json");
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
 
   systemOnline = (code == 200);
-  if (!systemOnline && motorOn) setMotor(false);
+  if (!systemOnline && motorOn) {
+    setMotor(false);
+    lpm = 0.0; volt = 0.0; curr = 0.0;
+  }
 
   Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f T=%.1fC H=%.0f%% online=%d\n",
                 code, tank, lpm, volt, t, h, systemOnline ? 1 : 0);
