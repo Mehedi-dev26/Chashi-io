@@ -292,7 +292,9 @@ String fmtRuntime(unsigned long ms) {
   return String(buf);
 }
 
-// ✅ DHT22 safe read — external 4.7k pull-up লাগে না; ESP32-এর internal pull-up + 3x retry ব্যবহার
+// ✅ DHT22 safe read — শুধু NaN reject; raw sensor value-ই trust করি
+//    আগে 0–100% bound-এ আটকে 173-এর মতো reading drop হয়ে যেত → display ও
+//    dashboard দুটোই blank দেখাত। এখন সেন্সর যা দেয়, তাই দেখাবে।
 bool readDhtSafe(float &tempC, float &humidity) {
   float t = NAN, h = NAN;
   for (int i = 0; i < 3; i++) {
@@ -302,14 +304,17 @@ bool readDhtSafe(float &tempC, float &humidity) {
     delay(60);
   }
 
-  bool tOk = !isnan(t) && t >= -40.0 && t <= 80.0;
-  bool hOk = !isnan(h) && h >= 0.0 && h <= 100.0;
+  if (!isnan(t)) lastGoodTemp = t;
+  if (!isnan(h)) lastGoodHum  = h;
 
-  if (tOk) lastGoodTemp = t;
-  if (hOk) lastGoodHum = h;
+  tempC    = lastGoodTemp;
+  humidity = lastGoodHum;
 
-  tempC = !isnan(lastGoodTemp) ? lastGoodTemp : NAN;
-  humidity = !isnan(lastGoodHum) ? lastGoodHum : NAN;
+  if (isnan(t) && isnan(h)) {
+    Serial.println("[DHT] read failed (NaN) — check wiring / power");
+  } else {
+    Serial.printf("[DHT] raw t=%.1fC h=%.1f%%\n", t, h);
+  }
   return !isnan(tempC) || !isnan(humidity);
 }
 
