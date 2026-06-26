@@ -73,24 +73,25 @@ unsigned long lastDhtReadMs = 0;
 const unsigned long DHT_MIN_INTERVAL = 2200;  // DHT22 needs >= 2s between reads
 unsigned long dhtWarmupUntil = 0;
 
-int lastBtnOnState = HIGH;
-int lastBtnOffState = HIGH;
-int stableBtnOnState = HIGH;
-int stableBtnOffState = HIGH;
-unsigned long lastBtnOnMs = 0;
-unsigned long lastBtnOffMs = 0;
-const unsigned long BTN_DEBOUNCE_MS = 40;
-
-// Auto-detected idle level for each button. Captured at boot from the
-// actual pin reading, so the firmware works whether the button is wired
-// to GND (active LOW with pull-up) OR to 3.3V (active HIGH with pull-down).
-int btnOnIdle  = HIGH;
-int btnOffIdle = HIGH;
+// Buttons: wired between GPIO and GND. INPUT_PULLUP → idle=HIGH, press=LOW.
+// Trigger ONLY on the HIGH→LOW edge (press); never on release. A hard
+// lockout window ensures a single tap can never produce two events.
+int lastBtnOnRaw  = HIGH;
+int lastBtnOffRaw = HIGH;
+unsigned long btnOnChangeMs  = 0;
+unsigned long btnOffChangeMs = 0;
+int stableBtnOn  = HIGH;
+int stableBtnOff = HIGH;
+unsigned long btnOnLockoutUntil  = 0;
+unsigned long btnOffLockoutUntil = 0;
+const unsigned long BTN_DEBOUNCE_MS = 30;
+const unsigned long BTN_LOCKOUT_MS  = 400;
 
 // After a physical button press, ignore opposing server commands briefly
 // so a stale queued dashboard command can't immediately revert the user.
 unsigned long buttonOverrideUntil = 0;
 const unsigned long BUTTON_OVERRIDE_MS = 3000;
+
 
 void ledWrite(bool on) {
   digitalWrite(PIN_LED_ONLINE, (LED_ACTIVE_HIGH ? on : !on) ? HIGH : LOW);
