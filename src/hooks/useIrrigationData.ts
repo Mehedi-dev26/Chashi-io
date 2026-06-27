@@ -209,11 +209,17 @@ if (typeof window !== "undefined") {
         next = { ...next, motor: { ...next.motor, online: false, isOn: false, voltage: 0, current: 0, flowRate: 0, pressure: 0, health: 0 } };
         changed = true;
       }
-      // zone offline?
+      // zone offline? → zero out all sensor readings (no fake stale data)
       const zones = next.zones.map((z) => {
-        if (z.online && z.lastSeen && now - z.lastSeen > PUMP_SPEC.heartbeatMs) {
+        const stale = z.lastSeen && now - z.lastSeen > PUMP_SPEC.heartbeatMs;
+        if (z.online && stale) {
           changed = true;
-          return { ...z, online: false };
+          return { ...z, online: false, soilMoisture: 0, waterLevel: 0, valveOpen: false, status: "idle" as const };
+        }
+        // Defensive: even if never marked online but has stale/no data, force zeros
+        if (!z.online && (z.soilMoisture !== 0 || z.waterLevel !== 0 || z.valveOpen)) {
+          changed = true;
+          return { ...z, soilMoisture: 0, waterLevel: 0, valveOpen: false, status: "idle" as const };
         }
         return z;
       });
