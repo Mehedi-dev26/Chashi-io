@@ -206,9 +206,10 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
             const online = !!(t && Date.now() - new Date(t.updated_at).getTime() < ONLINE_MS);
             const moisture = t?.soil_moisture ?? 0;
             const sMoist = Math.max(0, Math.min(100, moisture));
-            const waterLevel = sMoist < 25 ? sMoist * 0.6
+            const derived = sMoist < 25 ? sMoist * 0.6
               : sMoist < 60 ? 15 + (sMoist - 25) * (55 / 35)
               : 70 + (sMoist - 60) * (30 / 40);
+            const waterLevel = t?.water_level != null ? Math.max(0, Math.min(100, Number(t.water_level))) : derived;
             const valveOpen = !!t?.valve_open;
             const assignedZone = zones.find((z) => z.id === n.zone_id);
             return (
