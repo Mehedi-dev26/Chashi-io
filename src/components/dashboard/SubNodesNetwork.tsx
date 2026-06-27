@@ -14,7 +14,7 @@ import { useIrrigationData } from "@/hooks/useIrrigationData";
 
 type FieldNode = { id: string; device_id: string; zone_id: string | null; label: string; notes: string | null };
 type Telemetry = {
-  zone_id: string; device_id: string; soil_moisture: number | null; tds_ppm: number | null;
+  zone_id: string; device_id: string; soil_moisture: number | null; water_level: number | null; tds_ppm: number | null;
   ldr: number | null; valve_open: boolean | null; temperature: number | null; humidity: number | null;
   rssi: number | null; updated_at: string;
 };
