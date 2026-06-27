@@ -798,6 +798,14 @@ const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 const int SOIL_AIR   = 900;   // dry (০%)
 const int SOIL_WATER = 300;   // saturated (১০০%)
 
+// ---- সেন্সর সংযুক্ত আছে কিনা সনাক্তকরণ ----
+// YL-69 disconnected হলে A0 ভাসমান অবস্থায় থাকে — সাধারণত raw < 30 বা
+// একদম stuck (>1020)। এই অবস্থায় আগের firmware ভুলে 100% রিপোর্ট করত।
+// এখন: সেন্সর না থাকলে dashboard-এ 0% যাবে এবং Serial-এ warning ছাপবে।
+const int   SOIL_DISCONNECT_LOW  = 30;     // এর নিচে = floating / not wired
+const int   SOIL_DISCONNECT_HIGH = 1020;   // এর উপরে = open circuit
+bool soilConnected = false;
+
 // ---- বাস্তবসম্মত মাটির আর্দ্রতা ডায়নামিক্স ----
 // বাস্তব মাটি কখনো 0%→100% সাথে সাথে হয় না — পানি ধীরে ধীরে শোষিত হয়
 // এবং সূর্য/বাষ্পীভবনে আস্তে আস্তে কমে। তাই raw sensor কে দুই স্তরে ফিল্টার:
@@ -805,12 +813,12 @@ const int SOIL_WATER = 300;   // saturated (১০০%)
 //   ২) Slew-rate cap — প্রতি সেকেন্ডে সর্বোচ্চ পরিবর্তন সীমিত
 // ফলে valve খোলার পর কয়েক মিনিট ধরে আর্দ্রতা বাড়ে, valve বন্ধ হলে
 // ধীরে ধীরে কমে — অর্থাৎ dashboard-এ real, বিশ্বাসযোগ্য curve।
-const float SOIL_EMA_ALPHA    = 0.08;   // 0..1 (ছোট = মসৃণ, ধীর)
-const float SOIL_RISE_PER_SEC = 0.20;   // valve ON: সর্বোচ্চ +0.20%/sec  (≈৫ মিনিটে 0→60%)
-const float SOIL_FALL_PER_SEC = 0.05;   // valve OFF: সর্বোচ্চ −0.05%/sec (বাষ্পীভবন)
-const float SOIL_JITTER_PCT   = 0.4;    // ছোট প্রাকৃতিক ওঠানামা ±0.4%
-float soilEmaRaw      = NAN;            // ফিল্টার করা raw ADC
-float soilReportedPct = NAN;            // dashboard-এ পাঠানো %
+const float SOIL_EMA_ALPHA    = 0.08;
+const float SOIL_RISE_PER_SEC = 0.20;
+const float SOIL_FALL_PER_SEC = 0.05;
+const float SOIL_JITTER_PCT   = 0.4;
+float soilEmaRaw      = NAN;
+float soilReportedPct = NAN;
 unsigned long lastSoilTickMs = 0;
 
 // ---- Servo ----
@@ -833,11 +841,36 @@ void setValve(bool on) {
   Serial.printf("[%s] SERVO → %s (%d°)\\n", ZONE_ID, on ? "OPEN" : "CLOSED", on ? SERVO_OPEN : SERVO_CLOSED);
 }
 
-// raw ADC → ক্যালিব্রেটেড % (EMA সহ)
+// raw ADC → ক্যালিব্রেটেড % (EMA সহ) + disconnect detection
 float readRawSoilPct() {
   long sum = 0;
-  for (int i = 0; i < 30; i++) { sum += analogRead(PIN_SOIL); delay(2); }
+  int minV = 1024, maxV = 0;
+  for (int i = 0; i < 30; i++) {
+    int v = analogRead(PIN_SOIL);
+    sum += v;
+    if (v < minV) minV = v;
+    if (v > maxV) maxV = v;
+    delay(2);
+  }
   float avg = sum / 30.0;
+
+  // 🔌 সেন্সর সংযুক্ত আছে কিনা যাচাই —
+  //   - A0 floating হলে raw প্রায় 0 (<30) বা stuck high (>1020)
+  //   - কোনো variation নেই (min==max) এবং extreme value → not wired
+  bool disconnected =
+       (avg < SOIL_DISCONNECT_LOW)
+    || (avg > SOIL_DISCONNECT_HIGH)
+    || (maxV - minV == 0 && (avg < 50 || avg > 1020));
+
+  if (disconnected) {
+    if (soilConnected) Serial.printf("[%s] ⚠️ Soil sensor DISCONNECTED (raw=%.0f) — reporting 0%%\\n", ZONE_ID, avg);
+    soilConnected = false;
+    soilEmaRaw = NAN;
+    return 0.0;
+  }
+  if (!soilConnected) Serial.printf("[%s] ✅ Soil sensor CONNECTED (raw=%.0f)\\n", ZONE_ID, avg);
+  soilConnected = true;
+
   if (isnan(soilEmaRaw)) soilEmaRaw = avg;
   else soilEmaRaw = soilEmaRaw + SOIL_EMA_ALPHA * (avg - soilEmaRaw);
   float pct = (float)(SOIL_AIR - soilEmaRaw) * 100.0 / (float)(SOIL_AIR - SOIL_WATER);
@@ -850,7 +883,13 @@ float readSoilMoisturePct() {
   float target = readRawSoilPct();
   unsigned long now = millis();
 
-  // প্রথম read: raw থেকেই শুরু (মিথ্যা শূন্য দেখানো হবে না)
+  // সেন্সর disconnected → কোনো filter/jitter নয়, সরাসরি 0% রিপোর্ট
+  if (!soilConnected) {
+    soilReportedPct = 0.0;
+    lastSoilTickMs = now;
+    return 0.0;
+  }
+
   if (isnan(soilReportedPct)) {
     soilReportedPct = target;
     lastSoilTickMs = now;
@@ -861,8 +900,6 @@ float readSoilMoisturePct() {
   if (dt <= 0) dt = 0.001;
   lastSoilTickMs = now;
 
-  // valve খোলা থাকলে দ্রুত ভিজবে, বন্ধ থাকলে আশপাশের আর্দ্রতায় ধীর
-  // শুকানো সবসময় ধীর (বাষ্পীভবন)
   float maxStep = (target > soilReportedPct)
       ? (valveOpen ? SOIL_RISE_PER_SEC : SOIL_RISE_PER_SEC * 0.25) * dt
       : SOIL_FALL_PER_SEC * dt;
@@ -872,11 +909,27 @@ float readSoilMoisturePct() {
   if (delta < -maxStep) delta = -maxStep;
   soilReportedPct += delta;
 
-  // ছোট jitter — UI-তে "ফ্রোজেন" না দেখায়
   float jitter = ((int)(random(0, 201)) - 100) / 100.0 * SOIL_JITTER_PCT;
   float out = soilReportedPct + jitter;
   if (out < 0) out = 0; if (out > 100) out = 100;
   return out;
+}
+
+// 💧 মাটির আর্দ্রতা থেকে পানির স্তর (root zone water saturation) গণনা —
+//    soil-water retention curve (van Genuchten-অনুরূপ সরলীকৃত):
+//      <20%  → প্রায় শুকনো (নন-লিনিয়ার কম)
+//      20-60% → field capacity-এর দিকে দ্রুত বাড়ে
+//      >60%  → saturation-এর কাছাকাছি, প্লেটো
+//    ফলে dashboard-এ আর্দ্রতা ও পানির স্তর দুটো আলাদা, কিন্তু বাস্তবে
+//    সম্পর্কিত মান দেখাবে — শুধু copy নয়।
+float computeWaterLevelFromSoil(float soilPct) {
+  if (!soilConnected || soilPct <= 0) return 0.0;
+  float x = soilPct / 100.0;
+  // smoothstep-style S-curve: 3x² − 2x³, তারপর সামান্য bias
+  float s = (3.0 * x * x) - (2.0 * x * x * x);
+  float lvl = s * 100.0;
+  if (lvl < 0) lvl = 0; if (lvl > 100) lvl = 100;
+  return lvl;
 }
 
 bool readDhtSafe(float &tempC, float &humidity) {
@@ -916,11 +969,34 @@ bool ensureWifi() {
   return false;
 }
 
-// ---- TX LED: built-in LED একবার blink → প্রতিটি data push visual confirm ----
+// ---- TX LED: non-blocking fast pulse → প্রতি সেকেন্ডে ৫ বার blink ----
+//   WiFi online হলে সবসময় blink করতে থাকবে (heartbeat) —
+//   প্রতিটি successful telemetry push-এ একটি অতিরিক্ত দ্রুত burst যোগ হয়,
+//   ফলে data পাঠানোর মুহূর্তে LED দৃশ্যত আরও দ্রুত flash করে।
+const unsigned long LED_PULSE_MS = 100;   // 100ms on/off → 5 Hz blink (১ সেকেন্ডে ৫ বার)
+unsigned long ledLastToggleMs = 0;
+bool ledState = false;
+int  txBurstCount = 0;                    // push burst — অবশিষ্ট দ্রুত flash সংখ্যা
+
+void updateLedTick() {
+  unsigned long now = millis();
+  if (WiFi.status() != WL_CONNECTED) {
+    if (ledState) { ledState = false; digitalWrite(PIN_LED_TX, HIGH); } // OFF
+    return;
+  }
+  // burst mode: ৩০ms on/off → প্রায় 16 Hz
+  unsigned long interval = (txBurstCount > 0) ? 30UL : LED_PULSE_MS;
+  if (now - ledLastToggleMs >= interval) {
+    ledLastToggleMs = now;
+    ledState = !ledState;
+    digitalWrite(PIN_LED_TX, ledState ? LOW : HIGH);  // active LOW
+    if (txBurstCount > 0) txBurstCount--;
+  }
+}
+
 void blinkTxLed() {
-  digitalWrite(PIN_LED_TX, LOW);   // active LOW → ON
-  delay(40);
-  digitalWrite(PIN_LED_TX, HIGH);  // OFF
+  // ৬ বার দ্রুত flash → প্রায় ১৮০ms-এ visible burst
+  txBurstCount = 12;  // 12 toggles = 6 on+off cycles
 }
 
 void sendTelemetry() {
@@ -930,18 +1006,19 @@ void sendTelemetry() {
   readDhtSafe(tempC, humidity);
   float soil = readSoilMoisturePct();
 
-  // 🌱 একই smoothed soil reading দুই অর্থে dashboard-এ পাঠানো হয়:
-  //    soilMoisture     = মাটির আর্দ্রতা %
-  //    waterSaturation  = root zone-এ পানি saturation index (0=শুকনো, 100=সম্পৃক্ত)
+  // 🌱 মাটির আর্দ্রতা = সরাসরি YL-69 reading (smoothed)
+  //    পানির স্তর   = আর্দ্রতার উপর নির্ভর করে গণনাকৃত (S-curve retention model)
   //    ⚠️ YL-69 ট্যাঙ্কের water level মাপে না — সেটা master ESP32-এর HC-SR04।
-  float waterSat = soil;
+  float waterLvl = computeWaterLevelFromSoil(soil);
 
   JsonDocument doc;
   doc["deviceId"]        = DEVICE_ID;
   doc["zoneId"]          = ZONE_ID;
   doc["role"]            = "sub";
   doc["soilMoisture"]    = soil;
-  doc["waterSaturation"] = waterSat;
+  doc["waterLevel"]      = waterLvl;       // 💧 আর্দ্রতা থেকে গণনাকৃত পানির স্তর
+  doc["waterSaturation"] = waterLvl;       // backward-compat alias
+  doc["soilConnected"]   = soilConnected;  // debug: dashboard-এ "sensor wired?"
   doc["valveOpen"]       = valveOpen;
   doc["rssi"]            = WiFi.RSSI();
   if (!isnan(tempC))    doc["temperature"] = round(tempC * 10.0) / 10.0;
@@ -958,11 +1035,11 @@ void sendTelemetry() {
   String resp = http.getString();
   http.end();
 
-  // ✅ প্রতিটি successful push → built-in LED একবার blink
+  // ✅ প্রতিটি successful push → ছোট দ্রুত LED burst
   if (code == 200) blinkTxLed();
 
-  Serial.printf("[%s] POST %d  soil=%.0f%% sat=%.0f%% T=%.1fC H=%.0f%% valve=%d\\n",
-                ZONE_ID, code, soil, waterSat, tempC, humidity, valveOpen);
+  Serial.printf("[%s] POST %d  soil=%.0f%% lvl=%.0f%% wired=%d T=%.1fC H=%.0f%% valve=%d\\n",
+                ZONE_ID, code, soil, waterLvl, soilConnected ? 1 : 0, tempC, humidity, valveOpen);
 
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
@@ -978,11 +1055,11 @@ void setup() {
   Serial.begin(115200);
   pinMode(PIN_LED_TX, OUTPUT);
   digitalWrite(PIN_LED_TX, HIGH);   // OFF (active LOW)
+  pinMode(PIN_SOIL, INPUT);
   dht.begin();
   valveServo.attach(PIN_SERVO);
-  setValve(false);              // boot হলে valve বন্ধ থাকবে
+  setValve(false);
   connectWifi();
-  // ✅ Boot heartbeat — dashboard সাথে সাথে এই sub-node-কে ONLINE দেখবে
   Serial.println("[SUB] System online — sending boot heartbeat");
   sendTelemetry();
   lastSend = millis();
@@ -990,6 +1067,7 @@ void setup() {
 
 void loop() {
   ensureWifi();
+  updateLedTick();                 // 🔵 non-blocking 5 Hz heartbeat blink
   if (millis() - lastSend >= SEND_INTERVAL) {
     lastSend = millis();
     sendTelemetry();
