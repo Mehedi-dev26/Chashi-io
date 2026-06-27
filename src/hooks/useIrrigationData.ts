@@ -134,6 +134,11 @@ const recomputeMetrics = () => {
 
 const applyTelemetry = (row: TelemetryRow) => {
   const ts = new Date(row.updated_at).getTime();
+  // ⚡ Drop stale rows on hydrate — device hasn't pinged within heartbeat window.
+  // Without this, opening the dashboard after the device has been offline for hours
+  // would briefly flash the last cached 100% reading before the watchdog zeroed it.
+  if (Date.now() - ts > PUMP_SPEC.heartbeatMs) return;
+
 
   // Show whatever DHT22 reports — only NaN/null is rejected.
   // Bounded validation previously dropped real readings (e.g. 173) and made
@@ -209,11 +214,17 @@ if (typeof window !== "undefined") {
         next = { ...next, motor: { ...next.motor, online: false, isOn: false, voltage: 0, current: 0, flowRate: 0, pressure: 0, health: 0 } };
         changed = true;
       }
-      // zone offline?
+      // zone offline? → zero out all sensor readings (no fake stale data)
       const zones = next.zones.map((z) => {
-        if (z.online && z.lastSeen && now - z.lastSeen > PUMP_SPEC.heartbeatMs) {
+        const stale = z.lastSeen && now - z.lastSeen > PUMP_SPEC.heartbeatMs;
+        if (z.online && stale) {
           changed = true;
-          return { ...z, online: false };
+          return { ...z, online: false, soilMoisture: 0, waterLevel: 0, valveOpen: false, status: "idle" as const };
+        }
+        // Defensive: even if never marked online but has stale/no data, force zeros
+        if (!z.online && (z.soilMoisture !== 0 || z.waterLevel !== 0 || z.valveOpen)) {
+          changed = true;
+          return { ...z, soilMoisture: 0, waterLevel: 0, valveOpen: false, status: "idle" as const };
         }
         return z;
       });
