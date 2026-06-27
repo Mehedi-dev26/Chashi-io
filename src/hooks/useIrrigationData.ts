@@ -134,6 +134,11 @@ const recomputeMetrics = () => {
 
 const applyTelemetry = (row: TelemetryRow) => {
   const ts = new Date(row.updated_at).getTime();
+  // ⚡ Drop stale rows on hydrate — device hasn't pinged within heartbeat window.
+  // Without this, opening the dashboard after the device has been offline for hours
+  // would briefly flash the last cached 100% reading before the watchdog zeroed it.
+  if (Date.now() - ts > PUMP_SPEC.heartbeatMs) return;
+
 
   // Show whatever DHT22 reports — only NaN/null is rejected.
   // Bounded validation previously dropped real readings (e.g. 173) and made
