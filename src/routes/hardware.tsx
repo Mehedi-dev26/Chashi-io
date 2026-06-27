@@ -916,6 +916,13 @@ bool ensureWifi() {
   return false;
 }
 
+// ---- TX LED: built-in LED একবার blink → প্রতিটি data push visual confirm ----
+void blinkTxLed() {
+  digitalWrite(PIN_LED_TX, LOW);   // active LOW → ON
+  delay(40);
+  digitalWrite(PIN_LED_TX, HIGH);  // OFF
+}
+
 void sendTelemetry() {
   if (!ensureWifi()) return;
 
@@ -923,15 +930,22 @@ void sendTelemetry() {
   readDhtSafe(tempC, humidity);
   float soil = readSoilMoisturePct();
 
+  // 🌱 একই smoothed soil reading দুই অর্থে dashboard-এ পাঠানো হয়:
+  //    soilMoisture     = মাটির আর্দ্রতা %
+  //    waterSaturation  = root zone-এ পানি saturation index (0=শুকনো, 100=সম্পৃক্ত)
+  //    ⚠️ YL-69 ট্যাঙ্কের water level মাপে না — সেটা master ESP32-এর HC-SR04।
+  float waterSat = soil;
+
   JsonDocument doc;
-  doc["deviceId"]     = DEVICE_ID;
-  doc["zoneId"]       = ZONE_ID;
-  doc["role"]         = "sub";
-  doc["soilMoisture"] = soil;
-  doc["valveOpen"]    = valveOpen;
-  doc["rssi"]         = WiFi.RSSI();
-  if (!isnan(tempC))   doc["temperature"] = round(tempC * 10.0) / 10.0;
-  if (!isnan(humidity)) doc["humidity"]   = round(humidity);
+  doc["deviceId"]        = DEVICE_ID;
+  doc["zoneId"]          = ZONE_ID;
+  doc["role"]            = "sub";
+  doc["soilMoisture"]    = soil;
+  doc["waterSaturation"] = waterSat;
+  doc["valveOpen"]       = valveOpen;
+  doc["rssi"]            = WiFi.RSSI();
+  if (!isnan(tempC))    doc["temperature"] = round(tempC * 10.0) / 10.0;
+  if (!isnan(humidity)) doc["humidity"]    = round(humidity);
 
   String body; serializeJson(doc, body);
   BearSSL::WiFiClientSecure client;
@@ -943,8 +957,12 @@ void sendTelemetry() {
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
-  Serial.printf("[%s] POST %d  soil=%.0f%% T=%.1fC H=%.0f%% valve=%d\\n",
-                ZONE_ID, code, soil, tempC, humidity, valveOpen);
+
+  // ✅ প্রতিটি successful push → built-in LED একবার blink
+  if (code == 200) blinkTxLed();
+
+  Serial.printf("[%s] POST %d  soil=%.0f%% sat=%.0f%% T=%.1fC H=%.0f%% valve=%d\\n",
+                ZONE_ID, code, soil, waterSat, tempC, humidity, valveOpen);
 
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
@@ -958,6 +976,8 @@ void sendTelemetry() {
 
 void setup() {
   Serial.begin(115200);
+  pinMode(PIN_LED_TX, OUTPUT);
+  digitalWrite(PIN_LED_TX, HIGH);   // OFF (active LOW)
   dht.begin();
   valveServo.attach(PIN_SERVO);
   setValve(false);              // boot হলে valve বন্ধ থাকবে
