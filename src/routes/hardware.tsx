@@ -786,10 +786,11 @@ const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 // ========================
 
 // ---- Pins ----
-#define PIN_SOIL    A0     // YL-69 (AO) analog (ESP8266-এ একটাই ADC)
-#define PIN_SERVO   D2     // SG90 servo PWM (GPIO4)
-#define PIN_DHT     D6     // DHT22 data (GPIO12)
-#define DHT_TYPE    DHT22
+#define PIN_SOIL     A0     // YL-69 (AO) analog (ESP8266-এ একটাই ADC)
+#define PIN_SERVO    D2     // SG90 servo PWM (GPIO4)
+#define PIN_DHT      D6     // DHT22 data (GPIO12)
+#define PIN_LED_TX   LED_BUILTIN   // NodeMCU built-in blue LED (GPIO2 / D4) — active LOW
+#define DHT_TYPE     DHT22
 
 // ---- Soil sensor calibration (YL-69 resistive — নিজের সেন্সরে একবার মাপুন) ----
 // AIR  : প্রোব শুকনো বাতাসে → raw বড় (~900-1024)
