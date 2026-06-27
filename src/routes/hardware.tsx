@@ -872,7 +872,7 @@ float readSoilMoisturePct() {
   soilReportedPct += delta;
 
   // ছোট jitter — UI-তে "ফ্রোজেন" না দেখায়
-  float jitter = ((int)(os_random() % 200) - 100) / 100.0 * SOIL_JITTER_PCT;
+  float jitter = ((int)(random(0, 201)) - 100) / 100.0 * SOIL_JITTER_PCT;
   float out = soilReportedPct + jitter;
   if (out < 0) out = 0; if (out > 100) out = 100;
   return out;
