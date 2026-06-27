@@ -52,39 +52,59 @@ function MapPage() {
         <FieldMap zones={zones} onToggle={toggleValve} />
 
         <div className="glass-card rounded-2xl p-5">
-          <h2 className="text-base font-bold mb-3">জোন তালিকা ও স্থানাঙ্ক</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-[11px] uppercase text-muted-foreground border-b border-border">
-                <tr className="text-left">
-                  <th className="py-2 px-2">ID</th>
-                  <th className="px-2">জোন</th>
-                  <th className="px-2">ফসল</th>
-                  <th className="px-2">এলাকা</th>
-                  <th className="px-2">অবস্থা</th>
-                  <th className="px-2">পানির স্তর</th>
-                </tr>
-              </thead>
-              <tbody>
-                {zones.map((z) => (
-                  <tr key={z.id} className="border-b border-border/50 hover:bg-secondary/40 transition">
-                    <td className="py-2 px-2 font-mono text-xs">{z.id}</td>
-                    <td className="px-2 font-semibold">{z.nameBn}</td>
-                    <td className="px-2 text-muted-foreground">{z.cropType}</td>
-                    <td className="px-2">{bn(z.area)} একর</td>
-                    <td className="px-2">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${z.valveOpen ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
-                        {z.valveOpen ? "সেচ চলছে" : "নিষ্ক্রিয়"}
-                      </span>
-                    </td>
-                    <td className="px-2 font-semibold">{bn(z.waterLevel.toFixed(0))}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-bold">জোন তালিকা ও স্থানাঙ্ক</h2>
+              <p className="text-xs text-muted-foreground">প্রতিটি জমির রিয়েল-টাইম পরিসংখ্যান ও অবস্থা</p>
+            </div>
+            <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-1 rounded-full">
+              {bn(zones.length)}টি জোন
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {zones.map((z) => {
+              const statusGrad = z.valveOpen
+                ? "from-emerald-500 via-green-500 to-teal-500"
+                : "from-slate-400 via-zinc-500 to-slate-600";
+              return (
+                <div
+                  key={z.id}
+                  className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-lg ring-1 ring-white/30 border-2 border-white/20 hover-lift group"
+                >
+                  <div className="absolute -top-10 -right-10 h-28 w-28 rounded-full bg-white/15 blur-2xl group-hover:bg-white/25 transition-colors duration-500" />
+
+                  <div className="relative flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-mono opacity-90">{z.id}</p>
+                      <h3 className="font-black text-lg truncate drop-shadow">{z.nameBn}</h3>
+                      <p className="text-[11px] opacity-90 font-medium">{z.cropType}</p>
+                    </div>
+                    <span className={`text-[10px] font-extrabold px-2 py-1 rounded-lg bg-gradient-to-r ${statusGrad} ring-1 ring-white/40 shadow-md shrink-0`}>
+                      {z.valveOpen ? "সেচ চলছে" : "নিষ্ক্রিয়"}
+                    </span>
+                  </div>
+
+                  <div className="relative mt-3 grid grid-cols-3 gap-2">
+                    <Tile grad="from-sky-500 via-cyan-500 to-blue-500" label="পানির স্তর" value={`${bn(z.waterLevel.toFixed(0))}%`} />
+                    <Tile grad="from-lime-500 via-green-500 to-emerald-500" label="আর্দ্রতা" value={`${bn(z.soilMoisture.toFixed(0))}%`} />
+                    <Tile grad="from-orange-500 via-amber-500 to-yellow-500" label="একর" value={bn(z.area)} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+function Tile({ grad, label, value }: { grad: string; label: string; value: string }) {
+  return (
+    <div className={`rounded-xl p-2 bg-gradient-to-br ${grad} ring-1 ring-white/40 shadow-md text-white`}>
+      <p className="text-[9px] uppercase tracking-wider opacity-90 font-bold truncate">{label}</p>
+      <p className="text-base font-black tabular-nums drop-shadow">{value}</p>
+    </div>
   );
 }
