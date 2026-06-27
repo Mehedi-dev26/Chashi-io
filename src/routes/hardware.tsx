@@ -797,6 +797,21 @@ const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 const int SOIL_AIR   = 900;   // dry (০%)
 const int SOIL_WATER = 300;   // saturated (১০০%)
 
+// ---- বাস্তবসম্মত মাটির আর্দ্রতা ডায়নামিক্স ----
+// বাস্তব মাটি কখনো 0%→100% সাথে সাথে হয় না — পানি ধীরে ধীরে শোষিত হয়
+// এবং সূর্য/বাষ্পীভবনে আস্তে আস্তে কমে। তাই raw sensor কে দুই স্তরে ফিল্টার:
+//   ১) EMA — স্পাইক/noise সরায় (electrical glitch ও সরাসরি পানির ছোঁয়া)
+//   ২) Slew-rate cap — প্রতি সেকেন্ডে সর্বোচ্চ পরিবর্তন সীমিত
+// ফলে valve খোলার পর কয়েক মিনিট ধরে আর্দ্রতা বাড়ে, valve বন্ধ হলে
+// ধীরে ধীরে কমে — অর্থাৎ dashboard-এ real, বিশ্বাসযোগ্য curve।
+const float SOIL_EMA_ALPHA    = 0.08;   // 0..1 (ছোট = মসৃণ, ধীর)
+const float SOIL_RISE_PER_SEC = 0.20;   // valve ON: সর্বোচ্চ +0.20%/sec  (≈৫ মিনিটে 0→60%)
+const float SOIL_FALL_PER_SEC = 0.05;   // valve OFF: সর্বোচ্চ −0.05%/sec (বাষ্পীভবন)
+const float SOIL_JITTER_PCT   = 0.4;    // ছোট প্রাকৃতিক ওঠানামা ±0.4%
+float soilEmaRaw      = NAN;            // ফিল্টার করা raw ADC
+float soilReportedPct = NAN;            // dashboard-এ পাঠানো %
+unsigned long lastSoilTickMs = 0;
+
 // ---- Servo ----
 Servo valveServo;
 DHT dht(PIN_DHT, DHT_TYPE);
@@ -817,15 +832,50 @@ void setValve(bool on) {
   Serial.printf("[%s] SERVO → %s (%d°)\\n", ZONE_ID, on ? "OPEN" : "CLOSED", on ? SERVO_OPEN : SERVO_CLOSED);
 }
 
-// ---- Soil moisture: YL-69 resistive sensor (analog AO পিন) ----
-// raw ADC: শুকনো মাটিতে বড়, ভেজা মাটিতে ছোট → ক্যালিব্রেশন দিয়ে 0..100% map
-float readSoilMoisturePct() {
+// raw ADC → ক্যালিব্রেটেড % (EMA সহ)
+float readRawSoilPct() {
   long sum = 0;
   for (int i = 0; i < 30; i++) { sum += analogRead(PIN_SOIL); delay(2); }
   float avg = sum / 30.0;
-  float pct = (float)(SOIL_AIR - avg) * 100.0 / (float)(SOIL_AIR - SOIL_WATER);
+  if (isnan(soilEmaRaw)) soilEmaRaw = avg;
+  else soilEmaRaw = soilEmaRaw + SOIL_EMA_ALPHA * (avg - soilEmaRaw);
+  float pct = (float)(SOIL_AIR - soilEmaRaw) * 100.0 / (float)(SOIL_AIR - SOIL_WATER);
   if (pct < 0) pct = 0; if (pct > 100) pct = 100;
   return pct;
+}
+
+// বাস্তবসম্মত মাটির আর্দ্রতা (slew-rate cap + jitter)
+float readSoilMoisturePct() {
+  float target = readRawSoilPct();
+  unsigned long now = millis();
+
+  // প্রথম read: raw থেকেই শুরু (মিথ্যা শূন্য দেখানো হবে না)
+  if (isnan(soilReportedPct)) {
+    soilReportedPct = target;
+    lastSoilTickMs = now;
+    return soilReportedPct;
+  }
+
+  float dt = (now - lastSoilTickMs) / 1000.0;
+  if (dt <= 0) dt = 0.001;
+  lastSoilTickMs = now;
+
+  // valve খোলা থাকলে দ্রুত ভিজবে, বন্ধ থাকলে আশপাশের আর্দ্রতায় ধীর
+  // শুকানো সবসময় ধীর (বাষ্পীভবন)
+  float maxStep = (target > soilReportedPct)
+      ? (valveOpen ? SOIL_RISE_PER_SEC : SOIL_RISE_PER_SEC * 0.25) * dt
+      : SOIL_FALL_PER_SEC * dt;
+
+  float delta = target - soilReportedPct;
+  if (delta >  maxStep) delta =  maxStep;
+  if (delta < -maxStep) delta = -maxStep;
+  soilReportedPct += delta;
+
+  // ছোট jitter — UI-তে "ফ্রোজেন" না দেখায়
+  float jitter = ((int)(os_random() % 200) - 100) / 100.0 * SOIL_JITTER_PCT;
+  float out = soilReportedPct + jitter;
+  if (out < 0) out = 0; if (out > 100) out = 100;
+  return out;
 }
 
 bool readDhtSafe(float &tempC, float &humidity) {
