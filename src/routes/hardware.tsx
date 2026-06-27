@@ -798,6 +798,14 @@ const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
 const int SOIL_AIR   = 900;   // dry (০%)
 const int SOIL_WATER = 300;   // saturated (১০০%)
 
+// ---- সেন্সর সংযুক্ত আছে কিনা সনাক্তকরণ ----
+// YL-69 disconnected হলে A0 ভাসমান অবস্থায় থাকে — সাধারণত raw < 30 বা
+// একদম stuck (>1020)। এই অবস্থায় আগের firmware ভুলে 100% রিপোর্ট করত।
+// এখন: সেন্সর না থাকলে dashboard-এ 0% যাবে এবং Serial-এ warning ছাপবে।
+const int   SOIL_DISCONNECT_LOW  = 30;     // এর নিচে = floating / not wired
+const int   SOIL_DISCONNECT_HIGH = 1020;   // এর উপরে = open circuit
+bool soilConnected = false;
+
 // ---- বাস্তবসম্মত মাটির আর্দ্রতা ডায়নামিক্স ----
 // বাস্তব মাটি কখনো 0%→100% সাথে সাথে হয় না — পানি ধীরে ধীরে শোষিত হয়
 // এবং সূর্য/বাষ্পীভবনে আস্তে আস্তে কমে। তাই raw sensor কে দুই স্তরে ফিল্টার:
@@ -805,12 +813,12 @@ const int SOIL_WATER = 300;   // saturated (১০০%)
 //   ২) Slew-rate cap — প্রতি সেকেন্ডে সর্বোচ্চ পরিবর্তন সীমিত
 // ফলে valve খোলার পর কয়েক মিনিট ধরে আর্দ্রতা বাড়ে, valve বন্ধ হলে
 // ধীরে ধীরে কমে — অর্থাৎ dashboard-এ real, বিশ্বাসযোগ্য curve।
-const float SOIL_EMA_ALPHA    = 0.08;   // 0..1 (ছোট = মসৃণ, ধীর)
-const float SOIL_RISE_PER_SEC = 0.20;   // valve ON: সর্বোচ্চ +0.20%/sec  (≈৫ মিনিটে 0→60%)
-const float SOIL_FALL_PER_SEC = 0.05;   // valve OFF: সর্বোচ্চ −0.05%/sec (বাষ্পীভবন)
-const float SOIL_JITTER_PCT   = 0.4;    // ছোট প্রাকৃতিক ওঠানামা ±0.4%
-float soilEmaRaw      = NAN;            // ফিল্টার করা raw ADC
-float soilReportedPct = NAN;            // dashboard-এ পাঠানো %
+const float SOIL_EMA_ALPHA    = 0.08;
+const float SOIL_RISE_PER_SEC = 0.20;
+const float SOIL_FALL_PER_SEC = 0.05;
+const float SOIL_JITTER_PCT   = 0.4;
+float soilEmaRaw      = NAN;
+float soilReportedPct = NAN;
 unsigned long lastSoilTickMs = 0;
 
 // ---- Servo ----
