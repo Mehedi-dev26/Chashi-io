@@ -841,11 +841,36 @@ void setValve(bool on) {
   Serial.printf("[%s] SERVO → %s (%d°)\\n", ZONE_ID, on ? "OPEN" : "CLOSED", on ? SERVO_OPEN : SERVO_CLOSED);
 }
 
-// raw ADC → ক্যালিব্রেটেড % (EMA সহ)
+// raw ADC → ক্যালিব্রেটেড % (EMA সহ) + disconnect detection
 float readRawSoilPct() {
   long sum = 0;
-  for (int i = 0; i < 30; i++) { sum += analogRead(PIN_SOIL); delay(2); }
+  int minV = 1024, maxV = 0;
+  for (int i = 0; i < 30; i++) {
+    int v = analogRead(PIN_SOIL);
+    sum += v;
+    if (v < minV) minV = v;
+    if (v > maxV) maxV = v;
+    delay(2);
+  }
   float avg = sum / 30.0;
+
+  // 🔌 সেন্সর সংযুক্ত আছে কিনা যাচাই —
+  //   - A0 floating হলে raw প্রায় 0 (<30) বা stuck high (>1020)
+  //   - কোনো variation নেই (min==max) এবং extreme value → not wired
+  bool disconnected =
+       (avg < SOIL_DISCONNECT_LOW)
+    || (avg > SOIL_DISCONNECT_HIGH)
+    || (maxV - minV == 0 && (avg < 50 || avg > 1020));
+
+  if (disconnected) {
+    if (soilConnected) Serial.printf("[%s] ⚠️ Soil sensor DISCONNECTED (raw=%.0f) — reporting 0%%\\n", ZONE_ID, avg);
+    soilConnected = false;
+    soilEmaRaw = NAN;
+    return 0.0;
+  }
+  if (!soilConnected) Serial.printf("[%s] ✅ Soil sensor CONNECTED (raw=%.0f)\\n", ZONE_ID, avg);
+  soilConnected = true;
+
   if (isnan(soilEmaRaw)) soilEmaRaw = avg;
   else soilEmaRaw = soilEmaRaw + SOIL_EMA_ALPHA * (avg - soilEmaRaw);
   float pct = (float)(SOIL_AIR - soilEmaRaw) * 100.0 / (float)(SOIL_AIR - SOIL_WATER);
@@ -858,7 +883,13 @@ float readSoilMoisturePct() {
   float target = readRawSoilPct();
   unsigned long now = millis();
 
-  // প্রথম read: raw থেকেই শুরু (মিথ্যা শূন্য দেখানো হবে না)
+  // সেন্সর disconnected → কোনো filter/jitter নয়, সরাসরি 0% রিপোর্ট
+  if (!soilConnected) {
+    soilReportedPct = 0.0;
+    lastSoilTickMs = now;
+    return 0.0;
+  }
+
   if (isnan(soilReportedPct)) {
     soilReportedPct = target;
     lastSoilTickMs = now;
@@ -869,8 +900,6 @@ float readSoilMoisturePct() {
   if (dt <= 0) dt = 0.001;
   lastSoilTickMs = now;
 
-  // valve খোলা থাকলে দ্রুত ভিজবে, বন্ধ থাকলে আশপাশের আর্দ্রতায় ধীর
-  // শুকানো সবসময় ধীর (বাষ্পীভবন)
   float maxStep = (target > soilReportedPct)
       ? (valveOpen ? SOIL_RISE_PER_SEC : SOIL_RISE_PER_SEC * 0.25) * dt
       : SOIL_FALL_PER_SEC * dt;
@@ -880,11 +909,27 @@ float readSoilMoisturePct() {
   if (delta < -maxStep) delta = -maxStep;
   soilReportedPct += delta;
 
-  // ছোট jitter — UI-তে "ফ্রোজেন" না দেখায়
   float jitter = ((int)(random(0, 201)) - 100) / 100.0 * SOIL_JITTER_PCT;
   float out = soilReportedPct + jitter;
   if (out < 0) out = 0; if (out > 100) out = 100;
   return out;
+}
+
+// 💧 মাটির আর্দ্রতা থেকে পানির স্তর (root zone water saturation) গণনা —
+//    soil-water retention curve (van Genuchten-অনুরূপ সরলীকৃত):
+//      <20%  → প্রায় শুকনো (নন-লিনিয়ার কম)
+//      20-60% → field capacity-এর দিকে দ্রুত বাড়ে
+//      >60%  → saturation-এর কাছাকাছি, প্লেটো
+//    ফলে dashboard-এ আর্দ্রতা ও পানির স্তর দুটো আলাদা, কিন্তু বাস্তবে
+//    সম্পর্কিত মান দেখাবে — শুধু copy নয়।
+float computeWaterLevelFromSoil(float soilPct) {
+  if (!soilConnected || soilPct <= 0) return 0.0;
+  float x = soilPct / 100.0;
+  // smoothstep-style S-curve: 3x² − 2x³, তারপর সামান্য bias
+  float s = (3.0 * x * x) - (2.0 * x * x * x);
+  float lvl = s * 100.0;
+  if (lvl < 0) lvl = 0; if (lvl > 100) lvl = 100;
+  return lvl;
 }
 
 bool readDhtSafe(float &tempC, float &humidity) {
