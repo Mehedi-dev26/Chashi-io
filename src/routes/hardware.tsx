@@ -969,11 +969,34 @@ bool ensureWifi() {
   return false;
 }
 
-// ---- TX LED: built-in LED একবার blink → প্রতিটি data push visual confirm ----
+// ---- TX LED: non-blocking fast pulse → প্রতি সেকেন্ডে ৫ বার blink ----
+//   WiFi online হলে সবসময় blink করতে থাকবে (heartbeat) —
+//   প্রতিটি successful telemetry push-এ একটি অতিরিক্ত দ্রুত burst যোগ হয়,
+//   ফলে data পাঠানোর মুহূর্তে LED দৃশ্যত আরও দ্রুত flash করে।
+const unsigned long LED_PULSE_MS = 100;   // 100ms on/off → 5 Hz blink (১ সেকেন্ডে ৫ বার)
+unsigned long ledLastToggleMs = 0;
+bool ledState = false;
+int  txBurstCount = 0;                    // push burst — অবশিষ্ট দ্রুত flash সংখ্যা
+
+void updateLedTick() {
+  unsigned long now = millis();
+  if (WiFi.status() != WL_CONNECTED) {
+    if (ledState) { ledState = false; digitalWrite(PIN_LED_TX, HIGH); } // OFF
+    return;
+  }
+  // burst mode: ৩০ms on/off → প্রায় 16 Hz
+  unsigned long interval = (txBurstCount > 0) ? 30UL : LED_PULSE_MS;
+  if (now - ledLastToggleMs >= interval) {
+    ledLastToggleMs = now;
+    ledState = !ledState;
+    digitalWrite(PIN_LED_TX, ledState ? LOW : HIGH);  // active LOW
+    if (txBurstCount > 0) txBurstCount--;
+  }
+}
+
 void blinkTxLed() {
-  digitalWrite(PIN_LED_TX, LOW);   // active LOW → ON
-  delay(40);
-  digitalWrite(PIN_LED_TX, HIGH);  // OFF
+  // ৬ বার দ্রুত flash → প্রায় ১৮০ms-এ visible burst
+  txBurstCount = 12;  // 12 toggles = 6 on+off cycles
 }
 
 void sendTelemetry() {
@@ -983,18 +1006,19 @@ void sendTelemetry() {
   readDhtSafe(tempC, humidity);
   float soil = readSoilMoisturePct();
 
-  // 🌱 একই smoothed soil reading দুই অর্থে dashboard-এ পাঠানো হয়:
-  //    soilMoisture     = মাটির আর্দ্রতা %
-  //    waterSaturation  = root zone-এ পানি saturation index (0=শুকনো, 100=সম্পৃক্ত)
+  // 🌱 মাটির আর্দ্রতা = সরাসরি YL-69 reading (smoothed)
+  //    পানির স্তর   = আর্দ্রতার উপর নির্ভর করে গণনাকৃত (S-curve retention model)
   //    ⚠️ YL-69 ট্যাঙ্কের water level মাপে না — সেটা master ESP32-এর HC-SR04।
-  float waterSat = soil;
+  float waterLvl = computeWaterLevelFromSoil(soil);
 
   JsonDocument doc;
   doc["deviceId"]        = DEVICE_ID;
   doc["zoneId"]          = ZONE_ID;
   doc["role"]            = "sub";
   doc["soilMoisture"]    = soil;
-  doc["waterSaturation"] = waterSat;
+  doc["waterLevel"]      = waterLvl;       // 💧 আর্দ্রতা থেকে গণনাকৃত পানির স্তর
+  doc["waterSaturation"] = waterLvl;       // backward-compat alias
+  doc["soilConnected"]   = soilConnected;  // debug: dashboard-এ "sensor wired?"
   doc["valveOpen"]       = valveOpen;
   doc["rssi"]            = WiFi.RSSI();
   if (!isnan(tempC))    doc["temperature"] = round(tempC * 10.0) / 10.0;
@@ -1011,11 +1035,11 @@ void sendTelemetry() {
   String resp = http.getString();
   http.end();
 
-  // ✅ প্রতিটি successful push → built-in LED একবার blink
+  // ✅ প্রতিটি successful push → ছোট দ্রুত LED burst
   if (code == 200) blinkTxLed();
 
-  Serial.printf("[%s] POST %d  soil=%.0f%% sat=%.0f%% T=%.1fC H=%.0f%% valve=%d\\n",
-                ZONE_ID, code, soil, waterSat, tempC, humidity, valveOpen);
+  Serial.printf("[%s] POST %d  soil=%.0f%% lvl=%.0f%% wired=%d T=%.1fC H=%.0f%% valve=%d\\n",
+                ZONE_ID, code, soil, waterLvl, soilConnected ? 1 : 0, tempC, humidity, valveOpen);
 
   JsonDocument r;
   if (deserializeJson(r, resp) == DeserializationError::Ok) {
@@ -1031,11 +1055,11 @@ void setup() {
   Serial.begin(115200);
   pinMode(PIN_LED_TX, OUTPUT);
   digitalWrite(PIN_LED_TX, HIGH);   // OFF (active LOW)
+  pinMode(PIN_SOIL, INPUT);
   dht.begin();
   valveServo.attach(PIN_SERVO);
-  setValve(false);              // boot হলে valve বন্ধ থাকবে
+  setValve(false);
   connectWifi();
-  // ✅ Boot heartbeat — dashboard সাথে সাথে এই sub-node-কে ONLINE দেখবে
   Serial.println("[SUB] System online — sending boot heartbeat");
   sendTelemetry();
   lastSend = millis();
@@ -1043,6 +1067,7 @@ void setup() {
 
 void loop() {
   ensureWifi();
+  updateLedTick();                 // 🔵 non-blocking 5 Hz heartbeat blink
   if (millis() - lastSend >= SEND_INTERVAL) {
     lastSend = millis();
     sendTelemetry();
