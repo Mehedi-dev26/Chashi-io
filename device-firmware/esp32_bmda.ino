@@ -238,19 +238,72 @@ void setMotor(bool on) {
   Serial.printf("[MOTOR] %s\n", on ? "ON" : "OFF");
 }
 
-float readTankPct() {
-  digitalWrite(PIN_TRIG, LOW);  delayMicroseconds(2);
+// ===== HC-SR04 Tank Level (real measurement) =====
+// Calibrate these to your tank:
+//   TANK_SENSOR_OFFSET_CM = distance from sensor face to water surface when tank is FULL
+//   TANK_DEPTH_CM         = usable water depth (full surface -> empty/bottom)
+// Example: sensor mounted 5 cm above the full mark, tank holds 30 cm of water
+//   => OFFSET = 5, DEPTH = 30, so distance 5cm => 100%, 35cm => 0%
+#define TANK_SENSOR_OFFSET_CM   5.0
+#define TANK_DEPTH_CM          30.0
+#define TANK_FULL_THRESHOLD    95.0   // >=95% considered FULL (overflow risk)
+#define TANK_WARN_THRESHOLD    85.0   // >=85% warning
+
+static float lastTankPct = 0.0;
+static bool  tankHasReading = false;
+
+static long readEchoOnce() {
+  digitalWrite(PIN_TRIG, LOW);  delayMicroseconds(4);
   digitalWrite(PIN_TRIG, HIGH); delayMicroseconds(10);
   digitalWrite(PIN_TRIG, LOW);
-  long dur = pulseIn(PIN_ECHO, HIGH, 30000);
-  if (!dur) return 0;
+  return pulseIn(PIN_ECHO, HIGH, 30000); // 30ms ~ 5m max
+}
+
+float readTankPct() {
+  // Take 5 samples, drop min & max, average the rest (median-like filter)
+  long s[5]; int valid = 0;
+  for (int i = 0; i < 5; i++) {
+    long d = readEchoOnce();
+    if (d > 0) s[valid++] = d;
+    delay(8);
+  }
+  if (valid < 3) {
+    // Sensor not responding / out of range: keep last good reading instead of fake 0
+    return tankHasReading ? lastTankPct : 0.0;
+  }
+  // sort ascending (simple)
+  for (int i = 0; i < valid - 1; i++)
+    for (int j = i + 1; j < valid; j++)
+      if (s[j] < s[i]) { long t = s[i]; s[i] = s[j]; s[j] = t; }
+  long sum = 0; int cnt = 0;
+  for (int i = 1; i < valid - 1; i++) { sum += s[i]; cnt++; }
+  if (cnt == 0) { sum = s[valid/2]; cnt = 1; }
+  float dur = (float)sum / cnt;
   float distCm = dur * 0.0343 / 2.0;
-  const float TANK_H = 100.0;
-  float pct = 100.0 * (TANK_H - distCm) / TANK_H;
-  if (pct < 0) pct = 0;
+
+  // HC-SR04 reliable range 2..400 cm
+  if (distCm < 2.0 || distCm > 400.0) {
+    return tankHasReading ? lastTankPct : 0.0;
+  }
+
+  float waterFromTop = distCm - TANK_SENSOR_OFFSET_CM; // 0 = full surface
+  float pct = 100.0 * (TANK_DEPTH_CM - waterFromTop) / TANK_DEPTH_CM;
+  if (pct < 0)   pct = 0;
   if (pct > 100) pct = 100;
+
+  lastTankPct = pct;
+  tankHasReading = true;
+
+  if (pct >= TANK_FULL_THRESHOLD) {
+    Serial.printf("[TANK] FULL! %.1f%% (dist=%.1fcm) — OVERFLOW RISK, stop filling\n", pct, distCm);
+  } else if (pct >= TANK_WARN_THRESHOLD) {
+    Serial.printf("[TANK] WARN %.1f%% (dist=%.1fcm)\n", pct, distCm);
+  } else {
+    Serial.printf("[TANK] %.1f%% (dist=%.1fcm)\n", pct, distCm);
+  }
   return pct;
 }
+
 
 float computeFlowLpm() {
   if (!motorOn) return 0.0;
