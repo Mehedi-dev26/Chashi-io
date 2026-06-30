@@ -6,6 +6,7 @@ import {
   FlaskConical, RotateCw, Globe, ArrowRight, Sprout,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import masterFirmwareSource from "../../device-firmware/esp32_bmda.ino?raw";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
@@ -1103,7 +1104,10 @@ function HardwarePage() {
 
   // Firmware ALWAYS targets the Lovable backend (where server routes live).
   const serverHost = BACKEND_HOST;
-  const masterCode = buildMasterCode(serverHost);
+  const masterCode = masterFirmwareSource.replace(
+    /const char\* SERVER_HOST\s*=\s*"[^"]+";/,
+    `const char* SERVER_HOST = "${serverHost}";`,
+  );
   const subCode = buildSubCode(serverHost);
 
   const copy = async (id: string, text: string) => {

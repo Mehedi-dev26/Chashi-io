@@ -7,7 +7,7 @@
  *   - Main Motor relay control from dashboard + manual ON/OFF buttons
  *   - Calculated flow rate for R385/6V pump (no physical flow sensor)
  *   - HC-SR04 tank level
- *   - DHT22 temperature/humidity in real Celsius/%RH with corrupted-read guard
+ *   - DHT11 temperature/humidity in real Celsius/%RH with corrupted-read guard
  *   - SSD1306 OLED: splash, loading screen, live status layout
  *   - GPIO 2 blue LED: solid ON when dashboard is online
  *   - Auto WiFi reconnect without reboot; motor safety OFF on connection loss
@@ -52,7 +52,7 @@ const float PUMP_RATED_CURRENT = 0.20;
 #define TANK_WARN_THRESHOLD    85.0
 
 #define PIN_DHT            4
-#define DHT_TYPE       DHT22
+#define DHT_TYPE       DHT11   // আপনার sensor DHT11/DH11 হলে DHT11 রাখুন; DHT22 হলে DHT22 করুন
 #define I2C_SDA           21
 #define I2C_SCL           22
 #define PIN_BTN_ON        32
@@ -77,7 +77,7 @@ const unsigned long WIFI_RETRY_MS = 5000;
 float lastGoodTemp = NAN;
 float lastGoodHum = NAN;
 unsigned long lastDhtReadMs = 0;
-const unsigned long DHT_MIN_INTERVAL = 2200;  // DHT22 needs >= 2s between reads
+const unsigned long DHT_MIN_INTERVAL = 2200;  // DHT11/DHT22 stability guard
 unsigned long dhtWarmupUntil = 0;
 
 // Buttons: wired between GPIO and GND. INPUT_PULLUP → idle=HIGH, press=LOW.
@@ -155,9 +155,9 @@ String fmtRuntime(unsigned long ms) {
 
 bool readDhtSafe(float &tempC, float &humidity) {
   // Pure live-sensor read. No cached / preset / fabricated values.
-  // Returns ONLY what DHT22 physically reports right now, within its
-  // datasheet range (temp −40..80 °C, humidity 0..100 %RH). Anything
-  // outside that range is a corrupted pulse → NaN (not displayed/sent).
+  // Returns ONLY what the DHT sensor physically reports right now, within
+  // a safe environmental range. Corrupted pulses like 768°C / 197%RH are
+  // rejected and will show as -- on OLED/dashboard.
   tempC = NAN;
   humidity = NAN;
 
@@ -171,7 +171,7 @@ bool readDhtSafe(float &tempC, float &humidity) {
   for (int i = 0; i < 5; i++) {
     float tt = dht.readTemperature(false);
     float hh = dht.readHumidity();
-    bool tOk = !isnan(tt) && tt >= -40.0 && tt <= 80.0;
+    bool tOk = !isnan(tt) && tt >= -10.0 && tt <= 60.0;
     bool hOk = !isnan(hh) && hh >= 0.0  && hh <= 100.0;
     if (tOk) t = tt;
     if (hOk) h = hh;
@@ -344,6 +344,20 @@ void connectWifi() {
   }
 }
 
+bool postTelemetryPayload(const String& body, String &resp, int &code) {
+  WiFiClientSecure client;
+  client.setInsecure();
+  HTTPClient http;
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+  http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
+  http.setTimeout(8000);
+  http.addHeader("Content-Type", "application/json");
+  code = http.POST(body);
+  resp = http.getString();
+  http.end();
+  return code >= 200 && code < 300;
+}
+
 bool ensureWifi() {
   if (WiFi.status() == WL_CONNECTED) return true;
 
@@ -392,25 +406,24 @@ void sendTelemetry() {
   String body;
   serializeJson(doc, body);
 
-  WiFiClientSecure client;
-  client.setInsecure();
-  HTTPClient http;
-  http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
-  http.setTimeout(5000);
-  http.addHeader("Content-Type", "application/json");
-  int code = http.POST(body);
-  String resp = http.getString();
-  http.end();
-
-  systemOnline = (code == 200);
+  int code = 0;
+  String resp;
+  systemOnline = postTelemetryPayload(body, resp, code);
+  if (!systemOnline) {
+    delay(250);
+    systemOnline = postTelemetryPayload(body, resp, code);
+  }
   if (!systemOnline && motorOn) {
     setMotor(false);
     lpm = 0.0; volt = 0.0; curr = 0.0;
     lastSend = 0;
   }
 
-  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f T=%.1fC H=%.0f%% online=%d\n",
-                code, tank, lpm, volt, t, h, systemOnline ? 1 : 0);
+  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f T=", code, tank, lpm, volt);
+  if (isnan(t)) Serial.print("--"); else Serial.print(t, 1);
+  Serial.print("C H=");
+  if (isnan(h)) Serial.print("--"); else Serial.print(h, 0);
+  Serial.printf("%% online=%d\n", systemOnline ? 1 : 0);
 
   bool motorChanged = false;
   JsonDocument r;
@@ -540,9 +553,9 @@ void setup() {
   oled.display();
   bootAnimation();
 
-  pinMode(PIN_DHT, INPUT_PULLUP);   // enable ESP32 internal pull-up — no external 4.7k needed
+  pinMode(PIN_DHT, INPUT_PULLUP);   // DHT11/DHT22 DATA pin; external 10k pull-up is still recommended
   dht.begin();
-  dhtWarmupUntil = millis() + 2500;  // give DHT22 ~2.5s to stabilise without external pull-up
+  dhtWarmupUntil = millis() + 2500;  // give DHT11/DHT22 ~2.5s to stabilise
 
   // Render an immediate placeholder dashboard so OLED never sits on "Loading 100%"
   drawDashboard(readTankPct(), 0.0, 0.0, 0.0, NAN, NAN);
@@ -557,10 +570,6 @@ void setup() {
     drawDashboard(readTankPct(), 0.0, 0.0, 0.0, t, h);
     delay(250);
   }
-  // Prime DHT with one direct read so the first telemetry frame has real values
-  float pt = dht.readTemperature(false), ph = dht.readHumidity();
-  if (!isnan(pt)) lastGoodTemp = pt;
-  if (!isnan(ph)) lastGoodHum = ph;
   sendTelemetry();
   lastSend = millis();
 }
