@@ -68,17 +68,23 @@ DHT dht(PIN_DHT, DHT_TYPE);
 
 bool motorOn = false;
 bool systemOnline = false;
+unsigned long lastOnlineMs = 0;
+const unsigned long ONLINE_STICKY_MS = 15000;   // keep "online" up to 15s after last good POST
 unsigned long motorStartMs = 0;
 unsigned long motorTotalMs = 0;
 unsigned long lastSend = 0;
-const unsigned long SEND_INTERVAL = 2000;
+const unsigned long SEND_INTERVAL = 3000;       // > DHT_MIN_INTERVAL so live read always fresh
 unsigned long lastWifiAttempt = 0;
 const unsigned long WIFI_RETRY_MS = 5000;
 float lastGoodTemp = NAN;
 float lastGoodHum = NAN;
+unsigned long lastGoodTempMs = 0;
+unsigned long lastGoodHumMs = 0;
+const unsigned long DHT_CACHE_TTL = 30000;      // serve cached t/h for up to 30s
 unsigned long lastDhtReadMs = 0;
-const unsigned long DHT_MIN_INTERVAL = 2200;  // DHT11/DHT22 stability guard
+const unsigned long DHT_MIN_INTERVAL = 2200;    // DHT11 stability guard
 unsigned long dhtWarmupUntil = 0;
+
 
 // Buttons: wired between GPIO and GND. INPUT_PULLUP → idle=HIGH, press=LOW.
 // Trigger ONLY on the HIGH→LOW edge (press); never on release. A hard
@@ -154,18 +160,17 @@ String fmtRuntime(unsigned long ms) {
 }
 
 bool readDhtSafe(float &tempC, float &humidity) {
-  // Pure live-sensor read. No cached / preset / fabricated values.
-  // Returns ONLY what the DHT sensor physically reports right now, within
-  // a safe environmental range. Corrupted pulses like 768°C / 197%RH are
-  // rejected and will show as -- on OLED/dashboard.
-  tempC = NAN;
-  humidity = NAN;
+  // Live-sensor read with short-TTL cache so OLED never flickers between
+  // throttle windows. When the 2.2s DHT cooldown is active, we serve the
+  // last known-good value (up to 30s old) instead of NaN.
+  unsigned long now = millis();
 
-  // Respect 2s minimum between physical reads (datasheet requirement).
-  if (lastDhtReadMs != 0 && (millis() - lastDhtReadMs) < DHT_MIN_INTERVAL) {
-    return false;
+  if (lastDhtReadMs != 0 && (now - lastDhtReadMs) < DHT_MIN_INTERVAL) {
+    tempC    = (!isnan(lastGoodTemp) && now - lastGoodTempMs < DHT_CACHE_TTL) ? lastGoodTemp : NAN;
+    humidity = (!isnan(lastGoodHum)  && now - lastGoodHumMs  < DHT_CACHE_TTL) ? lastGoodHum  : NAN;
+    return !isnan(tempC) || !isnan(humidity);
   }
-  lastDhtReadMs = millis();
+  lastDhtReadMs = now;
 
   float t = NAN, h = NAN;
   for (int i = 0; i < 5; i++) {
@@ -179,21 +184,22 @@ bool readDhtSafe(float &tempC, float &humidity) {
     delay(80);
   }
 
-  tempC = t;
-  humidity = h;
+  if (!isnan(t)) { lastGoodTemp = t; lastGoodTempMs = now; }
+  if (!isnan(h)) { lastGoodHum  = h; lastGoodHumMs  = now; }
 
-  if (isnan(t) && isnan(h)) {
-    Serial.println("[DHT] no valid live reading this cycle");
-  } else {
-    Serial.print("[DHT] live t=");
-    if (isnan(t)) Serial.print("--"); else Serial.print(t, 1);
-    Serial.print("C h=");
-    if (isnan(h)) Serial.print("--"); else Serial.print(h, 1);
-    Serial.println("%");
-  }
+  // Fall back to cached value if this physical read failed but cache fresh
+  tempC    = !isnan(t) ? t : ((!isnan(lastGoodTemp) && now - lastGoodTempMs < DHT_CACHE_TTL) ? lastGoodTemp : NAN);
+  humidity = !isnan(h) ? h : ((!isnan(lastGoodHum)  && now - lastGoodHumMs  < DHT_CACHE_TTL) ? lastGoodHum  : NAN);
 
-  return !isnan(t) || !isnan(h);
+  Serial.print("[DHT] t=");
+  if (isnan(tempC)) Serial.print("--"); else Serial.print(tempC, 1);
+  Serial.print("C h=");
+  if (isnan(humidity)) Serial.print("--"); else Serial.print(humidity, 1);
+  Serial.println("%");
+
+  return !isnan(tempC) || !isnan(humidity);
 }
+
 
 
 void drawDashboard(float tank, float lpm, float volt, float curr, float t, float h) {
@@ -408,16 +414,23 @@ void sendTelemetry() {
 
   int code = 0;
   String resp;
-  systemOnline = postTelemetryPayload(body, resp, code);
-  if (!systemOnline) {
-    delay(250);
-    systemOnline = postTelemetryPayload(body, resp, code);
+  bool ok = postTelemetryPayload(body, resp, code);
+  if (!ok) { delay(250); ok = postTelemetryPayload(body, resp, code); }
+  if (ok) {
+    systemOnline = true;
+    lastOnlineMs = millis();
+  } else {
+    // Sticky online window: don't go offline on a single failed POST
+    if (lastOnlineMs == 0 || (millis() - lastOnlineMs) > ONLINE_STICKY_MS) {
+      systemOnline = false;
+    }
   }
   if (!systemOnline && motorOn) {
     setMotor(false);
     lpm = 0.0; volt = 0.0; curr = 0.0;
     lastSend = 0;
   }
+
 
   Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f T=", code, tank, lpm, volt);
   if (isnan(t)) Serial.print("--"); else Serial.print(t, 1);
