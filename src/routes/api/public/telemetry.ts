@@ -60,6 +60,12 @@ export const Route = createFileRoute("/api/public/telemetry")({
           }
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+          // Only registered hardware may write. Sub-nodes must be added in the
+          // Devices page first; the single master node is fixed to PUMP-HOUSE.
+          if (deviceId === "MASTER-01" && zoneId !== "PUMP-HOUSE") {
+            return Response.json({ ok: false, error: "invalid master zone" }, { status: 403, headers: CORS });
+          }
+
           // Resolve UI-side zone assignment: if this device has been linked to a field
           // through the Devices page, use that mapping instead of the firmware-baked zoneId.
           let effectiveZoneId = zoneId;
@@ -68,6 +74,9 @@ export const Route = createFileRoute("/api/public/telemetry")({
             .select("zone_id")
             .eq("device_id", deviceId)
             .maybeSingle();
+          if (!nodeRow && deviceId !== "MASTER-01") {
+            return Response.json({ ok: false, error: "device is not registered" }, { status: 403, headers: CORS });
+          }
           if (nodeRow?.zone_id) effectiveZoneId = nodeRow.zone_id;
 
           // Read previous row to compute wall-clock runtime delta
