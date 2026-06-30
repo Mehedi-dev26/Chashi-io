@@ -162,19 +162,23 @@ bool readDhtSafe(float &tempC, float &humidity) {
   }
   lastDhtReadMs = millis();
 
-  // Retry up to 5 times to ride out CRC errors with internal pull-up
+  // Retry up to 5 times to ride out CRC errors / corrupted frames.
+  // DHT22 valid range: temp −40..80 °C, humidity 0..100 %RH.
+  // Out-of-range readings (e.g. 768 °C, 197 %) are corrupted frames from
+  // a bad pulse — reject them so OLED/dashboard never show garbage.
   float t = NAN, h = NAN;
   for (int i = 0; i < 5; i++) {
-    t = dht.readTemperature(false);
-    h = dht.readHumidity();
-    if (!isnan(t) && !isnan(h)) break;
+    float tt = dht.readTemperature(false);
+    float hh = dht.readHumidity();
+    bool tOk = !isnan(tt) && tt >= -40.0 && tt <= 80.0;
+    bool hOk = !isnan(hh) && hh >= 0.0  && hh <= 100.0;
+    if (tOk) t = tt;
+    if (hOk) h = hh;
+    if (tOk && hOk) break;
     delay(80);
   }
 
-  // ⚠️ Show whatever the sensor reports — NaN-only guard.
-  // Tight bounds (e.g. 0–100%RH) previously dropped real readings whenever
-  // the sensor briefly returned high values like 173 → both OLED and dashboard
-  // went blank. Trust the sensor; user-facing display is the truth.
+  // Only cache validated readings; otherwise keep last good value.
   if (!isnan(t)) lastGoodTemp = t;
   if (!isnan(h)) lastGoodHum = h;
 
@@ -182,9 +186,9 @@ bool readDhtSafe(float &tempC, float &humidity) {
   humidity = lastGoodHum;
 
   if (isnan(t) && isnan(h)) {
-    Serial.println("[DHT] read failed (NaN) — wiring / power / sensor issue");
+    Serial.println("[DHT] read failed / out-of-range — serving cached value");
   } else {
-    Serial.print("[DHT] raw t="); Serial.print(t, 1); Serial.print("C h="); Serial.print(h, 1); Serial.println("%");
+    Serial.print("[DHT] ok t="); Serial.print(t, 1); Serial.print("C h="); Serial.print(h, 1); Serial.println("%");
   }
 
   return !isnan(tempC) || !isnan(humidity);
