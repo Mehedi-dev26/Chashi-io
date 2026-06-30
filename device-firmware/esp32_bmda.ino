@@ -44,6 +44,13 @@ const float PUMP_RATED_CURRENT = 0.20;
 #define PIN_RELAY_PUMP    25
 #define PIN_TRIG           5
 #define PIN_ECHO          18
+
+// ---- Tank (HC-SR04) calibration ----
+#define TANK_SENSOR_OFFSET_CM   5.0    // sensor face -> full water surface
+#define TANK_DEPTH_CM          30.0    // full surface -> empty/bottom
+#define TANK_FULL_THRESHOLD    95.0
+#define TANK_WARN_THRESHOLD    85.0
+
 #define PIN_DHT            4
 #define DHT_TYPE       DHT22
 #define I2C_SDA           21
