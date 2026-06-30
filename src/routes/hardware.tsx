@@ -1173,7 +1173,7 @@ function HardwarePage() {
               </div>
               <p className="text-[11px] text-muted-foreground mb-3">স্থান: প্রতিটি জোনে একটি করে</p>
               <ul className="text-xs space-y-1.5 text-foreground/80">
-                <li>• ক্যাপাসিটিভ সয়েল মইশ্চার v1.2</li>
+                <li>• YL-69 / YL-38 SM সেন্সর</li>
                 <li>• DHT22 (তাপমাত্রা + আর্দ্রতা)</li>
                 <li>• SG90 Servo → পানির লাইন ভাল্ভ</li>
                 <li>• প্রতি ৫ সেকেন্ডে মাস্টারকে রিপোর্ট</li>
