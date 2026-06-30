@@ -350,30 +350,38 @@ void connectWifi() {
   }
 }
 
-// Persistent TLS client — avoids fresh handshake every 3s which often
-// times out on mobile hotspots (Cloudflare TLS 1.3 cert chain is large).
-WiFiClientSecure tlsClient;
-bool tlsReady = false;
-
 bool postTelemetryPayload(const String& body, String &resp, int &code) {
-  if (!tlsReady) {
-    tlsClient.setInsecure();
-    tlsClient.setHandshakeTimeout(20);   // seconds — generous for slow hotspots
-    tlsClient.setTimeout(15000);
-    tlsReady = true;
-  }
+  resp = "";
+  code = 0;
+
+  // ESP32 + Cloud HTTPS compatibility mode:
+  // Use a fresh TLS socket for every heartbeat and force Connection: close.
+  // Some mobile hotspots/Cloudflare edges reject stale keep-alive sockets and
+  // Arduino then reports POST err=-1 (connection refused). Fresh sockets are
+  // slightly slower, but much more reliable for fair/demo environments.
+  WiFiClientSecure client;
+  client.setInsecure();
+  client.setHandshakeTimeout(30);   // seconds — slow hotspot friendly
+  client.setTimeout(20000);
+
   HTTPClient http;
-  http.setReuse(true);
-  http.setConnectTimeout(10000);
-  http.setTimeout(12000);
+  http.setReuse(false);
+  http.useHTTP10(true);             // disables HTTP keep-alive/chunk issues
+  http.setConnectTimeout(15000);
+  http.setTimeout(20000);
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-  if (!http.begin(tlsClient, String(SERVER_HOST) + "/api/public/telemetry")) {
+
+  const String url = String(SERVER_HOST) + "/api/public/telemetry";
+  if (!http.begin(client, url)) {
     Serial.println("[MASTER] http.begin() failed");
     code = -1000;
+    client.stop();
     return false;
   }
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("Connection", "keep-alive");
+  http.addHeader("Accept", "application/json");
+  http.addHeader("User-Agent", "BMDA-ESP32-MASTER/1.0");
+  http.addHeader("Connection", "close");
   code = http.POST(body);
   if (code <= 0) {
     Serial.printf("[MASTER] POST err=%d (%s)  heap=%u  rssi=%d\n",
@@ -383,6 +391,7 @@ bool postTelemetryPayload(const String& body, String &resp, int &code) {
     resp = http.getString();
   }
   http.end();
+  client.stop();
   return code >= 200 && code < 300;
 }
 
@@ -438,7 +447,11 @@ void sendTelemetry() {
   int code = 0;
   String resp;
   bool ok = postTelemetryPayload(body, resp, code);
-  if (!ok) { delay(250); ok = postTelemetryPayload(body, resp, code); }
+  if (!ok) {
+    // Give the hotspot/router time to close the failed socket before retry.
+    delay(1200);
+    ok = postTelemetryPayload(body, resp, code);
+  }
   if (ok) {
     systemOnline = true;
     lastOnlineMs = millis();
@@ -599,6 +612,9 @@ void setup() {
   connectWifi();
 
   Serial.println("[MASTER] System online — sending boot heartbeat");
+  Serial.print("[MASTER] Backend API: ");
+  Serial.print(SERVER_HOST);
+  Serial.println("/api/public/telemetry");
   // Wait for warmup; keep refreshing the dashboard so the screen stays alive
   while (millis() < dhtWarmupUntil) {
     float t, h;

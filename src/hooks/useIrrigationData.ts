@@ -71,7 +71,7 @@ export const PUMP_SPEC = {
   ratedVoltage: 6.0,
   ratedCurrent: 0.20,
   ratedFlowLpm: 2.0,
-  heartbeatMs: 5000,   // ⚡ ৫ সেকেন্ডের মধ্যে heartbeat না এলে অফলাইন → মোটর instant off
+  heartbeatMs: 15000,  // firmware sticky window-এর সাথে sync: intermittent hotspot delay হলেও stable online
 };
 
 // fallback default zones (only used if user has none in DB and seed fails)

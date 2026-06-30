@@ -1028,13 +1028,20 @@ void sendTelemetry() {
   String body; serializeJson(doc, body);
   BearSSL::WiFiClientSecure client;
   client.setInsecure();
+  client.setTimeout(20000);
   HTTPClient http;
+  http.setReuse(false);
+  http.useHTTP10(true);
+  http.setTimeout(20000);
   http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
-  http.setTimeout(5000);
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("Accept", "application/json");
+  http.addHeader("User-Agent", "BMDA-ESP8266-SUB/1.0");
+  http.addHeader("Connection", "close");
   int code = http.POST(body);
   String resp = http.getString();
   http.end();
+  client.stop();
 
   // ✅ প্রতিটি successful push → ছোট দ্রুত LED burst
   if (code == 200) blinkTxLed();
