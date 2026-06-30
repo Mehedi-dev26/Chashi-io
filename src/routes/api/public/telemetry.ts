@@ -18,17 +18,16 @@ const cleanNumber = (value: unknown) => {
   return Number.isFinite(n) ? n : null;
 };
 
-// Show whatever the sensor reports — only drop non-numeric values.
-// Tight bounds previously rejected real readings (e.g. 173) and made the
-// dashboard look stuck on "অপেক্ষমাণ". Display truth, not a fabricated range.
 const cleanTemperature = (value: unknown) => {
   const n = cleanNumber(value);
-  return n != null ? Number(n.toFixed(1)) : null;
+  if (n == null || n < -10 || n > 60) return null;
+  return Number(n.toFixed(1));
 };
 
 const cleanHumidity = (value: unknown) => {
   const n = cleanNumber(value);
-  return n != null ? Number(n.toFixed(0)) : null;
+  if (n == null || n < 0 || n > 100) return null;
+  return Number(n.toFixed(0));
 };
 
 export const Route = createFileRoute("/api/public/telemetry")({
@@ -62,8 +61,8 @@ export const Route = createFileRoute("/api/public/telemetry")({
             .eq("zone_id", effectiveZoneId)
             .maybeSingle();
 
-          const temperature = cleanTemperature(body.temperature) ?? cleanTemperature(prev?.temperature);
-          const humidity = cleanHumidity(body.humidity) ?? cleanHumidity(prev?.humidity);
+          const temperature = cleanTemperature(body.temperature);
+          const humidity = cleanHumidity(body.humidity);
 
           const nowMs = Date.now();
           const motorOnNow = body.motorOn != null ? Boolean(body.motorOn) : false;
