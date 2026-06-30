@@ -414,16 +414,23 @@ void sendTelemetry() {
 
   int code = 0;
   String resp;
-  systemOnline = postTelemetryPayload(body, resp, code);
-  if (!systemOnline) {
-    delay(250);
-    systemOnline = postTelemetryPayload(body, resp, code);
+  bool ok = postTelemetryPayload(body, resp, code);
+  if (!ok) { delay(250); ok = postTelemetryPayload(body, resp, code); }
+  if (ok) {
+    systemOnline = true;
+    lastOnlineMs = millis();
+  } else {
+    // Sticky online window: don't go offline on a single failed POST
+    if (lastOnlineMs == 0 || (millis() - lastOnlineMs) > ONLINE_STICKY_MS) {
+      systemOnline = false;
+    }
   }
   if (!systemOnline && motorOn) {
     setMotor(false);
     lpm = 0.0; volt = 0.0; curr = 0.0;
     lastSend = 0;
   }
+
 
   Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f T=", code, tank, lpm, volt);
   if (isnan(t)) Serial.print("--"); else Serial.print(t, 1);
