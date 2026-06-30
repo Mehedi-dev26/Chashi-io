@@ -253,15 +253,8 @@ void setMotor(bool on) {
 }
 
 // ===== HC-SR04 Tank Level (real measurement) =====
-// Calibrate these to your tank:
-//   TANK_SENSOR_OFFSET_CM = distance from sensor face to water surface when tank is FULL
-//   TANK_DEPTH_CM         = usable water depth (full surface -> empty/bottom)
-// Example: sensor mounted 5 cm above the full mark, tank holds 30 cm of water
-//   => OFFSET = 5, DEPTH = 30, so distance 5cm => 100%, 35cm => 0%
-#define TANK_SENSOR_OFFSET_CM   5.0
-#define TANK_DEPTH_CM          30.0
-#define TANK_FULL_THRESHOLD    95.0   // >=95% considered FULL (overflow risk)
-#define TANK_WARN_THRESHOLD    85.0   // >=85% warning
+// Calibration constants live near the pin defines at the top of this file.
+
 
 static float lastTankPct = 0.0;
 static bool  tankHasReading = false;
