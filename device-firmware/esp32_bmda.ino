@@ -555,7 +555,7 @@ void setup() {
 
   pinMode(PIN_DHT, INPUT_PULLUP);   // DHT11/DHT22 DATA pin; external 10k pull-up is still recommended
   dht.begin();
-  dhtWarmupUntil = millis() + 2500;  // give DHT22 ~2.5s to stabilise without external pull-up
+  dhtWarmupUntil = millis() + 2500;  // give DHT11/DHT22 ~2.5s to stabilise
 
   // Render an immediate placeholder dashboard so OLED never sits on "Loading 100%"
   drawDashboard(readTankPct(), 0.0, 0.0, 0.0, NAN, NAN);
@@ -570,10 +570,6 @@ void setup() {
     drawDashboard(readTankPct(), 0.0, 0.0, 0.0, t, h);
     delay(250);
   }
-  // Prime DHT with one direct read so the first telemetry frame has real values
-  float pt = dht.readTemperature(false), ph = dht.readHumidity();
-  if (!isnan(pt)) lastGoodTemp = pt;
-  if (!isnan(ph)) lastGoodHum = ph;
   sendTelemetry();
   lastSend = millis();
 }
