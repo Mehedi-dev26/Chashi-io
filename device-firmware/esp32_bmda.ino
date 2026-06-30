@@ -46,8 +46,8 @@ const float PUMP_RATED_CURRENT = 0.20;
 #define PIN_ECHO          18
 
 // ---- Tank (HC-SR04) calibration ----
-#define TANK_SENSOR_OFFSET_CM   5.0    // sensor face -> full water surface
-#define TANK_DEPTH_CM          30.0    // full surface -> empty/bottom
+#define TANK_SENSOR_OFFSET_CM   2.0    // sensor face -> full water surface (HC-SR04 dead zone ~2cm)
+#define TANK_DEPTH_CM           8.0    // full surface -> empty/bottom (10cm bottle - 2cm offset)
 #define TANK_FULL_THRESHOLD    95.0
 #define TANK_WARN_THRESHOLD    85.0
 
