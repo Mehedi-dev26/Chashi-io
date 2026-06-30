@@ -203,9 +203,16 @@ void drawDashboard(float tank, float lpm, float volt, float curr, float t, float
   oled.drawFastHLine(0, 35, OLED_W, SSD1306_WHITE);
 
   oled.setCursor(2, 38);
-  oled.printf("TANK %3d%%", (int)tank);
+  if (tank >= TANK_FULL_THRESHOLD) {
+    oled.printf("TANK FULL!");
+  } else if (tank >= TANK_WARN_THRESHOLD) {
+    oled.printf("TANK %3d%%*", (int)tank);
+  } else {
+    oled.printf("TANK %3d%%", (int)tank);
+  }
   oled.setCursor(68, 38);
   oled.printf("FLOW %4.1f", lpm);
+
 
   oled.setCursor(2, 48);
   oled.printf("%3.1fV %4.2fA", volt, curr);
