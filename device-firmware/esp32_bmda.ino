@@ -350,19 +350,42 @@ void connectWifi() {
   }
 }
 
+// Persistent TLS client — avoids fresh handshake every 3s which often
+// times out on mobile hotspots (Cloudflare TLS 1.3 cert chain is large).
+WiFiClientSecure tlsClient;
+bool tlsReady = false;
+
 bool postTelemetryPayload(const String& body, String &resp, int &code) {
-  WiFiClientSecure client;
-  client.setInsecure();
+  if (!tlsReady) {
+    tlsClient.setInsecure();
+    tlsClient.setHandshakeTimeout(20);   // seconds — generous for slow hotspots
+    tlsClient.setTimeout(15000);
+    tlsReady = true;
+  }
   HTTPClient http;
+  http.setReuse(true);
+  http.setConnectTimeout(10000);
+  http.setTimeout(12000);
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-  http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
-  http.setTimeout(8000);
+  if (!http.begin(tlsClient, String(SERVER_HOST) + "/api/public/telemetry")) {
+    Serial.println("[MASTER] http.begin() failed");
+    code = -1000;
+    return false;
+  }
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("Connection", "keep-alive");
   code = http.POST(body);
-  resp = http.getString();
+  if (code <= 0) {
+    Serial.printf("[MASTER] POST err=%d (%s)  heap=%u  rssi=%d\n",
+                  code, HTTPClient::errorToString(code).c_str(),
+                  (unsigned)ESP.getFreeHeap(), WiFi.RSSI());
+  } else {
+    resp = http.getString();
+  }
   http.end();
   return code >= 200 && code < 300;
 }
+
 
 bool ensureWifi() {
   if (WiFi.status() == WL_CONNECTED) return true;
