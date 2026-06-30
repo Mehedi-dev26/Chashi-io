@@ -68,17 +68,23 @@ DHT dht(PIN_DHT, DHT_TYPE);
 
 bool motorOn = false;
 bool systemOnline = false;
+unsigned long lastOnlineMs = 0;
+const unsigned long ONLINE_STICKY_MS = 15000;   // keep "online" up to 15s after last good POST
 unsigned long motorStartMs = 0;
 unsigned long motorTotalMs = 0;
 unsigned long lastSend = 0;
-const unsigned long SEND_INTERVAL = 2000;
+const unsigned long SEND_INTERVAL = 3000;       // > DHT_MIN_INTERVAL so live read always fresh
 unsigned long lastWifiAttempt = 0;
 const unsigned long WIFI_RETRY_MS = 5000;
 float lastGoodTemp = NAN;
 float lastGoodHum = NAN;
+unsigned long lastGoodTempMs = 0;
+unsigned long lastGoodHumMs = 0;
+const unsigned long DHT_CACHE_TTL = 30000;      // serve cached t/h for up to 30s
 unsigned long lastDhtReadMs = 0;
-const unsigned long DHT_MIN_INTERVAL = 2200;  // DHT11/DHT22 stability guard
+const unsigned long DHT_MIN_INTERVAL = 2200;    // DHT11 stability guard
 unsigned long dhtWarmupUntil = 0;
+
 
 // Buttons: wired between GPIO and GND. INPUT_PULLUP → idle=HIGH, press=LOW.
 // Trigger ONLY on the HIGH→LOW edge (press); never on release. A hard
