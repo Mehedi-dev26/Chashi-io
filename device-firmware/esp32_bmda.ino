@@ -160,18 +160,17 @@ String fmtRuntime(unsigned long ms) {
 }
 
 bool readDhtSafe(float &tempC, float &humidity) {
-  // Pure live-sensor read. No cached / preset / fabricated values.
-  // Returns ONLY what the DHT sensor physically reports right now, within
-  // a safe environmental range. Corrupted pulses like 768°C / 197%RH are
-  // rejected and will show as -- on OLED/dashboard.
-  tempC = NAN;
-  humidity = NAN;
+  // Live-sensor read with short-TTL cache so OLED never flickers between
+  // throttle windows. When the 2.2s DHT cooldown is active, we serve the
+  // last known-good value (up to 30s old) instead of NaN.
+  unsigned long now = millis();
 
-  // Respect 2s minimum between physical reads (datasheet requirement).
-  if (lastDhtReadMs != 0 && (millis() - lastDhtReadMs) < DHT_MIN_INTERVAL) {
-    return false;
+  if (lastDhtReadMs != 0 && (now - lastDhtReadMs) < DHT_MIN_INTERVAL) {
+    tempC    = (!isnan(lastGoodTemp) && now - lastGoodTempMs < DHT_CACHE_TTL) ? lastGoodTemp : NAN;
+    humidity = (!isnan(lastGoodHum)  && now - lastGoodHumMs  < DHT_CACHE_TTL) ? lastGoodHum  : NAN;
+    return !isnan(tempC) || !isnan(humidity);
   }
-  lastDhtReadMs = millis();
+  lastDhtReadMs = now;
 
   float t = NAN, h = NAN;
   for (int i = 0; i < 5; i++) {
@@ -185,21 +184,22 @@ bool readDhtSafe(float &tempC, float &humidity) {
     delay(80);
   }
 
-  tempC = t;
-  humidity = h;
+  if (!isnan(t)) { lastGoodTemp = t; lastGoodTempMs = now; }
+  if (!isnan(h)) { lastGoodHum  = h; lastGoodHumMs  = now; }
 
-  if (isnan(t) && isnan(h)) {
-    Serial.println("[DHT] no valid live reading this cycle");
-  } else {
-    Serial.print("[DHT] live t=");
-    if (isnan(t)) Serial.print("--"); else Serial.print(t, 1);
-    Serial.print("C h=");
-    if (isnan(h)) Serial.print("--"); else Serial.print(h, 1);
-    Serial.println("%");
-  }
+  // Fall back to cached value if this physical read failed but cache fresh
+  tempC    = !isnan(t) ? t : ((!isnan(lastGoodTemp) && now - lastGoodTempMs < DHT_CACHE_TTL) ? lastGoodTemp : NAN);
+  humidity = !isnan(h) ? h : ((!isnan(lastGoodHum)  && now - lastGoodHumMs  < DHT_CACHE_TTL) ? lastGoodHum  : NAN);
 
-  return !isnan(t) || !isnan(h);
+  Serial.print("[DHT] t=");
+  if (isnan(tempC)) Serial.print("--"); else Serial.print(tempC, 1);
+  Serial.print("C h=");
+  if (isnan(humidity)) Serial.print("--"); else Serial.print(humidity, 1);
+  Serial.println("%");
+
+  return !isnan(tempC) || !isnan(humidity);
 }
+
 
 
 void drawDashboard(float tank, float lpm, float volt, float curr, float t, float h) {
