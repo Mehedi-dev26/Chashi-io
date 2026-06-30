@@ -9,7 +9,7 @@
  *   - HC-SR04 tank level
  *   - DHT11 temperature/humidity in real Celsius/%RH with corrupted-read guard
  *   - SSD1306 OLED: splash, loading screen, live status layout
- *   - GPIO 2 blue LED: solid ON when dashboard is online
+ *   - GPIO 2 blue LED: 5Hz pulse when backend heartbeat is online
  *   - Auto WiFi reconnect without reboot; motor safety OFF on connection loss
  *
  *  Arduino IDE setup:
@@ -564,12 +564,10 @@ void updateOnlineLed() {
     return;
   }
 
-  if (systemOnline) {
-    if (!ledState) { ledState = true; ledWrite(true); }
-    return;
-  }
-
-  if (millis() - lastToggle >= 1000UL) {
+  // WiFi connected but backend not confirmed: slow 1Hz warning blink.
+  // Backend confirmed: fast 5Hz heartbeat pulse (100ms on/off cycle).
+  const unsigned long interval = systemOnline ? 100UL : 500UL;
+  if (millis() - lastToggle >= interval) {
     lastToggle = millis();
     ledState = !ledState;
     ledWrite(ledState);

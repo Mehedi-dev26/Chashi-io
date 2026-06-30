@@ -23,7 +23,7 @@ export const Route = createFileRoute("/hardware")({
 /*  │  • মেইন মোটর রিলে           │                                    */
 /*  │  • R385 ১২V পাম্প (auto L/min)│                                  */
 /*  │  • ট্যাঙ্ক জলস্তর (HC-SR04) │                                    */
-/*  │  • DHT22 (আবহাওয়া)         │                                    */
+/*  │  • DHT11/DHT22 (আবহাওয়া)    │                                    */
 /*  │  • OLED স্ট্যাটাস            │                                    */
 /*  └──────────────┬──────────────┘                                    */
 /*                 │  WiFi / HTTP                                       */
@@ -40,7 +40,7 @@ const masterDevices = [
   { icon: Zap,         name: "১-চ্যানেল রিলে মডিউল (৫V)",            role: "মেইন পাম্প ON/OFF",                pin: "GPIO 25",          price: "১২০ ৳" },
   { icon: Droplets,    name: "মেইন মোটর · ৬V Ultra-Quiet Pump", role: "মেইন পাম্প · ৬V, ০.২০A, ~১.২W (2.0 L/min)", pin: "রিলে NO আউট", price: "৩৮০ ৳" },
   { icon: Waves,       name: "HC-SR04 আল্ট্রাসনিক",                 role: "ট্যাঙ্ক জলস্তর",                    pin: "Trig 5 · Echo 18", price: "১৮০ ৳" },
-  { icon: Thermometer, name: "DHT22",                               role: "তাপমাত্রা ও আর্দ্রতা",              pin: "GPIO 4",           price: "৩৫০ ৳" },
+  { icon: Thermometer, name: "DHT11 / DHT22",                        role: "তাপমাত্রা ও আর্দ্রতা",              pin: "GPIO 4",           price: "১৮০–৩৫০ ৳" },
   { icon: CircuitBoard,name: "OLED ০.৯৬\" SSD1306 (I2C)",             role: "বুট লোগো + লাইভ ডেটা ডিসপ্লে",     pin: "SDA 21 · SCL 22",  price: "৩২০ ৳" },
   { icon: Zap,         name: "৬V ২A রেগুলেটেড অ্যাডাপ্টার",          role: "পাম্প পাওয়ার সাপ্লাই",             pin: "Relay COM",        price: "৩৫০ ৳" },
   { icon: ShieldCheck, name: "TP4056 + ১৮৬৫০",                      role: "ESP32 ব্যাকআপ ব্যাটারি",            pin: "VIN",              price: "৩৫০ ৳" },
@@ -72,11 +72,11 @@ const masterDeviceWiring: DeviceWiring[] = [
     ],
   },
   {
-    device: "DHT22 (তাপমাত্রা + আর্দ্রতা)",
+    device: "DHT11 / DHT22 (তাপমাত্রা + আর্দ্রতা)",
     icon: Thermometer,
     color: "emerald",
     grad: "from-emerald-500 to-teal-500",
-    desc: "DATA ↔ VCC এর মাঝে ১০kΩ পুল-আপ রেজিস্টর লাগান",
+    desc: "আপনার সেন্সর DHT11 হলে firmware-এ DHT11 রাখুন; DHT22 হলে DHT22 করুন। DATA ↔ VCC এর মাঝে ১০kΩ পুল-আপ রেজিস্টর লাগান",
     pairs: [
       { mcu: "3V3",    dev: "VCC (Pin 1)",  note: "১০kΩ pull-up → DATA" },
       { mcu: "GPIO 4", dev: "DATA (Pin 2)", note: "ওয়ান-ওয়্যার ডিজিটাল" },
@@ -1152,7 +1152,7 @@ function HardwarePage() {
                 <li>• মেইন মোটর রিলে নিয়ন্ত্রণ</li>
                 <li>• ৬V Ultra-Quiet পাম্প (~২.০ L/min auto)</li>
                 <li>• HC-SR04 ট্যাঙ্ক জলস্তর</li>
-                <li>• DHT22 তাপ ও আর্দ্রতা</li>
+                <li>• DHT11/DHT22 তাপ ও আর্দ্রতা</li>
                 <li>• OLED স্ট্যাটাস ডিসপ্লে</li>
               </ul>
             </div>
@@ -1173,7 +1173,7 @@ function HardwarePage() {
               </div>
               <p className="text-[11px] text-muted-foreground mb-3">স্থান: প্রতিটি জোনে একটি করে</p>
               <ul className="text-xs space-y-1.5 text-foreground/80">
-                <li>• ক্যাপাসিটিভ সয়েল মইশ্চার v1.2</li>
+                <li>• YL-69 / YL-38 SM সেন্সর</li>
                 <li>• DHT22 (তাপমাত্রা + আর্দ্রতা)</li>
                 <li>• SG90 Servo → পানির লাইন ভাল্ভ</li>
                 <li>• প্রতি ৫ সেকেন্ডে মাস্টারকে রিপোর্ট</li>
