@@ -140,13 +140,10 @@ const applyTelemetry = (row: TelemetryRow) => {
   if (Date.now() - ts > PUMP_SPEC.heartbeatMs) return;
 
 
-  // Show whatever DHT22 reports — only NaN/null is rejected.
-  // Bounded validation previously dropped real readings (e.g. 173) and made
-  // the card look stuck on "অপেক্ষমাণ" even when the sensor was alive.
   const tNum = row.temperature != null ? Number(row.temperature) : null;
   const hNum = row.humidity != null ? Number(row.humidity) : null;
-  const validTemp = tNum != null && Number.isFinite(tNum);
-  const validHum = hNum != null && Number.isFinite(hNum);
+  const validTemp = tNum != null && Number.isFinite(tNum) && tNum >= -10 && tNum <= 60;
+  const validHum = hNum != null && Number.isFinite(hNum) && hNum >= 0 && hNum <= 100;
   const weather = validTemp || validHum
     ? {
         temperature: validTemp ? Number(tNum!.toFixed(1)) : state.weather.temperature,
