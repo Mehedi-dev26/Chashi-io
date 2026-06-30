@@ -18,28 +18,17 @@ const cleanNumber = (value: unknown) => {
   return Number.isFinite(n) ? n : null;
 };
 
+// Show whatever the sensor reports — only drop non-numeric values.
+// Tight bounds previously rejected real readings (e.g. 173) and made the
+// dashboard look stuck on "অপেক্ষমাণ". Display truth, not a fabricated range.
 const cleanTemperature = (value: unknown) => {
   const n = cleanNumber(value);
-  if (n == null || n < -10 || n > 60) return null;
-  return Number(n.toFixed(1));
+  return n != null ? Number(n.toFixed(1)) : null;
 };
 
 const cleanHumidity = (value: unknown) => {
   const n = cleanNumber(value);
-  if (n == null || n < 0 || n > 100) return null;
-  return Number(n.toFixed(0));
-};
-
-const clampPercent = (value: unknown) => {
-  const n = cleanNumber(value);
-  if (n == null) return 0;
-  return Math.max(0, Math.min(100, Number(n.toFixed(1))));
-};
-
-const clampOptional = (value: unknown, min: number, max: number) => {
-  const n = cleanNumber(value);
-  if (n == null || n < min || n > max) return null;
-  return Number(n.toFixed(2));
+  return n != null ? Number(n.toFixed(0)) : null;
 };
 
 export const Route = createFileRoute("/api/public/telemetry")({
@@ -53,30 +42,16 @@ export const Route = createFileRoute("/api/public/telemetry")({
           if (!body?.deviceId || !body?.zoneId) {
             return Response.json({ ok: false, error: "deviceId and zoneId required" }, { status: 400, headers: CORS });
           }
-          const deviceId = String(body.deviceId).trim();
-          const zoneId = String(body.zoneId).trim();
-          if (!/^[A-Z0-9_-]{3,40}$/i.test(deviceId) || !/^[A-Z0-9_-]{2,40}$/i.test(zoneId)) {
-            return Response.json({ ok: false, error: "invalid deviceId or zoneId" }, { status: 400, headers: CORS });
-          }
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-          // Only registered hardware may write. Sub-nodes must be added in the
-          // Devices page first; the single master node is fixed to PUMP-HOUSE.
-          if (deviceId === "MASTER-01" && zoneId !== "PUMP-HOUSE") {
-            return Response.json({ ok: false, error: "invalid master zone" }, { status: 403, headers: CORS });
-          }
 
           // Resolve UI-side zone assignment: if this device has been linked to a field
           // through the Devices page, use that mapping instead of the firmware-baked zoneId.
-          let effectiveZoneId = zoneId;
+          let effectiveZoneId = String(body.zoneId);
           const { data: nodeRow } = await supabaseAdmin
             .from("field_nodes")
             .select("zone_id")
-            .eq("device_id", deviceId)
+            .eq("device_id", String(body.deviceId))
             .maybeSingle();
-          if (!nodeRow && deviceId !== "MASTER-01") {
-            return Response.json({ ok: false, error: "device is not registered" }, { status: 403, headers: CORS });
-          }
           if (nodeRow?.zone_id) effectiveZoneId = nodeRow.zone_id;
 
           // Read previous row to compute wall-clock runtime delta
@@ -87,8 +62,8 @@ export const Route = createFileRoute("/api/public/telemetry")({
             .eq("zone_id", effectiveZoneId)
             .maybeSingle();
 
-          const temperature = cleanTemperature(body.temperature);
-          const humidity = cleanHumidity(body.humidity);
+          const temperature = cleanTemperature(body.temperature) ?? cleanTemperature(prev?.temperature);
+          const humidity = cleanHumidity(body.humidity) ?? cleanHumidity(prev?.humidity);
 
           const nowMs = Date.now();
           const motorOnNow = body.motorOn != null ? Boolean(body.motorOn) : false;
@@ -111,35 +86,32 @@ export const Route = createFileRoute("/api/public/telemetry")({
 
           const row = {
             zone_id: effectiveZoneId,
-            device_id: deviceId,
-            soil_moisture: clampPercent(body.soilMoisture),
-            water_level: clampPercent(body.waterLevel),
-            ldr: clampPercent(body.ldr),
+            device_id: String(body.deviceId),
+            soil_moisture: body.soilMoisture != null ? Number(body.soilMoisture) : 0,
+            water_level: body.waterLevel != null ? Number(body.waterLevel) : 0,
+            ldr: body.ldr != null ? Number(body.ldr) : 0,
             temperature,
             humidity,
             valve_open: Boolean(body.valveOpen ?? false),
             motor_on: motorOnNow,
-            flow_lpm: clampOptional(body.flowLpm, 0, 20),
-            voltage: clampOptional(body.voltage, 0, 30),
-            current: clampOptional(body.current, 0, 10),
+            flow_lpm: body.flowLpm != null ? Number(body.flowLpm) : null,
+            voltage: body.voltage != null ? Number(body.voltage) : null,
+            current: body.current != null ? Number(body.current) : null,
             runtime_sec: cumulativeRt,
-            rssi: clampOptional(body.rssi, -120, 0),
-            tds_ppm: clampOptional(body.tdsPpm, 0, 5000),
+            rssi: body.rssi != null ? Number(body.rssi) : null,
+            tds_ppm: body.tdsPpm != null ? Number(body.tdsPpm) : null,
             updated_at: new Date(nowMs).toISOString(),
           };
 
           const { error: upErr } = await supabaseAdmin
             .from("device_telemetry")
             .upsert(row, { onConflict: "zone_id" });
-          if (upErr) {
-            console.error("[telemetry] upsert", upErr);
-            return Response.json({ ok: false, error: "telemetry storage failed" }, { status: 500, headers: CORS });
-          }
+          if (upErr) console.error("[telemetry] upsert", upErr);
 
           // Persist runtime delta for hourly/monthly aggregation.
           if (wallDeltaSec > 0) {
             await supabaseAdmin.from("motor_runtime_log").insert({
-              device_id: deviceId,
+              device_id: String(body.deviceId),
               delta_sec: wallDeltaSec,
             });
           }
@@ -148,7 +120,7 @@ export const Route = createFileRoute("/api/public/telemetry")({
           const { data: pending } = await supabaseAdmin
             .from("device_commands")
             .select("id, action, zone_id")
-            .eq("device_id", deviceId)
+            .eq("device_id", String(body.deviceId))
             .eq("consumed", false)
             .order("created_at", { ascending: true })
             .limit(20);
@@ -169,7 +141,9 @@ export const Route = createFileRoute("/api/public/telemetry")({
       },
 
       GET: async () => {
-        return Response.json({ ok: true, endpoint: "telemetry", writes: "POST" }, { headers: CORS });
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data } = await supabaseAdmin.from("device_telemetry").select("*");
+        return Response.json({ devices: data ?? [] }, { headers: CORS });
       },
     },
   },

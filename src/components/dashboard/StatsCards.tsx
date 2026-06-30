@@ -15,7 +15,7 @@ export function StatsCards({ zones, motor, metrics, weather }: { zones: FieldZon
   const P_LIME   = { grad: "from-lime-500 via-green-500 to-emerald-500",    ring: "ring-lime-300/40" };
   const P_SKY    = { grad: "from-sky-500 via-cyan-500 to-teal-500",         ring: "ring-cyan-300/40" };
 
-  // Weather card values (DHT sensor). When all nodes offline → 0/0 with offline note.
+  // Weather card values (DHT22 from sub-node). When all nodes offline → 0/0 with offline note.
   const wHasData = weather.lastSeen != null;
   const wFresh   = weather.lastSeen != null && Date.now() - weather.lastSeen < 30_000;
   const tStr = weather.temperature != null ? bn(weather.temperature.toFixed(1)) : bn("0.0");

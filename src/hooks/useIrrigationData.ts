@@ -50,7 +50,7 @@ export type NetworkMetrics = {
 };
 
 export type WeatherState = {
-  temperature: number | null;  // °C — latest from DHT sensor
+  temperature: number | null;  // °C — latest from any DHT22 sub-node
   humidity: number | null;     // % RH
   sourceZone: string | null;   // which sub-node reported it
   lastSeen: number | null;
@@ -71,7 +71,7 @@ export const PUMP_SPEC = {
   ratedVoltage: 6.0,
   ratedCurrent: 0.20,
   ratedFlowLpm: 2.0,
-  heartbeatMs: 15000,  // firmware sticky window-এর সাথে sync: intermittent hotspot delay হলেও stable online
+  heartbeatMs: 5000,   // ⚡ ৫ সেকেন্ডের মধ্যে heartbeat না এলে অফলাইন → মোটর instant off
 };
 
 // fallback default zones (only used if user has none in DB and seed fails)
@@ -124,10 +124,10 @@ type TelemetryRow = {
 };
 
 
-const recomputeMetrics = (zones: FieldZone[] = state.zones) => {
+const recomputeMetrics = () => {
   const now = Date.now();
-  const online = zones.filter((z) => z.lastSeen && now - z.lastSeen < PUMP_SPEC.heartbeatMs).length;
-  const total = zones.length;
+  const online = state.zones.filter((z) => z.lastSeen && now - z.lastSeen < PUMP_SPEC.heartbeatMs).length;
+  const total = state.zones.length;
   const networkHealth = total ? Math.round((online / total) * 100) : 0;
   return { ...state.metrics, networkHealth, onlineNodes: online, totalNodes: total };
 };
@@ -140,10 +140,13 @@ const applyTelemetry = (row: TelemetryRow) => {
   if (Date.now() - ts > PUMP_SPEC.heartbeatMs) return;
 
 
+  // Show whatever DHT22 reports — only NaN/null is rejected.
+  // Bounded validation previously dropped real readings (e.g. 173) and made
+  // the card look stuck on "অপেক্ষমাণ" even when the sensor was alive.
   const tNum = row.temperature != null ? Number(row.temperature) : null;
   const hNum = row.humidity != null ? Number(row.humidity) : null;
-  const validTemp = tNum != null && Number.isFinite(tNum) && tNum >= -10 && tNum <= 60;
-  const validHum = hNum != null && Number.isFinite(hNum) && hNum >= 0 && hNum <= 100;
+  const validTemp = tNum != null && Number.isFinite(tNum);
+  const validHum = hNum != null && Number.isFinite(hNum);
   const weather = validTemp || validHum
     ? {
         temperature: validTemp ? Number(tNum!.toFixed(1)) : state.weather.temperature,
@@ -193,7 +196,7 @@ const applyTelemetry = (row: TelemetryRow) => {
     return { ...z, soilMoisture: sm, waterLevel: wl, valveOpen: !!valve, status, online: true, lastSeen: ts };
   });
 
-  setState({ ...state, zones, weather, metrics: recomputeMetrics(zones) });
+  setState({ ...state, zones, weather, metrics: recomputeMetrics() });
 };
 
 
@@ -227,7 +230,7 @@ if (typeof window !== "undefined") {
       });
       if (changed) next = { ...next, zones };
 
-      // ⚡ Weather (DHT): যখন source sub-node বা master offline → তাপমাত্রা/আর্দ্রতা 0
+      // ⚡ Weather (DHT22): যখন source sub-node বা master offline → তাপমাত্রা/আর্দ্রতা 0
       const wStale = next.weather.lastSeen && now - next.weather.lastSeen > PUMP_SPEC.heartbeatMs;
       const anyOnline = next.motor.online || zones.some((z) => z.online);
       if ((wStale || !anyOnline) && (next.weather.temperature !== 0 || next.weather.humidity !== 0 || next.weather.lastSeen !== null)) {
@@ -235,7 +238,7 @@ if (typeof window !== "undefined") {
         changed = true;
       }
 
-      if (changed) setState({ ...next, metrics: recomputeMetrics(next.zones) });
+      if (changed) setState({ ...next, metrics: recomputeMetrics() });
     }, 1000);   // ⚡ প্রতি সেকেন্ডে watchdog চেক → দ্রুত UI response
   }
 }

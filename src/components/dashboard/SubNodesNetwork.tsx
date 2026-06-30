@@ -204,13 +204,13 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
           {nodes.map((n, i) => {
             const t = tele[n.device_id];
             const online = !!(t && Date.now() - new Date(t.updated_at).getTime() < ONLINE_MS);
-            const moisture = online ? Math.max(0, Math.min(100, Number(t?.soil_moisture ?? 0))) : 0;
-            const sMoist = moisture;
+            const moisture = t?.soil_moisture ?? 0;
+            const sMoist = Math.max(0, Math.min(100, moisture));
             const derived = sMoist < 25 ? sMoist * 0.6
               : sMoist < 60 ? 15 + (sMoist - 25) * (55 / 35)
               : 70 + (sMoist - 60) * (30 / 40);
-            const waterLevel = online && t?.water_level != null ? Math.max(0, Math.min(100, Number(t.water_level))) : (online ? derived : 0);
-            const valveOpen = online && !!t?.valve_open;
+            const waterLevel = t?.water_level != null ? Math.max(0, Math.min(100, Number(t.water_level))) : derived;
+            const valveOpen = !!t?.valve_open;
             const assignedZone = zones.find((z) => z.id === n.zone_id);
             return (
               <Card key={n.id} className="overflow-hidden animate-fade-in hover:shadow-lg transition-all" style={{ animationDelay: `${i * 40}ms` }}>
@@ -271,11 +271,11 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
                     </div>
                     <div className="text-center p-1.5 rounded bg-muted/40">
                       <Activity className="h-3 w-3 mx-auto text-muted-foreground" />
-                      <p className="font-semibold">{online && t?.temperature != null ? `${bn(t.temperature.toFixed(0))}°` : "—"}</p>
+                      <p className="font-semibold">{t?.temperature != null ? `${bn(t.temperature.toFixed(0))}°` : "—"}</p>
                     </div>
                     <div className="text-center p-1.5 rounded bg-muted/40">
                       <Signal className="h-3 w-3 mx-auto text-muted-foreground" />
-                      <p className="font-semibold">{online && t?.rssi != null ? bn(t.rssi.toFixed(0)) : "—"}</p>
+                      <p className="font-semibold">{t?.rssi != null ? bn(t.rssi.toFixed(0)) : "—"}</p>
                     </div>
                   </div>
 
@@ -438,7 +438,7 @@ const char* SERVER_HOST = "${BACKEND_HOST}";
               ["Label / নাম", infoNode.label, `label-${infoNode.device_id}`],
               ["Server Host", BACKEND_HOST, `host-${infoNode.device_id}`],
               ["Telemetry POST", `${BACKEND_HOST}/api/public/telemetry`, `tele-${infoNode.device_id}`],
-              ["Command response", `${BACKEND_HOST}/api/public/telemetry → commands[]`, `cmd-${infoNode.device_id}`],
+              ["Commands GET", `${BACKEND_HOST}/api/public/commands`, `cmd-${infoNode.device_id}`],
             ];
             return (
               <div className="space-y-4">
