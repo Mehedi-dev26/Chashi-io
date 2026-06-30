@@ -147,25 +147,19 @@ String fmtRuntime(unsigned long ms) {
 }
 
 bool readDhtSafe(float &tempC, float &humidity) {
-  // Warmup window: serve cache (likely NaN at first) while DHT22 stabilises
-  if (millis() < dhtWarmupUntil) {
-    tempC = lastGoodTemp;
-    humidity = lastGoodHum;
-    return !isnan(tempC) || !isnan(humidity);
-  }
+  // Pure live-sensor read. No cached / preset / fabricated values.
+  // Returns ONLY what DHT22 physically reports right now, within its
+  // datasheet range (temp −40..80 °C, humidity 0..100 %RH). Anything
+  // outside that range is a corrupted pulse → NaN (not displayed/sent).
+  tempC = NAN;
+  humidity = NAN;
 
-  // Throttle: DHT22 needs >= 2s between physical reads — serve cache between
+  // Respect 2s minimum between physical reads (datasheet requirement).
   if (lastDhtReadMs != 0 && (millis() - lastDhtReadMs) < DHT_MIN_INTERVAL) {
-    tempC = lastGoodTemp;
-    humidity = lastGoodHum;
-    return !isnan(tempC) || !isnan(humidity);
+    return false;
   }
   lastDhtReadMs = millis();
 
-  // Retry up to 5 times to ride out CRC errors / corrupted frames.
-  // DHT22 valid range: temp −40..80 °C, humidity 0..100 %RH.
-  // Out-of-range readings (e.g. 768 °C, 197 %) are corrupted frames from
-  // a bad pulse — reject them so OLED/dashboard never show garbage.
   float t = NAN, h = NAN;
   for (int i = 0; i < 5; i++) {
     float tt = dht.readTemperature(false);
@@ -178,21 +172,22 @@ bool readDhtSafe(float &tempC, float &humidity) {
     delay(80);
   }
 
-  // Only cache validated readings; otherwise keep last good value.
-  if (!isnan(t)) lastGoodTemp = t;
-  if (!isnan(h)) lastGoodHum = h;
-
-  tempC = lastGoodTemp;
-  humidity = lastGoodHum;
+  tempC = t;
+  humidity = h;
 
   if (isnan(t) && isnan(h)) {
-    Serial.println("[DHT] read failed / out-of-range — serving cached value");
+    Serial.println("[DHT] no valid live reading this cycle");
   } else {
-    Serial.print("[DHT] ok t="); Serial.print(t, 1); Serial.print("C h="); Serial.print(h, 1); Serial.println("%");
+    Serial.print("[DHT] live t=");
+    if (isnan(t)) Serial.print("--"); else Serial.print(t, 1);
+    Serial.print("C h=");
+    if (isnan(h)) Serial.print("--"); else Serial.print(h, 1);
+    Serial.println("%");
   }
 
-  return !isnan(tempC) || !isnan(humidity);
+  return !isnan(t) || !isnan(h);
 }
+
 
 void drawDashboard(float tank, float lpm, float volt, float curr, float t, float h) {
   oled.clearDisplay();
