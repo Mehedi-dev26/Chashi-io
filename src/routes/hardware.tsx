@@ -1152,7 +1152,7 @@ function HardwarePage() {
                 <li>• মেইন মোটর রিলে নিয়ন্ত্রণ</li>
                 <li>• ৬V Ultra-Quiet পাম্প (~২.০ L/min auto)</li>
                 <li>• HC-SR04 ট্যাঙ্ক জলস্তর</li>
-                <li>• DHT22 তাপ ও আর্দ্রতা</li>
+                <li>• DHT11/DHT22 তাপ ও আর্দ্রতা</li>
                 <li>• OLED স্ট্যাটাস ডিসপ্লে</li>
               </ul>
             </div>
