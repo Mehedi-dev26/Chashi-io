@@ -1118,10 +1118,16 @@ function HardwarePage() {
 
   // Firmware ALWAYS targets the Lovable backend (where server routes live).
   const serverHost = BACKEND_HOST;
-  const masterCode = masterFirmwareSource.replace(
-    /const char\* SERVER_HOST\s*=\s*"[^"]+";/,
-    `const char* SERVER_HOST = "${serverHost}";`,
-  );
+  const backendUrl = new URL(serverHost);
+  const masterCode = masterFirmwareSource
+    .replace(
+      /const char\* SERVER_HOST\s*=\s*"[^"]+";/,
+      `const char* SERVER_HOST = "${serverHost}";`,
+    )
+    .replace(
+      /const char\* API_HOST\s*=\s*"[^"]+";/,
+      `const char* API_HOST    = "${backendUrl.hostname}";`,
+    );
   const subCode = buildSubCode(serverHost);
 
   const copy = async (id: string, text: string) => {
