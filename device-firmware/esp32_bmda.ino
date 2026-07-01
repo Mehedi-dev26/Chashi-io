@@ -350,23 +350,23 @@ void connectWifi() {
   }
 }
 
-bool postTelemetryPayload(const String& body, String &resp, int &code) {
+bool postTelemetryOnce(const String& body, String &resp, int &code, bool forceHttp10) {
   resp = "";
   code = 0;
 
   // ESP32 + Cloud HTTPS compatibility mode:
   // Use a fresh TLS socket for every heartbeat and force Connection: close.
-  // Some mobile hotspots/Cloudflare edges reject stale keep-alive sockets and
-  // Arduino then reports POST err=-1 (connection refused). Fresh sockets are
-  // slightly slower, but much more reliable for fair/demo environments.
+  // IMPORTANT: try normal HTTP/1.1 first. Some mobile hotspots/Cloud edges
+  // reject forced HTTP/1.0, while older Arduino cores sometimes need HTTP/1.0.
+  // postTelemetryPayload() below automatically tries both modes.
   WiFiClientSecure client;
   client.setInsecure();
-  client.setHandshakeTimeout(30);   // seconds — slow hotspot friendly
+  client.setHandshakeTimeout(25);   // seconds — slow hotspot friendly
   client.setTimeout(20000);
 
   HTTPClient http;
   http.setReuse(false);
-  http.useHTTP10(true);             // disables HTTP keep-alive/chunk issues
+  if (forceHttp10) http.useHTTP10(true);
   http.setConnectTimeout(15000);
   http.setTimeout(20000);
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -384,15 +384,30 @@ bool postTelemetryPayload(const String& body, String &resp, int &code) {
   http.addHeader("Connection", "close");
   code = http.POST(body);
   if (code <= 0) {
-    Serial.printf("[MASTER] POST err=%d (%s)  heap=%u  rssi=%d\n",
+    Serial.printf("[MASTER] POST err=%d (%s) mode=%s heap=%u rssi=%d\n",
                   code, HTTPClient::errorToString(code).c_str(),
+                  forceHttp10 ? "HTTP/1.0" : "HTTP/1.1",
                   (unsigned)ESP.getFreeHeap(), WiFi.RSSI());
   } else {
     resp = http.getString();
+    if (code < 200 || code >= 300 || resp.indexOf("\"ok\":true") < 0) {
+      Serial.printf("[MASTER] POST HTTP %d mode=%s resp=%.120s\n",
+                    code, forceHttp10 ? "HTTP/1.0" : "HTTP/1.1", resp.c_str());
+    }
   }
   http.end();
   client.stop();
-  return code >= 200 && code < 300;
+  return code >= 200 && code < 300 && resp.indexOf("\"ok\":true") >= 0;
+}
+
+bool postTelemetryPayload(const String& body, String &resp, int &code) {
+  // First attempt: current/recommended HTTP/1.1 with a fresh TLS socket.
+  if (postTelemetryOnce(body, resp, code, false)) return true;
+
+  // Fallback attempt: legacy HTTP/1.0 for older ESP32 Arduino cores/hotspots.
+  delay(350);
+  Serial.println("[MASTER] retrying telemetry with HTTP/1.0 compatibility mode...");
+  return postTelemetryOnce(body, resp, code, true);
 }
 
 
@@ -447,11 +462,6 @@ void sendTelemetry() {
   int code = 0;
   String resp;
   bool ok = postTelemetryPayload(body, resp, code);
-  if (!ok) {
-    // Give the hotspot/router time to close the failed socket before retry.
-    delay(1200);
-    ok = postTelemetryPayload(body, resp, code);
-  }
   if (ok) {
     systemOnline = true;
     lastOnlineMs = millis();
