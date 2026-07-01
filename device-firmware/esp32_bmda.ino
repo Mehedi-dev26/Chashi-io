@@ -30,6 +30,9 @@
 const char* WIFI_SSID   = "YOUR_WIFI";
 const char* WIFI_PASS   = "YOUR_PASSWORD";
 const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
+const char* API_HOST    = "project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
+const int   API_PORT    = 443;
+const char* API_PATH    = "/api/public/telemetry";
 
 const char* DEVICE_ID   = "MASTER-01";
 const char* ZONE_ID     = "PUMP-HOUSE";
@@ -350,18 +353,105 @@ void connectWifi() {
   }
 }
 
-bool postTelemetryOnce(const String& body, String &resp, int &code, bool forceHttp10) {
+bool readLineWithDeadline(WiFiClientSecure &client, String &line, unsigned long deadlineMs) {
+  line = "";
+  while (millis() < deadlineMs) {
+    while (client.available()) {
+      char c = (char)client.read();
+      line += c;
+      if (c == '\n') return true;
+      if (line.length() > 512) return true;
+    }
+    if (!client.connected() && !client.available()) return line.length() > 0;
+    delay(5);
+  }
+  return line.length() > 0;
+}
+
+bool postTelemetryRawTls(const String& body, String &resp, int &code) {
   resp = "";
   code = 0;
 
-  // ESP32 + Cloud HTTPS compatibility mode:
-  // Use a fresh TLS socket for every heartbeat and force Connection: close.
-  // IMPORTANT: try normal HTTP/1.1 first. Some mobile hotspots/Cloud edges
-  // reject forced HTTP/1.0, while older Arduino cores sometimes need HTTP/1.0.
-  // postTelemetryPayload() below automatically tries both modes.
+  // Final transport: manual HTTPS over a fresh TLS socket.
+  // This avoids ESP32 HTTPClient edge cases where Cloud/mobile-hotspot TLS
+  // handshakes can be reported as HTTPC_ERROR_CONNECTION_REFUSED (-1).
   WiFiClientSecure client;
   client.setInsecure();
-  client.setHandshakeTimeout(25);   // seconds — slow hotspot friendly
+  client.setHandshakeTimeout(30);   // seconds — slow hotspot friendly
+  client.setTimeout(1500);          // short read timeout; deadline loop controls total time
+
+  IPAddress resolvedIp;
+  bool dnsOk = WiFi.hostByName(API_HOST, resolvedIp);
+  Serial.printf("[NET] DNS %s -> %s\n", API_HOST, dnsOk ? resolvedIp.toString().c_str() : "FAILED");
+
+  unsigned long start = millis();
+  if (!client.connect(API_HOST, API_PORT)) {
+    code = -1;
+    Serial.printf("[MASTER] TLS connect failed host=%s:%d heap=%u rssi=%d\n",
+                  API_HOST, API_PORT, (unsigned)ESP.getFreeHeap(), WiFi.RSSI());
+    client.stop();
+    return false;
+  }
+
+  String req;
+  req.reserve(body.length() + 320);
+  req += "POST "; req += API_PATH; req += " HTTP/1.1\r\n";
+  req += "Host: "; req += API_HOST; req += "\r\n";
+  req += "User-Agent: BMDA-ESP32-MASTER/2.0\r\n";
+  req += "Accept: application/json\r\n";
+  req += "Accept-Encoding: identity\r\n";
+  req += "Content-Type: application/json\r\n";
+  req += "Connection: close\r\n";
+  req += "Content-Length: "; req += String(body.length()); req += "\r\n\r\n";
+  req += body;
+
+  client.print(req);
+
+  unsigned long deadline = millis() + 25000UL;
+  String line;
+  if (!readLineWithDeadline(client, line, deadline)) {
+    code = -2;
+    Serial.println("[MASTER] no HTTP status from backend");
+    client.stop();
+    return false;
+  }
+  line.trim();
+  if (line.startsWith("HTTP/")) {
+    int firstSpace = line.indexOf(' ');
+    if (firstSpace > 0) code = line.substring(firstSpace + 1, firstSpace + 4).toInt();
+  }
+
+  // Consume headers.
+  while (millis() < deadline) {
+    if (!readLineWithDeadline(client, line, deadline)) break;
+    if (line == "\r\n" || line == "\n" || line.length() <= 2) break;
+  }
+
+  // Read body. Expected body is tiny: {"ok":true,"commands":[]}
+  while (millis() < deadline && (client.connected() || client.available())) {
+    while (client.available()) {
+      char c = (char)client.read();
+      if (resp.length() < 1600) resp += c;
+    }
+    delay(5);
+  }
+  client.stop();
+
+  bool ok = code >= 200 && code < 300 && resp.indexOf("\"ok\":true") >= 0;
+  if (!ok) {
+    Serial.printf("[MASTER] HTTPS HTTP %d in %lums resp=%.160s\n",
+                  code, millis() - start, resp.c_str());
+  }
+  return ok;
+}
+
+bool postTelemetryHttpClientFallback(const String& body, String &resp, int &code, bool forceHttp10) {
+  resp = "";
+  code = 0;
+
+  WiFiClientSecure client;
+  client.setInsecure();
+  client.setHandshakeTimeout(30);
   client.setTimeout(20000);
 
   HTTPClient http;
@@ -401,13 +491,21 @@ bool postTelemetryOnce(const String& body, String &resp, int &code, bool forceHt
 }
 
 bool postTelemetryPayload(const String& body, String &resp, int &code) {
-  // First attempt: current/recommended HTTP/1.1 with a fresh TLS socket.
-  if (postTelemetryOnce(body, resp, code, false)) return true;
+  // Primary: manual raw TLS POST. It is the most reliable path for ESP32 +
+  // mobile hotspot + cloud HTTPS because it avoids HTTPClient connection reuse
+  // and HTTP/1.0 downgrade issues.
+  for (int attempt = 1; attempt <= 2; attempt++) {
+    if (postTelemetryRawTls(body, resp, code)) return true;
+    Serial.printf("[MASTER] raw TLS retry %d failed code=%d\n", attempt, code);
+    delay(600);
+  }
 
-  // Fallback attempt: legacy HTTP/1.0 for older ESP32 Arduino cores/hotspots.
+  // Last resort for older Arduino cores: HTTPClient HTTP/1.1 then HTTP/1.0.
+  Serial.println("[MASTER] retrying telemetry with HTTPClient HTTP/1.1...");
+  if (postTelemetryHttpClientFallback(body, resp, code, false)) return true;
   delay(350);
-  Serial.println("[MASTER] retrying telemetry with HTTP/1.0 compatibility mode...");
-  return postTelemetryOnce(body, resp, code, true);
+  Serial.println("[MASTER] retrying telemetry with HTTPClient HTTP/1.0 compatibility mode...");
+  return postTelemetryHttpClientFallback(body, resp, code, true);
 }
 
 
