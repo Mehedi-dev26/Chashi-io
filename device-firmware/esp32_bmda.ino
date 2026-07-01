@@ -7,9 +7,9 @@
  *   - Main Motor relay control from dashboard + manual ON/OFF buttons
  *   - Calculated flow rate for R385/6V pump (no physical flow sensor)
  *   - HC-SR04 tank level
- *   - DHT22 temperature/humidity in real Celsius/%RH with corrupted-read guard
+ *   - DHT11 temperature/humidity in real Celsius/%RH with corrupted-read guard
  *   - SSD1306 OLED: splash, loading screen, live status layout
- *   - GPIO 2 blue LED: solid ON when dashboard is online
+ *   - GPIO 2 blue LED: 5Hz pulse when backend heartbeat is online
  *   - Auto WiFi reconnect without reboot; motor safety OFF on connection loss
  *
  *  Arduino IDE setup:
@@ -44,8 +44,15 @@ const float PUMP_RATED_CURRENT = 0.20;
 #define PIN_RELAY_PUMP    25
 #define PIN_TRIG           5
 #define PIN_ECHO          18
+
+// ---- Tank (HC-SR04) calibration ----
+#define TANK_SENSOR_OFFSET_CM   2.0    // sensor face -> full water surface (HC-SR04 dead zone ~2cm)
+#define TANK_DEPTH_CM           8.0    // full surface -> empty/bottom (10cm bottle - 2cm offset)
+#define TANK_FULL_THRESHOLD    95.0
+#define TANK_WARN_THRESHOLD    85.0
+
 #define PIN_DHT            4
-#define DHT_TYPE       DHT22
+#define DHT_TYPE       DHT11   // আপনার sensor DHT11/DH11 হলে DHT11 রাখুন; DHT22 হলে DHT22 করুন
 #define I2C_SDA           21
 #define I2C_SCL           22
 #define PIN_BTN_ON        32
@@ -61,17 +68,23 @@ DHT dht(PIN_DHT, DHT_TYPE);
 
 bool motorOn = false;
 bool systemOnline = false;
+unsigned long lastOnlineMs = 0;
+const unsigned long ONLINE_STICKY_MS = 15000;   // keep "online" up to 15s after last good POST
 unsigned long motorStartMs = 0;
 unsigned long motorTotalMs = 0;
 unsigned long lastSend = 0;
-const unsigned long SEND_INTERVAL = 2000;
+const unsigned long SEND_INTERVAL = 3000;       // > DHT_MIN_INTERVAL so live read always fresh
 unsigned long lastWifiAttempt = 0;
 const unsigned long WIFI_RETRY_MS = 5000;
 float lastGoodTemp = NAN;
 float lastGoodHum = NAN;
+unsigned long lastGoodTempMs = 0;
+unsigned long lastGoodHumMs = 0;
+const unsigned long DHT_CACHE_TTL = 30000;      // serve cached t/h for up to 30s
 unsigned long lastDhtReadMs = 0;
-const unsigned long DHT_MIN_INTERVAL = 2200;  // DHT22 needs >= 2s between reads
+const unsigned long DHT_MIN_INTERVAL = 2200;    // DHT11 stability guard
 unsigned long dhtWarmupUntil = 0;
+
 
 // Buttons: wired between GPIO and GND. INPUT_PULLUP → idle=HIGH, press=LOW.
 // Trigger ONLY on the HIGH→LOW edge (press); never on release. A hard
@@ -147,48 +160,47 @@ String fmtRuntime(unsigned long ms) {
 }
 
 bool readDhtSafe(float &tempC, float &humidity) {
-  // Warmup window: serve cache (likely NaN at first) while DHT22 stabilises
-  if (millis() < dhtWarmupUntil) {
-    tempC = lastGoodTemp;
-    humidity = lastGoodHum;
+  // Live-sensor read with short-TTL cache so OLED never flickers between
+  // throttle windows. When the 2.2s DHT cooldown is active, we serve the
+  // last known-good value (up to 30s old) instead of NaN.
+  unsigned long now = millis();
+
+  if (lastDhtReadMs != 0 && (now - lastDhtReadMs) < DHT_MIN_INTERVAL) {
+    tempC    = (!isnan(lastGoodTemp) && now - lastGoodTempMs < DHT_CACHE_TTL) ? lastGoodTemp : NAN;
+    humidity = (!isnan(lastGoodHum)  && now - lastGoodHumMs  < DHT_CACHE_TTL) ? lastGoodHum  : NAN;
     return !isnan(tempC) || !isnan(humidity);
   }
+  lastDhtReadMs = now;
 
-  // Throttle: DHT22 needs >= 2s between physical reads — serve cache between
-  if (lastDhtReadMs != 0 && (millis() - lastDhtReadMs) < DHT_MIN_INTERVAL) {
-    tempC = lastGoodTemp;
-    humidity = lastGoodHum;
-    return !isnan(tempC) || !isnan(humidity);
-  }
-  lastDhtReadMs = millis();
-
-  // Retry up to 5 times to ride out CRC errors with internal pull-up
   float t = NAN, h = NAN;
   for (int i = 0; i < 5; i++) {
-    t = dht.readTemperature(false);
-    h = dht.readHumidity();
-    if (!isnan(t) && !isnan(h)) break;
+    float tt = dht.readTemperature(false);
+    float hh = dht.readHumidity();
+    bool tOk = !isnan(tt) && tt >= -10.0 && tt <= 60.0;
+    bool hOk = !isnan(hh) && hh >= 0.0  && hh <= 100.0;
+    if (tOk) t = tt;
+    if (hOk) h = hh;
+    if (tOk && hOk) break;
     delay(80);
   }
 
-  // ⚠️ Show whatever the sensor reports — NaN-only guard.
-  // Tight bounds (e.g. 0–100%RH) previously dropped real readings whenever
-  // the sensor briefly returned high values like 173 → both OLED and dashboard
-  // went blank. Trust the sensor; user-facing display is the truth.
-  if (!isnan(t)) lastGoodTemp = t;
-  if (!isnan(h)) lastGoodHum = h;
+  if (!isnan(t)) { lastGoodTemp = t; lastGoodTempMs = now; }
+  if (!isnan(h)) { lastGoodHum  = h; lastGoodHumMs  = now; }
 
-  tempC = lastGoodTemp;
-  humidity = lastGoodHum;
+  // Fall back to cached value if this physical read failed but cache fresh
+  tempC    = !isnan(t) ? t : ((!isnan(lastGoodTemp) && now - lastGoodTempMs < DHT_CACHE_TTL) ? lastGoodTemp : NAN);
+  humidity = !isnan(h) ? h : ((!isnan(lastGoodHum)  && now - lastGoodHumMs  < DHT_CACHE_TTL) ? lastGoodHum  : NAN);
 
-  if (isnan(t) && isnan(h)) {
-    Serial.println("[DHT] read failed (NaN) — wiring / power / sensor issue");
-  } else {
-    Serial.print("[DHT] raw t="); Serial.print(t, 1); Serial.print("C h="); Serial.print(h, 1); Serial.println("%");
-  }
+  Serial.print("[DHT] t=");
+  if (isnan(tempC)) Serial.print("--"); else Serial.print(tempC, 1);
+  Serial.print("C h=");
+  if (isnan(humidity)) Serial.print("--"); else Serial.print(humidity, 1);
+  Serial.println("%");
 
   return !isnan(tempC) || !isnan(humidity);
 }
+
+
 
 void drawDashboard(float tank, float lpm, float volt, float curr, float t, float h) {
   oled.clearDisplay();
@@ -204,9 +216,16 @@ void drawDashboard(float tank, float lpm, float volt, float curr, float t, float
   oled.drawFastHLine(0, 35, OLED_W, SSD1306_WHITE);
 
   oled.setCursor(2, 38);
-  oled.printf("TANK %3d%%", (int)tank);
+  if (tank >= TANK_FULL_THRESHOLD) {
+    oled.printf("TANK FULL!");
+  } else if (tank >= TANK_WARN_THRESHOLD) {
+    oled.printf("TANK %3d%%*", (int)tank);
+  } else {
+    oled.printf("TANK %3d%%", (int)tank);
+  }
   oled.setCursor(68, 38);
   oled.printf("FLOW %4.1f", lpm);
+
 
   oled.setCursor(2, 48);
   oled.printf("%3.1fV %4.2fA", volt, curr);
@@ -239,19 +258,65 @@ void setMotor(bool on) {
   Serial.printf("[MOTOR] %s\n", on ? "ON" : "OFF");
 }
 
-float readTankPct() {
-  digitalWrite(PIN_TRIG, LOW);  delayMicroseconds(2);
+// ===== HC-SR04 Tank Level (real measurement) =====
+// Calibration constants live near the pin defines at the top of this file.
+
+
+static float lastTankPct = 0.0;
+static bool  tankHasReading = false;
+
+static long readEchoOnce() {
+  digitalWrite(PIN_TRIG, LOW);  delayMicroseconds(4);
   digitalWrite(PIN_TRIG, HIGH); delayMicroseconds(10);
   digitalWrite(PIN_TRIG, LOW);
-  long dur = pulseIn(PIN_ECHO, HIGH, 30000);
-  if (!dur) return 0;
+  return pulseIn(PIN_ECHO, HIGH, 30000); // 30ms ~ 5m max
+}
+
+float readTankPct() {
+  // Take 5 samples, drop min & max, average the rest (median-like filter)
+  long s[5]; int valid = 0;
+  for (int i = 0; i < 5; i++) {
+    long d = readEchoOnce();
+    if (d > 0) s[valid++] = d;
+    delay(8);
+  }
+  if (valid < 3) {
+    // Sensor not responding / out of range: keep last good reading instead of fake 0
+    return tankHasReading ? lastTankPct : 0.0;
+  }
+  // sort ascending (simple)
+  for (int i = 0; i < valid - 1; i++)
+    for (int j = i + 1; j < valid; j++)
+      if (s[j] < s[i]) { long t = s[i]; s[i] = s[j]; s[j] = t; }
+  long sum = 0; int cnt = 0;
+  for (int i = 1; i < valid - 1; i++) { sum += s[i]; cnt++; }
+  if (cnt == 0) { sum = s[valid/2]; cnt = 1; }
+  float dur = (float)sum / cnt;
   float distCm = dur * 0.0343 / 2.0;
-  const float TANK_H = 100.0;
-  float pct = 100.0 * (TANK_H - distCm) / TANK_H;
-  if (pct < 0) pct = 0;
+
+  // HC-SR04 reliable range 2..400 cm
+  if (distCm < 2.0 || distCm > 400.0) {
+    return tankHasReading ? lastTankPct : 0.0;
+  }
+
+  float waterFromTop = distCm - TANK_SENSOR_OFFSET_CM; // 0 = full surface
+  float pct = 100.0 * (TANK_DEPTH_CM - waterFromTop) / TANK_DEPTH_CM;
+  if (pct < 0)   pct = 0;
   if (pct > 100) pct = 100;
+
+  lastTankPct = pct;
+  tankHasReading = true;
+
+  if (pct >= TANK_FULL_THRESHOLD) {
+    Serial.printf("[TANK] FULL! %.1f%% (dist=%.1fcm) — OVERFLOW RISK, stop filling\n", pct, distCm);
+  } else if (pct >= TANK_WARN_THRESHOLD) {
+    Serial.printf("[TANK] WARN %.1f%% (dist=%.1fcm)\n", pct, distCm);
+  } else {
+    Serial.printf("[TANK] %.1f%% (dist=%.1fcm)\n", pct, distCm);
+  }
   return pct;
 }
+
 
 float computeFlowLpm() {
   if (!motorOn) return 0.0;
@@ -284,6 +349,52 @@ void connectWifi() {
                   WiFi.status());
   }
 }
+
+bool postTelemetryPayload(const String& body, String &resp, int &code) {
+  resp = "";
+  code = 0;
+
+  // ESP32 + Cloud HTTPS compatibility mode:
+  // Use a fresh TLS socket for every heartbeat and force Connection: close.
+  // Some mobile hotspots/Cloudflare edges reject stale keep-alive sockets and
+  // Arduino then reports POST err=-1 (connection refused). Fresh sockets are
+  // slightly slower, but much more reliable for fair/demo environments.
+  WiFiClientSecure client;
+  client.setInsecure();
+  client.setHandshakeTimeout(30);   // seconds — slow hotspot friendly
+  client.setTimeout(20000);
+
+  HTTPClient http;
+  http.setReuse(false);
+  http.useHTTP10(true);             // disables HTTP keep-alive/chunk issues
+  http.setConnectTimeout(15000);
+  http.setTimeout(20000);
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+
+  const String url = String(SERVER_HOST) + "/api/public/telemetry";
+  if (!http.begin(client, url)) {
+    Serial.println("[MASTER] http.begin() failed");
+    code = -1000;
+    client.stop();
+    return false;
+  }
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Accept", "application/json");
+  http.addHeader("User-Agent", "BMDA-ESP32-MASTER/1.0");
+  http.addHeader("Connection", "close");
+  code = http.POST(body);
+  if (code <= 0) {
+    Serial.printf("[MASTER] POST err=%d (%s)  heap=%u  rssi=%d\n",
+                  code, HTTPClient::errorToString(code).c_str(),
+                  (unsigned)ESP.getFreeHeap(), WiFi.RSSI());
+  } else {
+    resp = http.getString();
+  }
+  http.end();
+  client.stop();
+  return code >= 200 && code < 300;
+}
+
 
 bool ensureWifi() {
   if (WiFi.status() == WL_CONNECTED) return true;
@@ -333,25 +444,35 @@ void sendTelemetry() {
   String body;
   serializeJson(doc, body);
 
-  WiFiClientSecure client;
-  client.setInsecure();
-  HTTPClient http;
-  http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
-  http.setTimeout(5000);
-  http.addHeader("Content-Type", "application/json");
-  int code = http.POST(body);
-  String resp = http.getString();
-  http.end();
-
-  systemOnline = (code == 200);
+  int code = 0;
+  String resp;
+  bool ok = postTelemetryPayload(body, resp, code);
+  if (!ok) {
+    // Give the hotspot/router time to close the failed socket before retry.
+    delay(1200);
+    ok = postTelemetryPayload(body, resp, code);
+  }
+  if (ok) {
+    systemOnline = true;
+    lastOnlineMs = millis();
+  } else {
+    // Sticky online window: don't go offline on a single failed POST
+    if (lastOnlineMs == 0 || (millis() - lastOnlineMs) > ONLINE_STICKY_MS) {
+      systemOnline = false;
+    }
+  }
   if (!systemOnline && motorOn) {
     setMotor(false);
     lpm = 0.0; volt = 0.0; curr = 0.0;
     lastSend = 0;
   }
 
-  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f T=%.1fC H=%.0f%% online=%d\n",
-                code, tank, lpm, volt, t, h, systemOnline ? 1 : 0);
+
+  Serial.printf("[MASTER] POST %d  tank=%.0f%% lpm=%.2f V=%.1f T=", code, tank, lpm, volt);
+  if (isnan(t)) Serial.print("--"); else Serial.print(t, 1);
+  Serial.print("C H=");
+  if (isnan(h)) Serial.print("--"); else Serial.print(h, 0);
+  Serial.printf("%% online=%d\n", systemOnline ? 1 : 0);
 
   bool motorChanged = false;
   JsonDocument r;
@@ -443,12 +564,10 @@ void updateOnlineLed() {
     return;
   }
 
-  if (systemOnline) {
-    if (!ledState) { ledState = true; ledWrite(true); }
-    return;
-  }
-
-  if (millis() - lastToggle >= 1000UL) {
+  // WiFi connected but backend not confirmed: slow 1Hz warning blink.
+  // Backend confirmed: fast 5Hz heartbeat pulse (100ms on/off cycle).
+  const unsigned long interval = systemOnline ? 100UL : 500UL;
+  if (millis() - lastToggle >= interval) {
     lastToggle = millis();
     ledState = !ledState;
     ledWrite(ledState);
@@ -481,9 +600,9 @@ void setup() {
   oled.display();
   bootAnimation();
 
-  pinMode(PIN_DHT, INPUT_PULLUP);   // enable ESP32 internal pull-up — no external 4.7k needed
+  pinMode(PIN_DHT, INPUT_PULLUP);   // DHT11/DHT22 DATA pin; external 10k pull-up is still recommended
   dht.begin();
-  dhtWarmupUntil = millis() + 2500;  // give DHT22 ~2.5s to stabilise without external pull-up
+  dhtWarmupUntil = millis() + 2500;  // give DHT11/DHT22 ~2.5s to stabilise
 
   // Render an immediate placeholder dashboard so OLED never sits on "Loading 100%"
   drawDashboard(readTankPct(), 0.0, 0.0, 0.0, NAN, NAN);
@@ -491,6 +610,9 @@ void setup() {
   connectWifi();
 
   Serial.println("[MASTER] System online — sending boot heartbeat");
+  Serial.print("[MASTER] Backend API: ");
+  Serial.print(SERVER_HOST);
+  Serial.println("/api/public/telemetry");
   // Wait for warmup; keep refreshing the dashboard so the screen stays alive
   while (millis() < dhtWarmupUntil) {
     float t, h;
@@ -498,10 +620,6 @@ void setup() {
     drawDashboard(readTankPct(), 0.0, 0.0, 0.0, t, h);
     delay(250);
   }
-  // Prime DHT with one direct read so the first telemetry frame has real values
-  float pt = dht.readTemperature(false), ph = dht.readHumidity();
-  if (!isnan(pt)) lastGoodTemp = pt;
-  if (!isnan(ph)) lastGoodHum = ph;
   sendTelemetry();
   lastSend = millis();
 }
