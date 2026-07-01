@@ -1026,25 +1026,32 @@ void sendTelemetry() {
   if (!isnan(humidity)) doc["humidity"]    = round(humidity);
 
   String body; serializeJson(doc, body);
-  BearSSL::WiFiClientSecure client;
-  client.setInsecure();
-  client.setTimeout(20000);
-  HTTPClient http;
-  http.setReuse(false);
-  http.useHTTP10(true);
-  http.setTimeout(20000);
-  http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("Accept", "application/json");
-  http.addHeader("User-Agent", "BMDA-ESP8266-SUB/1.0");
-  http.addHeader("Connection", "close");
-  int code = http.POST(body);
-  String resp = http.getString();
-  http.end();
-  client.stop();
+  String resp = "";
+  int code = 0;
+  for (int attempt = 0; attempt < 2; attempt++) {
+    BearSSL::WiFiClientSecure client;
+    client.setInsecure();
+    client.setTimeout(20000);
+    HTTPClient http;
+    http.setReuse(false);
+    if (attempt == 1) http.useHTTP10(true);  // fallback for older cores/hotspots
+    http.setTimeout(20000);
+    http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Accept", "application/json");
+    http.addHeader("User-Agent", "BMDA-ESP8266-SUB/1.0");
+    http.addHeader("Connection", "close");
+    code = http.POST(body);
+    resp = code > 0 ? http.getString() : "";
+    http.end();
+    client.stop();
+    if (code == 200 && resp.indexOf("\\\"ok\\\":true") >= 0) break;
+    Serial.printf("[%s] POST retry mode=%s code=%d\n", ZONE_ID, attempt == 0 ? "HTTP/1.1" : "HTTP/1.0", code);
+    delay(350);
+  }
 
   // ✅ প্রতিটি successful push → ছোট দ্রুত LED burst
-  if (code == 200) blinkTxLed();
+  if (code == 200 && resp.indexOf("\\\"ok\\\":true") >= 0) blinkTxLed();
 
   Serial.printf("[%s] POST %d  soil=%.0f%% lvl=%.0f%% wired=%d T=%.1fC H=%.0f%% valve=%d\\n",
                 ZONE_ID, code, soil, waterLvl, soilConnected ? 1 : 0, tempC, humidity, valveOpen);
