@@ -221,6 +221,20 @@ if (typeof window !== "undefined") {
           changed = true;
           return { ...z, online: false, soilMoisture: 0, waterLevel: 0, valveOpen: false, status: "idle" as const, soilConnected: true };
         }
+        // 🌱 Client-side per-second decay while soil sensor is disconnected.
+        //    Rates match the server (soil 1%/s, water 0.5%/s; halved during irrigation
+        //    so open-valve loss is offset). Server pushes the authoritative value
+        //    every ~2s and will overwrite this smoothly.
+        if (z.online && !z.soilConnected) {
+          const soilRate = z.valveOpen ? 0.2 : 1.0;
+          const waterRate = z.valveOpen ? 0.1 : 0.5;
+          const newSoil = Math.max(0, z.soilMoisture - soilRate);
+          const newWater = Math.max(0, z.waterLevel - waterRate);
+          if (newSoil !== z.soilMoisture || newWater !== z.waterLevel) {
+            changed = true;
+            return { ...z, soilMoisture: newSoil, waterLevel: newWater };
+          }
+        }
         // Defensive: even if never marked online but has stale/no data, force zeros
         if (!z.online && (z.soilMoisture !== 0 || z.waterLevel !== 0 || z.valveOpen)) {
           changed = true;
