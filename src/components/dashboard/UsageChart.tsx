@@ -84,10 +84,11 @@ export function UsageChart() {
             <h2 className="text-base font-bold">২৪ ঘণ্টার ব্যবহার</h2>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            পানি (লিটার) · বিদ্যুৎ (ওয়াট-ঘণ্টা) · মোট রানটাইম {bn(Math.round(totalSec / 60))} মি
+            রানটাইম (মিনিট) · পানি (লিটার) · বিদ্যুৎ (ওয়াট-ঘণ্টা) · মোট রানটাইম {bn(Math.round(totalSec / 60))} মি
           </p>
         </div>
         <div className="flex items-center gap-3 text-[11px] flex-wrap justify-end">
+          <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 font-semibold text-emerald-600"><span className="h-2 w-2 rounded-full bg-emerald-500" /> রানটাইম {bn(Math.round(totalSec / 60))} মি</span>
           <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary"><span className="h-2 w-2 rounded-full bg-primary" /> পানি {bn(totalWater.toFixed(1))} L</span>
           <span className="flex items-center gap-1.5 rounded-full bg-accent/20 px-2.5 py-1 font-semibold text-accent-foreground"><span className="h-2 w-2 rounded-full bg-accent" /> বিদ্যুৎ {bn(totalPower.toFixed(1))} Wh</span>
           <span className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
