@@ -15,9 +15,9 @@ export const getMonthlyRuntime = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const now = new Date();
-      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-      const totalSec = await sumPagedRuntime(supabaseAdmin, data.deviceId, monthStart);
+      // "মোট রানিং" = শুরু থেকে সব সময়ের cumulative runtime (offline হলেও DB-তে persist থাকে)
+      const allTime = new Date(0).toISOString();
+      const totalSec = await sumPagedRuntime(supabaseAdmin, data.deviceId, allTime);
       return { totalSec };
     } catch (e) {
       return { totalSec: 0, error: String((e as Error)?.message ?? e) };
