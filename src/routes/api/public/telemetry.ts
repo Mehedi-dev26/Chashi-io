@@ -79,11 +79,11 @@ export const Route = createFileRoute("/api/public/telemetry")({
           }
           if (nodeRow?.zone_id) effectiveZoneId = nodeRow.zone_id;
 
-          // Read previous row to compute wall-clock runtime delta
+          // Read previous row to compute wall-clock runtime delta + soil depletion base
 
           const { data: prev } = await supabaseAdmin
             .from("device_telemetry")
-            .select("runtime_sec, motor_on, temperature, humidity, updated_at")
+            .select("runtime_sec, motor_on, temperature, humidity, updated_at, soil_moisture, water_level, valve_open")
             .eq("zone_id", effectiveZoneId)
             .maybeSingle();
 
@@ -94,9 +94,6 @@ export const Route = createFileRoute("/api/public/telemetry")({
           const motorOnNow = body.motorOn != null ? Boolean(body.motorOn) : false;
 
           // Wall-clock based runtime delta — survives ESP32 reboots.
-          // Counts seconds whenever the motor was ON at the previous sample
-          // OR at this sample, capped at 60s per sample so long offline gaps
-          // don't inflate the counter.
           let wallDeltaSec = 0;
           if (prev?.updated_at) {
             const elapsed = Math.floor((nowMs - new Date(prev.updated_at).getTime()) / 1000);
@@ -105,15 +102,42 @@ export const Route = createFileRoute("/api/public/telemetry")({
             }
           }
 
-          // Cumulative server-tracked runtime — independent of firmware boot state.
           const prevServerRt = Number(prev?.runtime_sec ?? 0);
           const cumulativeRt = prevServerRt + wallDeltaSec;
+
+          // 🌱 Soil-sensor disconnect handling — hold the last known reading and apply
+          // a slow depletion so the dashboard never suddenly drops to 0% just because
+          // the probe was pulled out. When the probe reconnects, the firmware reading
+          // takes over immediately.
+          const soilConnectedIncoming = body.soilConnected == null ? true : Boolean(body.soilConnected);
+          const rawSoil = cleanNumber(body.soilMoisture);
+          const rawWater = cleanNumber(body.waterLevel);
+          const soilConnected = soilConnectedIncoming && rawSoil != null;
+
+          let soilMoisture: number;
+          let waterLevel: number;
+          if (soilConnected) {
+            soilMoisture = clampPercent(rawSoil);
+            waterLevel = clampPercent(rawWater ?? soilMoisture);
+          } else {
+            const gapSec = prev?.updated_at
+              ? Math.max(0, Math.floor((nowMs - new Date(prev.updated_at).getTime()) / 1000))
+              : 0;
+            // %/sec — valve-open irrigation offsets loss; capped so long outages don't wipe reading
+            const rate = prev?.valve_open ? 0.005 : 0.02;
+            const decay = Math.min(20, gapSec * rate);
+            const prevSoil = Number(prev?.soil_moisture ?? 0);
+            const prevWater = Number(prev?.water_level ?? 0);
+            soilMoisture = clampPercent(Math.max(0, prevSoil - decay));
+            waterLevel = clampPercent(Math.max(0, prevWater - decay));
+          }
 
           const row = {
             zone_id: effectiveZoneId,
             device_id: deviceId,
-            soil_moisture: clampPercent(body.soilMoisture),
-            water_level: clampPercent(body.waterLevel),
+            soil_moisture: soilMoisture,
+            water_level: waterLevel,
+            soil_connected: soilConnected,
             ldr: clampPercent(body.ldr),
             temperature,
             humidity,
@@ -142,6 +166,7 @@ export const Route = createFileRoute("/api/public/telemetry")({
             zone_id: effectiveZoneId,
             soil_moisture: row.soil_moisture,
             water_level: row.water_level,
+            soil_connected: row.soil_connected,
             ldr: row.ldr,
             temperature: row.temperature,
             humidity: row.humidity,
