@@ -13,14 +13,18 @@ const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২
 
 export const Route = createFileRoute("/ai")({
   head: () => ({ meta: [{ title: "AI পরামর্শ · BMDA স্মার্ট সেচ" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({ ask: typeof s.ask === "string" ? s.ask : undefined }),
   component: AIPage,
 });
+
 
 type Msg = { role: "user" | "ai"; text: string; time: string };
 
 function AIPage() {
   const { zones } = useIrrigationData();
+  const search = Route.useSearch();
   const ask = useServerFn(askConsultant);
+
   const [prompt, setPrompt] = useState("");
   const [thinking, setThinking] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
@@ -57,6 +61,18 @@ function AIPage() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, thinking]);
+
+  // Auto-send optimize prompt when arriving from dashboard with ?ask=optimize
+  const autoSentRef = useRef(false);
+  useEffect(() => {
+    if (autoSentRef.current) return;
+    if (search.ask === "optimize") {
+      autoSentRef.current = true;
+      setTimeout(() => send("আজকের সেচ সূচি অপটিমাইজ করো — জোন ভিত্তিক সময় ও মিনিট দাও"), 300);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.ask]);
+
 
   const send = async (text: string) => {
     const q = text.trim();
