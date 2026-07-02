@@ -47,6 +47,7 @@ export function UsageChart() {
             // Watt-hours read more intuitively for a 6V demo pump than kWh
             power: +(b.powerKwh * 1000).toFixed(2),
             runSec: b.runSec,
+            runMin: +(b.runSec / 60).toFixed(2),
           };
         });
         if (rows.length) {
