@@ -211,6 +211,7 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
               : 70 + (sMoist - 60) * (30 / 40);
             const waterLevel = online && t?.water_level != null ? Math.max(0, Math.min(100, Number(t.water_level))) : (online ? derived : 0);
             const valveOpen = online && !!t?.valve_open;
+            const soilConnected = online ? (t?.soil_connected == null ? true : !!t.soil_connected) : true;
             const assignedZone = zones.find((z) => z.id === n.zone_id);
             return (
               <Card key={n.id} className="overflow-hidden animate-fade-in hover:shadow-lg transition-all" style={{ animationDelay: `${i * 40}ms` }}>
