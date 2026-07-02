@@ -228,11 +228,35 @@ export function FieldMap({ zones, onToggle }: { zones: FieldZone[]; onToggle: (i
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Stat label="পানির স্তর" value={`${bn(active.waterLevel.toFixed(0))}%`} color="primary" />
-              <Stat label="মাটির আর্দ্রতা" value={`${bn(active.soilMoisture.toFixed(0))}%`} color="chart-2" />
-              <Stat label="জমি" value={`${bn(active.area)} একর`} />
-              <Stat label="অবস্থা" value={statusBn[active.status]} />
+            <div className="grid grid-cols-2 gap-2.5">
+              <GradientStat
+                label="পানির স্তর"
+                value={`${bn(active.waterLevel.toFixed(0))}%`}
+                gradient="from-sky-500 via-cyan-500 to-blue-600"
+                shadow="shadow-cyan-500/40"
+                icon="💧"
+              />
+              <GradientStat
+                label="মাটির আর্দ্রতা"
+                value={`${bn(active.soilMoisture.toFixed(0))}%`}
+                gradient="from-emerald-500 via-lime-500 to-green-600"
+                shadow="shadow-emerald-500/40"
+                icon="🌱"
+              />
+              <GradientStat
+                label="জমি"
+                value={`${bn(active.area)} একর`}
+                gradient="from-amber-500 via-orange-500 to-rose-500"
+                shadow="shadow-orange-500/40"
+                icon="🌾"
+              />
+              <GradientStat
+                label="অবস্থা"
+                value={statusBn[active.status]}
+                gradient="from-fuchsia-500 via-purple-500 to-indigo-600"
+                shadow="shadow-purple-500/40"
+                icon="⚡"
+              />
             </div>
 
             {active.hasNode && active.online && !active.soilConnected && (
