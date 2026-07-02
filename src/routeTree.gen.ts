@@ -26,6 +26,7 @@ import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AiRouteImport } from './routes/ai'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiAiConsultantRouteImport } from './routes/api/ai-consultant'
 import { Route as ApiPublicTelemetryRouteImport } from './routes/api/public/telemetry'
 import { Route as ApiPublicCommandsRouteImport } from './routes/api/public/commands'
 
@@ -114,6 +115,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiConsultantRoute = ApiAiConsultantRouteImport.update({
+  id: '/api/ai-consultant',
+  path: '/api/ai-consultant',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTelemetryRoute = ApiPublicTelemetryRouteImport.update({
   id: '/api/public/telemetry',
   path: '/api/public/telemetry',
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/satellite': typeof SatelliteRoute
   '/settings': typeof SettingsRoute
   '/zones': typeof ZonesRoute
+  '/api/ai-consultant': typeof ApiAiConsultantRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/telemetry': typeof ApiPublicTelemetryRoute
 }
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/satellite': typeof SatelliteRoute
   '/settings': typeof SettingsRoute
   '/zones': typeof ZonesRoute
+  '/api/ai-consultant': typeof ApiAiConsultantRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/telemetry': typeof ApiPublicTelemetryRoute
 }
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/satellite': typeof SatelliteRoute
   '/settings': typeof SettingsRoute
   '/zones': typeof ZonesRoute
+  '/api/ai-consultant': typeof ApiAiConsultantRoute
   '/api/public/commands': typeof ApiPublicCommandsRoute
   '/api/public/telemetry': typeof ApiPublicTelemetryRoute
 }
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/satellite'
     | '/settings'
     | '/zones'
+    | '/api/ai-consultant'
     | '/api/public/commands'
     | '/api/public/telemetry'
   fileRoutesByTo: FileRoutesByTo
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/satellite'
     | '/settings'
     | '/zones'
+    | '/api/ai-consultant'
     | '/api/public/commands'
     | '/api/public/telemetry'
   id:
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/satellite'
     | '/settings'
     | '/zones'
+    | '/api/ai-consultant'
     | '/api/public/commands'
     | '/api/public/telemetry'
   fileRoutesById: FileRoutesById
@@ -273,6 +285,7 @@ export interface RootRouteChildren {
   SatelliteRoute: typeof SatelliteRoute
   SettingsRoute: typeof SettingsRoute
   ZonesRoute: typeof ZonesRoute
+  ApiAiConsultantRoute: typeof ApiAiConsultantRoute
   ApiPublicCommandsRoute: typeof ApiPublicCommandsRoute
   ApiPublicTelemetryRoute: typeof ApiPublicTelemetryRoute
 }
@@ -398,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai-consultant': {
+      id: '/api/ai-consultant'
+      path: '/api/ai-consultant'
+      fullPath: '/api/ai-consultant'
+      preLoaderRoute: typeof ApiAiConsultantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/telemetry': {
       id: '/api/public/telemetry'
       path: '/api/public/telemetry'
@@ -433,9 +453,20 @@ const rootRouteChildren: RootRouteChildren = {
   SatelliteRoute: SatelliteRoute,
   SettingsRoute: SettingsRoute,
   ZonesRoute: ZonesRoute,
+  ApiAiConsultantRoute: ApiAiConsultantRoute,
   ApiPublicCommandsRoute: ApiPublicCommandsRoute,
   ApiPublicTelemetryRoute: ApiPublicTelemetryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
