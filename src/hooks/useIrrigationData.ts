@@ -160,6 +160,9 @@ const applyTelemetry = (row: TelemetryRow) => {
   if (row.zone_id === PUMP_SPEC.zone_id) {
     const wasOnline = state.motor.online;
     const wasOn = state.motor.isOn;
+    const tank = row.water_level != null
+      ? Math.max(0, Math.min(100, Number(row.water_level)))
+      : state.motor.tankLevel;
     const motor: MotorState = {
       ...state.motor,
       isOn: !!row.motor_on, online: true, lastSeen: ts,
@@ -169,6 +172,7 @@ const applyTelemetry = (row: TelemetryRow) => {
       runtime: row.runtime_sec != null ? Number(row.runtime_sec) : state.motor.runtime,
       pressure: row.motor_on ? +(2.5 + Number(row.flow_lpm ?? PUMP_SPEC.ratedFlowLpm) * 0.4).toFixed(1) : 0,
       health: 100,
+      tankLevel: tank,
     };
     setState({ ...state, motor, weather });
     if (!wasOnline) pushActivity({ type: "success", message: "✓ পাম্প অনলাইন · মাস্টার নোড সংযুক্ত" });
