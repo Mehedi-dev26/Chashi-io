@@ -216,7 +216,7 @@ if (typeof window !== "undefined") {
       // motor offline?
       if (next.motor.lastSeen && now - next.motor.lastSeen > PUMP_SPEC.heartbeatMs && next.motor.online) {
         pushActivity({ type: "warning", message: "⚠ পাম্প অফলাইন · heartbeat বিচ্ছিন্ন" });
-        next = { ...next, motor: { ...next.motor, online: false, isOn: false, voltage: 0, current: 0, flowRate: 0, pressure: 0, health: 0 } };
+        next = { ...next, motor: { ...next.motor, online: false, isOn: false, voltage: 0, current: 0, flowRate: 0, pressure: 0, health: 0, tankLevel: 0 } };
         changed = true;
       }
       // zone offline? → zero out all sensor readings (no fake stale data)
