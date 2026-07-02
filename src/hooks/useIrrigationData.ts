@@ -119,6 +119,7 @@ type TelemetryRow = {
   voltage: number | null; current: number | null;
   flow_lpm: number | null; runtime_sec: number | null;
   soil_moisture: number | null; water_level: number | null;
+  soil_connected: boolean | null;
   tds_ppm: number | null;
   temperature: number | null; humidity: number | null;
   updated_at: string;
