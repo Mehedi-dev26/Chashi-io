@@ -311,11 +311,17 @@ export function FieldMap({ zones, onToggle }: { zones: FieldZone[]; onToggle: (i
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: string; color?: string }) {
+function GradientStat({
+  label, value, gradient, shadow, icon,
+}: { label: string; value: string; gradient: string; shadow: string; icon: string }) {
   return (
-    <div className="rounded-lg bg-secondary/60 p-2.5">
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
-      <p className={`text-sm font-bold mt-0.5 ${color ? `text-${color}` : ""}`}>{value}</p>
+    <div
+      className={`group relative overflow-hidden rounded-xl bg-gradient-to-br ${gradient} p-2.5 shadow-lg ${shadow} ring-1 ring-white/30 transition-transform hover:scale-[1.03]`}
+    >
+      <span className="pointer-events-none absolute -right-3 -top-3 text-3xl opacity-25 rotate-12 select-none">{icon}</span>
+      <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/15 to-white/10" />
+      <p className="relative text-[9px] font-bold uppercase tracking-wider text-white/85">{label}</p>
+      <p className="relative text-base font-extrabold text-white drop-shadow mt-0.5">{value}</p>
     </div>
   );
 }
