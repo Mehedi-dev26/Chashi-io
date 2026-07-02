@@ -68,7 +68,7 @@ export function UsageChart() {
   const totalPower = data.reduce((s, r) => s + r.power, 0);
   const totalSec = data.reduce((s, r) => s + r.runSec, 0);
   const hasData = totalSec > 0;
-  const yMax = useMemo(() => Math.max(1, ...data.map((r) => Math.max(r.water, r.power))), [data]);
+  const yMax = useMemo(() => Math.max(1, ...data.map((r) => Math.max(r.water, r.power, r.runMin))), [data]);
   const lastUpdatedText = lastUpdated
     ? lastUpdated.toLocaleTimeString("bn-BD", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
     : "লোড হচ্ছে";
