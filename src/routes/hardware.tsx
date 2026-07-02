@@ -1046,7 +1046,7 @@ void sendTelemetry() {
     http.end();
     client.stop();
     if (code == 200 && resp.indexOf("\\\"ok\\\":true") >= 0) break;
-    Serial.printf("[%s] POST retry mode=%s code=%d\n", ZONE_ID, attempt == 0 ? "HTTP/1.1" : "HTTP/1.0", code);
+    Serial.printf("[%s] POST retry mode=%s code=%d\\n", ZONE_ID, attempt == 0 ? "HTTP/1.1" : "HTTP/1.0", code);
     delay(350);
   }
 
