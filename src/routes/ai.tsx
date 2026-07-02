@@ -26,7 +26,7 @@ function AIPage() {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "ai",
-      text: "নমস্কার! আমি BMDA স্মার্ট সেচ AI। আমার কাছে আপনার সকল জমি, পাম্প, সেন্সর ও আবহাওয়ার রিয়েল-টাইম ডেটায় access আছে। বাংলায় যেকোনো প্রশ্ন করুন।",
+      text: "আসসালামু আলাইকুম! আমি BMDA স্মার্ট সেচ AI। আমার কাছে আপনার সকল জমি, পাম্প, সেন্সর, ভাল্ভ ও রিয়েল-টাইম টেলিমেট্রি ডেটাবেজে সরাসরি access আছে। বাংলায় যেকোনো প্রশ্ন করুন।",
       time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
