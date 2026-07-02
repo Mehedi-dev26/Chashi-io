@@ -34,6 +34,7 @@ export type MotorState = {
   current: number;
   runtime: number;
   health: number;
+  tankLevel: number;   // % — পাম্প-হাউস ট্যাংকের পানির স্তর (real telemetry থেকে)
 };
 
 export type ActivityEntry = {
