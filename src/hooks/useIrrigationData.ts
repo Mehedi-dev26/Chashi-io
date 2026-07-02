@@ -230,7 +230,7 @@ if (typeof window !== "undefined") {
         changed = true;
       } else if (next.motor.online) {
         // 💧 প্রতি সেকেন্ডে ট্যাংক লেভেল smoothly update (৪০–৬০% simulated)
-        next = { ...next, motor: { ...next.motor, tankLevel: simulatedTankLevel() } };
+        next = { ...next, motor: { ...next.motor, tankLevel: simulatedTankLevel(next.motor.isOn) } };
         changed = true;
       }
       // zone offline? → zero out all sensor readings (no fake stale data)
