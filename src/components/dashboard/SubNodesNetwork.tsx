@@ -275,20 +275,37 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-1 text-[10px] mb-3">
-                    <div className="text-center p-1.5 rounded bg-muted/40">
-                      <Sun className="h-3 w-3 mx-auto text-muted-foreground" />
-                      <p className="font-semibold">{bn((t?.ldr ?? 0).toFixed(0))}%</p>
+                  {/* DHT11 — তাপমাত্রা ও বাতাসের আর্দ্রতা (real-time এই নোড থেকে) */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="rounded-lg p-2.5 bg-gradient-to-br from-orange-500/10 to-amber-500/10 border border-orange-500/25">
+                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-orange-700 dark:text-orange-400">
+                        <Activity className="h-3 w-3" />তাপমাত্রা
+                      </div>
+                      <p className="mt-0.5 text-lg font-extrabold text-orange-600 dark:text-orange-300">
+                        {online && t?.temperature != null ? `${bn(t.temperature.toFixed(1))}°C` : "—"}
+                      </p>
                     </div>
-                    <div className="text-center p-1.5 rounded bg-muted/40">
-                      <Activity className="h-3 w-3 mx-auto text-muted-foreground" />
-                      <p className="font-semibold">{online && t?.temperature != null ? `${bn(t.temperature.toFixed(0))}°` : "—"}</p>
-                    </div>
-                    <div className="text-center p-1.5 rounded bg-muted/40">
-                      <Signal className="h-3 w-3 mx-auto text-muted-foreground" />
-                      <p className="font-semibold">{online && t?.rssi != null ? bn(t.rssi.toFixed(0)) : "—"}</p>
+                    <div className="rounded-lg p-2.5 bg-gradient-to-br from-sky-500/10 to-cyan-500/10 border border-sky-500/25">
+                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400">
+                        <Droplets className="h-3 w-3" />বাতাসের আর্দ্রতা
+                      </div>
+                      <p className="mt-0.5 text-lg font-extrabold text-sky-600 dark:text-sky-300">
+                        {online && t?.humidity != null ? `${bn(t.humidity.toFixed(0))}%` : "—"}
+                      </p>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-1 text-[10px] mb-3">
+                    <div className="text-center p-1.5 rounded bg-muted/40 flex items-center justify-center gap-1">
+                      <Sun className="h-3 w-3 text-muted-foreground" />
+                      <span className="font-semibold">LDR {bn((t?.ldr ?? 0).toFixed(0))}%</span>
+                    </div>
+                    <div className="text-center p-1.5 rounded bg-muted/40 flex items-center justify-center gap-1">
+                      <Signal className="h-3 w-3 text-muted-foreground" />
+                      <span className="font-semibold">{online && t?.rssi != null ? `${bn(t.rssi.toFixed(0))} dBm` : "—"}</span>
+                    </div>
+                  </div>
+
 
                   <button
                     onClick={() => toggleValve(n)}
