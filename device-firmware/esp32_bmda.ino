@@ -1,6 +1,6 @@
 /**
  *  BMDA Smart Irrigation — MASTER NODE (ESP32)
- *  Clean production firmware — single stable HTTPS transport, no fallbacks.
+ *  Clean production firmware — stable HTTPS transport with raw TLS fallback.
  *
  *  Hardware
  *   - 6V ultra-quiet pump via relay (GPIO 25, active-LOW)
@@ -11,7 +11,7 @@
  *   - Online LED          (GPIO 2, on-board blue)
  *
  *  Behaviour
- *   - POST /api/public/telemetry every 3s over HTTPS (fresh socket, close)
+ *   - POST /api/public/telemetry every 3s over HTTPS
  *   - Backend confirms with {"ok":true} → LED 5Hz heartbeat, "SYSTEM ONLINE"
  *   - Motor auto-OFF if WiFi / backend heartbeat lost (safety)
  *   - Runtime survives reboots (server-side wall-clock delta)
