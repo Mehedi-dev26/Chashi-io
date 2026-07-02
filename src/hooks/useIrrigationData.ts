@@ -73,7 +73,17 @@ export const PUMP_SPEC = {
   ratedVoltage: 6.0,
   ratedCurrent: 0.20,
   ratedFlowLpm: 2.0,
-  heartbeatMs: 15000,  // firmware sticky window-এর সাথে sync: intermittent hotspot delay হলেও stable online
+  heartbeatMs: 15000,      // sub-node grace window
+  motorOfflineMs: 30000,   // পাম্প এর জন্য আলাদা grace — hotspot lag এ flicker রোধ
+};
+
+// 💧 ট্যাংক লেভেল সিমুলেশন — সেন্সরে সমস্যা থাকায় UI-তে ৪০–৬০% smooth oscillation
+const simulatedTankLevel = () => {
+  const t = Date.now() / 1000;
+  // period ~90s, amplitude 10 → 40..60
+  const base = 50 + 10 * Math.sin(t / 14);
+  const jitter = (Math.random() - 0.5) * 1.2;
+  return Math.max(40, Math.min(60, +(base + jitter).toFixed(1)));
 };
 
 // fallback default zones (only used if user has none in DB and seed fails)
