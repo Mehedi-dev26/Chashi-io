@@ -228,11 +228,35 @@ export function FieldMap({ zones, onToggle }: { zones: FieldZone[]; onToggle: (i
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Stat label="পানির স্তর" value={`${bn(active.waterLevel.toFixed(0))}%`} color="primary" />
-              <Stat label="মাটির আর্দ্রতা" value={`${bn(active.soilMoisture.toFixed(0))}%`} color="chart-2" />
-              <Stat label="জমি" value={`${bn(active.area)} একর`} />
-              <Stat label="অবস্থা" value={statusBn[active.status]} />
+            <div className="grid grid-cols-2 gap-2.5">
+              <GradientStat
+                label="পানির স্তর"
+                value={`${bn(active.waterLevel.toFixed(0))}%`}
+                gradient="from-sky-500 via-cyan-500 to-blue-600"
+                shadow="shadow-cyan-500/40"
+                icon="💧"
+              />
+              <GradientStat
+                label="মাটির আর্দ্রতা"
+                value={`${bn(active.soilMoisture.toFixed(0))}%`}
+                gradient="from-emerald-500 via-lime-500 to-green-600"
+                shadow="shadow-emerald-500/40"
+                icon="🌱"
+              />
+              <GradientStat
+                label="জমি"
+                value={`${bn(active.area)} একর`}
+                gradient="from-amber-500 via-orange-500 to-rose-500"
+                shadow="shadow-orange-500/40"
+                icon="🌾"
+              />
+              <GradientStat
+                label="অবস্থা"
+                value={statusBn[active.status]}
+                gradient="from-fuchsia-500 via-purple-500 to-indigo-600"
+                shadow="shadow-purple-500/40"
+                icon="⚡"
+              />
             </div>
 
             {active.hasNode && active.online && !active.soilConnected && (
@@ -287,11 +311,17 @@ export function FieldMap({ zones, onToggle }: { zones: FieldZone[]; onToggle: (i
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: string; color?: string }) {
+function GradientStat({
+  label, value, gradient, shadow, icon,
+}: { label: string; value: string; gradient: string; shadow: string; icon: string }) {
   return (
-    <div className="rounded-lg bg-secondary/60 p-2.5">
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
-      <p className={`text-sm font-bold mt-0.5 ${color ? `text-${color}` : ""}`}>{value}</p>
+    <div
+      className={`group relative overflow-hidden rounded-xl bg-gradient-to-br ${gradient} p-2.5 shadow-lg ${shadow} ring-1 ring-white/30 transition-transform hover:scale-[1.03]`}
+    >
+      <span className="pointer-events-none absolute -right-3 -top-3 text-3xl opacity-25 rotate-12 select-none">{icon}</span>
+      <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/15 to-white/10" />
+      <p className="relative text-[9px] font-bold uppercase tracking-wider text-white/85">{label}</p>
+      <p className="relative text-base font-extrabold text-white drop-shadow mt-0.5">{value}</p>
     </div>
   );
 }
