@@ -192,7 +192,8 @@ const applyTelemetry = (row: TelemetryRow) => {
     const wl = row.water_level != null ? Number(row.water_level) : Math.round(derived);
     const valve = row.valve_open ?? z.valveOpen;
     const status: FieldZone["status"] = sm < 25 ? "alert" : valve ? "irrigating" : "idle";
-    return { ...z, soilMoisture: sm, waterLevel: wl, valveOpen: !!valve, status, online: true, lastSeen: ts };
+    const soilConnected = row.soil_connected == null ? true : !!row.soil_connected;
+    return { ...z, soilMoisture: sm, waterLevel: wl, valveOpen: !!valve, status, online: true, lastSeen: ts, soilConnected };
   });
 
   setState({ ...state, zones, weather, metrics: recomputeMetrics(zones) });
