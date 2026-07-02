@@ -77,13 +77,14 @@ export const PUMP_SPEC = {
   motorOfflineMs: 30000,   // পাম্প এর জন্য আলাদা grace — hotspot lag এ flicker রোধ
 };
 
-// 💧 ট্যাংক লেভেল সিমুলেশন — সেন্সরে সমস্যা থাকায় UI-তে ৪০–৬০% smooth oscillation
-const simulatedTankLevel = () => {
+// 💧 ট্যাংক লেভেল সিমুলেশন — পাম্প চালু থাকলে ৪০–৮০% smooth oscillation
+// পাম্প বন্ধ থাকলে ০% (কোনো ওঠানামা নয়)
+const simulatedTankLevel = (pumpOn: boolean) => {
+  if (!pumpOn) return 0;
   const t = Date.now() / 1000;
-  // period ~90s, amplitude 10 → 40..60
-  const base = 50 + 10 * Math.sin(t / 14);
-  const jitter = (Math.random() - 0.5) * 1.2;
-  return Math.max(40, Math.min(60, +(base + jitter).toFixed(1)));
+  const base = 60 + 20 * Math.sin(t / 14);
+  const jitter = (Math.random() - 0.5) * 1.5;
+  return Math.max(40, Math.min(80, +(base + jitter).toFixed(1)));
 };
 
 // fallback default zones (only used if user has none in DB and seed fails)
