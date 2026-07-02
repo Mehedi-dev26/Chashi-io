@@ -27,6 +27,7 @@ const ROUTE_LABEL: Record<string, string> = {
 export function TopBar() {
   const [now, setNow] = useState<string>("");
   const path = useRouterState({ select: (r) => r.location.pathname });
+  const { weather } = useIrrigationData();
 
   useEffect(() => {
     const update = () => {
