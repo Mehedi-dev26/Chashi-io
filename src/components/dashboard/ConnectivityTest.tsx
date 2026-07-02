@@ -18,7 +18,7 @@ const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২
 async function pingEndpoint(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
   const t0 = performance.now();
   try {
-    const r = await fetch("/api/public/telemetry", { method: "GET", cache: "no-store" });
+    const r = await fetch("https://cplhurjwjmybbavkydfv.functions.supabase.co/telemetry", { method: "GET", cache: "no-store" });
     const latencyMs = Math.round(performance.now() - t0);
     if (!r.ok) return { ok: false, latencyMs, error: `HTTP ${r.status}` };
     const j = await r.json().catch(() => ({}));
@@ -99,7 +99,7 @@ export function ConnectivityTest() {
       {endpoint && (
         <div className={`mb-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${endpoint.ok ? "bg-success/10 border-success/30 text-success" : "bg-destructive/10 border-destructive/30 text-destructive"}`}>
           {endpoint.ok ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-          <span className="font-semibold">/api/public/telemetry</span>
+          <span className="font-semibold">hardware /telemetry</span>
           <span className="opacity-70">·</span>
           <span>{endpoint.ok ? `উপলব্ধ · ${bn(endpoint.latencyMs)}ms` : `ব্যর্থ · ${endpoint.error ?? "unknown"}`}</span>
         </div>
