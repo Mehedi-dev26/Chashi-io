@@ -22,7 +22,9 @@ type Msg = { role: "user" | "ai"; text: string; time: string };
 
 function AIPage() {
   const { zones } = useIrrigationData();
+  const search = Route.useSearch();
   const ask = useServerFn(askConsultant);
+
   const [prompt, setPrompt] = useState("");
   const [thinking, setThinking] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
