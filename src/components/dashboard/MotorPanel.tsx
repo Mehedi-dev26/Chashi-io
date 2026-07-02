@@ -55,8 +55,8 @@ export function MotorPanel({ motor, onToggle }: { motor: MotorState; onToggle: (
     { icon: Droplets, label: "প্রবাহ",    value: bn(motor.flowRate.toFixed(2)), unit: "লি/মি",    tint: "from-sky-500 to-cyan-500",       ring: "shadow-sky-500/30" },
     { icon: Zap,      label: "কারেন্ট",   value: bn(motor.current.toFixed(2)),  unit: "অ্যাম্পি",  tint: "from-amber-500 to-yellow-500",   ring: "shadow-amber-500/30" },
     { icon: Activity, label: "ভোল্টেজ",   value: bn(motor.voltage.toFixed(1)),  unit: "ভোল্ট",    tint: "from-violet-500 to-fuchsia-500", ring: "shadow-violet-500/30" },
-    { icon: Timer,         label: "মোট রানটাইম",  value: runtimeFmt.value, unit: runtimeFmt.unit, tint: "from-emerald-500 to-teal-600",  ring: "shadow-emerald-500/30" },
-    { icon: CalendarRange, label: "এই মাসে মোট", value: monthlyFmt.value, unit: monthlyFmt.unit, tint: "from-indigo-500 to-purple-600",  ring: "shadow-indigo-500/30" },
+    { icon: Timer,         label: "বর্তমান রান",  value: runtimeFmt.value, unit: runtimeFmt.unit, tint: "from-emerald-500 to-teal-600",  ring: "shadow-emerald-500/30" },
+    { icon: CalendarRange, label: "মোট রানিং",   value: monthlyFmt.value, unit: monthlyFmt.unit, tint: "from-indigo-500 to-purple-600",  ring: "shadow-indigo-500/30" },
   ];
 
   const canControl = motor.online;
