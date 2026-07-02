@@ -779,8 +779,8 @@ const buildSubCode = (serverHost: string) => `/**
 #include <DHT.h>
 
 // ====== EDIT THESE ======
-const char* WIFI_SSID   = "YOUR_WIFI";
-const char* WIFI_PASS   = "YOUR_PASSWORD";
+const char* WIFI_SSID   = "BMDA";
+const char* WIFI_PASS   = "esp12345678";
 const char* SERVER_HOST = "${serverHost}";
 const char* DEVICE_ID   = "SUB-01";    // প্রতিটি sub-node-এর অনন্য নাম
 const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
