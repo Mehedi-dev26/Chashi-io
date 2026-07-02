@@ -172,7 +172,7 @@ const applyTelemetry = (row: TelemetryRow) => {
     const wasOnline = state.motor.online;
     const wasOn = state.motor.isOn;
     // 🚿 সেন্সর সমস্যার কারণে raw water_level ব্যবহার না করে UI-simulated (৪০–৬০%)
-    const tank = simulatedTankLevel();
+    const tank = simulatedTankLevel(!!row.motor_on);
     const motor: MotorState = {
       ...state.motor,
       isOn: !!row.motor_on, online: true, lastSeen: ts,
