@@ -104,8 +104,8 @@ Deno.serve(async (request) => {
     }
     if (nodeRows?.[0]?.zone_id) effectiveZoneId = nodeRows[0].zone_id;
 
-    const prevRows = await rest<Array<{ runtime_sec: number | null; motor_on: boolean | null; updated_at: string | null }>>(
-      `device_telemetry?select=runtime_sec,motor_on,updated_at&zone_id=eq.${encodeURIComponent(effectiveZoneId)}&limit=1`,
+    const prevRows = await rest<Array<{ runtime_sec: number | null; motor_on: boolean | null; updated_at: string | null; soil_moisture: number | null; water_level: number | null; valve_open: boolean | null }>>(
+      `device_telemetry?select=runtime_sec,motor_on,updated_at,soil_moisture,water_level,valve_open&zone_id=eq.${encodeURIComponent(effectiveZoneId)}&limit=1`,
     );
     const prev = prevRows?.[0];
     const nowMs = Date.now();
@@ -117,11 +117,34 @@ Deno.serve(async (request) => {
       if (elapsed > 0 && elapsed <= 60 && (motorOnNow || prev.motor_on)) wallDeltaSec = elapsed;
     }
 
+    // 🌱 Soil-sensor disconnect handling — keep last known values with time-based depletion
+    // so the dashboard never suddenly drops to 0 just because the probe was pulled out.
+    const soilConnectedIncoming = body.soilConnected == null ? true : Boolean(body.soilConnected);
+    const rawSoil = cleanNumber(body.soilMoisture);
+    const rawWater = cleanNumber(body.waterLevel);
+    const soilConnected = soilConnectedIncoming && rawSoil != null;
+
+    let soilMoisture: number;
+    let waterLevel: number;
+    if (soilConnected) {
+      soilMoisture = clampPercent(rawSoil);
+      waterLevel = clampPercent(rawWater ?? soilMoisture);
+    } else {
+      const gapSec = prev?.updated_at ? Math.max(0, Math.floor((nowMs - new Date(prev.updated_at).getTime()) / 1000)) : 0;
+      const rate = prev?.valve_open ? 0.005 : 0.02;   // %/sec; valve-open irrigation offsets loss
+      const decay = Math.min(20, gapSec * rate);      // cap so long outages don't wipe reading
+      const prevSoil = Number(prev?.soil_moisture ?? 0);
+      const prevWater = Number(prev?.water_level ?? 0);
+      soilMoisture = clampPercent(Math.max(0, prevSoil - decay));
+      waterLevel = clampPercent(Math.max(0, prevWater - decay));
+    }
+
     const row = {
       zone_id: effectiveZoneId,
       device_id: deviceId,
-      soil_moisture: clampPercent(body.soilMoisture),
-      water_level: clampPercent(body.waterLevel),
+      soil_moisture: soilMoisture,
+      water_level: waterLevel,
+      soil_connected: soilConnected,
       ldr: clampPercent(body.ldr),
       temperature: cleanTemperature(body.temperature),
       humidity: cleanHumidity(body.humidity),
