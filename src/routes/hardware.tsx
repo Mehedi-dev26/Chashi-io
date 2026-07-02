@@ -900,8 +900,9 @@ float readSoilMoisturePct() {
   lastSoilTickMs = now;
 
   float maxStep = (target > soilReportedPct)
-      ? (valveOpen ? SOIL_RISE_PER_SEC : SOIL_RISE_PER_SEC * 0.25) * dt
+      ? SOIL_RISE_PER_SEC * dt
       : SOIL_FALL_PER_SEC * dt;
+
 
   float delta = target - soilReportedPct;
   if (delta >  maxStep) delta =  maxStep;
