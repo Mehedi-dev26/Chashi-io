@@ -368,6 +368,47 @@ bool readLineWithDeadline(WiFiClientSecure &client, String &line, unsigned long 
   return line.length() > 0;
 }
 
+bool postTelemetryStableHttp(const String& body, String &resp, int &code) {
+  resp = "";
+  code = 0;
+
+  // This is the original stable transport path: Arduino HTTPClient over a
+  // fresh WiFiClientSecure socket. It is intentionally kept simple because it
+  // worked reliably on the first stable firmware and lets the library handle
+  // HTTPS/SNI details instead of hand-writing the request.
+  WiFiClientSecure client;
+  client.setInsecure();
+
+  HTTPClient http;
+  http.setReuse(false);
+  http.setTimeout(12000);
+
+  const String url = String(SERVER_HOST) + API_PATH;
+  if (!http.begin(client, url)) {
+    code = -1000;
+    Serial.println("[MASTER] stable http.begin() failed");
+    client.stop();
+    return false;
+  }
+
+  http.addHeader("Content-Type", "application/json");
+  code = http.POST(body);
+  if (code > 0) {
+    resp = http.getString();
+  } else {
+    Serial.printf("[MASTER] stable POST err=%d (%s) heap=%u rssi=%d\n",
+                  code, HTTPClient::errorToString(code).c_str(),
+                  (unsigned)ESP.getFreeHeap(), WiFi.RSSI());
+  }
+
+  http.end();
+  client.stop();
+
+  // Match the first stable firmware behavior: HTTP 200 means the dashboard
+  // heartbeat is online. If JSON is present, commands will still be parsed.
+  return code == 200;
+}
+
 bool postTelemetryRawTls(const String& body, String &resp, int &code) {
   resp = "";
   code = 0;
@@ -491,9 +532,16 @@ bool postTelemetryHttpClientFallback(const String& body, String &resp, int &code
 }
 
 bool postTelemetryPayload(const String& body, String &resp, int &code) {
-  // Primary: manual raw TLS POST. It is the most reliable path for ESP32 +
-  // mobile hotspot + cloud HTTPS because it avoids HTTPClient connection reuse
-  // and HTTP/1.0 downgrade issues.
+  // Primary: the original stable firmware path. The latest raw-TLS-only
+  // approach can fail on some ESP32 core + mobile hotspot combinations before
+  // the request reaches the backend, causing the LED to keep blinking offline.
+  for (int attempt = 1; attempt <= 2; attempt++) {
+    if (postTelemetryStableHttp(body, resp, code)) return true;
+    Serial.printf("[MASTER] stable HTTP retry %d failed code=%d\n", attempt, code);
+    delay(600);
+  }
+
+  // Fallback: manual raw TLS POST for networks where HTTPClient has problems.
   for (int attempt = 1; attempt <= 2; attempt++) {
     if (postTelemetryRawTls(body, resp, code)) return true;
     Serial.printf("[MASTER] raw TLS retry %d failed code=%d\n", attempt, code);
