@@ -81,6 +81,7 @@ export type Database = {
           motor_on: boolean | null
           rssi: number | null
           runtime_sec: number | null
+          soil_connected: boolean
           soil_moisture: number | null
           tds_ppm: number | null
           temperature: number | null
@@ -99,6 +100,7 @@ export type Database = {
           motor_on?: boolean | null
           rssi?: number | null
           runtime_sec?: number | null
+          soil_connected?: boolean
           soil_moisture?: number | null
           tds_ppm?: number | null
           temperature?: number | null
@@ -117,6 +119,7 @@ export type Database = {
           motor_on?: boolean | null
           rssi?: number | null
           runtime_sec?: number | null
+          soil_connected?: boolean
           soil_moisture?: number | null
           tds_ppm?: number | null
           temperature?: number | null
@@ -337,6 +340,7 @@ export type Database = {
           ldr: number | null
           motor_on: boolean | null
           rssi: number | null
+          soil_connected: boolean | null
           soil_moisture: number | null
           tds_ppm: number | null
           temperature: number | null
@@ -355,6 +359,7 @@ export type Database = {
           ldr?: number | null
           motor_on?: boolean | null
           rssi?: number | null
+          soil_connected?: boolean | null
           soil_moisture?: number | null
           tds_ppm?: number | null
           temperature?: number | null
@@ -373,6 +378,7 @@ export type Database = {
           ldr?: number | null
           motor_on?: boolean | null
           rssi?: number | null
+          soil_connected?: boolean | null
           soil_moisture?: number | null
           tds_ppm?: number | null
           temperature?: number | null
