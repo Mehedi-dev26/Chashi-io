@@ -77,7 +77,7 @@ export function UsageChart() {
   const yMax = useMemo(() => Math.max(1, ...data.map((r) => Math.max(r.water, r.power, r.runMin))), [data]);
   const lastUpdatedText = lastUpdated
     ? lastUpdated.toLocaleTimeString("bn-BD", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-    : (errorMsg ? "ত্রুটি" : "সংযোগ হচ্ছে…");
+    : (errorMsg ? "ত্রুটি" : "—");
 
   return (
     <div className="glass-card rounded-2xl p-5 hover-lift">
