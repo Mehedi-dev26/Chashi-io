@@ -93,7 +93,7 @@ let state: Store = {
     id: PUMP_SPEC.device_id,
     name: "মেইন মোটর · BMDA Master",
     isOn: false, online: false, lastSeen: null,
-    pressure: 0, flowRate: 0, voltage: 0, current: 0, runtime: 0, health: 0,
+    pressure: 0, flowRate: 0, voltage: 0, current: 0, runtime: 0, health: 0, tankLevel: 0,
   },
   activity: [{ id: "init", time: "—", type: "info", message: "সিস্টেম প্রস্তুত · ডাটাবেজ থেকে লোড হচ্ছে…" }],
   metrics: { networkHealth: 0, totalNodes: 0, onlineNodes: 0, aiActivity: 0 },
