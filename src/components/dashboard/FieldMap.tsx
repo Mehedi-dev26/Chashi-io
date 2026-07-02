@@ -235,6 +235,16 @@ export function FieldMap({ zones, onToggle }: { zones: FieldZone[]; onToggle: (i
               <Stat label="অবস্থা" value={statusBn[active.status]} />
             </div>
 
+            {active.hasNode && active.online && !active.soilConnected && (
+              <div className="rounded-lg bg-rose-500/10 border border-rose-500/40 px-3 py-2 flex items-center gap-2 animate-pulse">
+                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                <p className="text-[11px] font-extrabold text-rose-600 leading-tight">
+                  ⚠ Soil Sensor Disconnect · সেন্সর সংযোগ বিচ্ছিন্ন
+                  <span className="block font-medium text-rose-500/80">শেষ পরিচিত মান দেখানো হচ্ছে (সময়ভিত্তিক অনুমান)</span>
+                </p>
+              </div>
+            )}
+
             <div className="pt-2 border-t border-border">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-bold">ভাল্ভ নিয়ন্ত্রণ</p>
               {!active.hasNode ? (
