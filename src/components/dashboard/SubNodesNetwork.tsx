@@ -16,7 +16,7 @@ type FieldNode = { id: string; device_id: string; zone_id: string | null; label:
 type Telemetry = {
   zone_id: string; device_id: string; soil_moisture: number | null; water_level: number | null; tds_ppm: number | null;
   ldr: number | null; valve_open: boolean | null; temperature: number | null; humidity: number | null;
-  rssi: number | null; updated_at: string;
+  rssi: number | null; updated_at: string; soil_connected: boolean | null;
 };
 
 const ONLINE_MS = 15000;
@@ -211,6 +211,7 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
               : 70 + (sMoist - 60) * (30 / 40);
             const waterLevel = online && t?.water_level != null ? Math.max(0, Math.min(100, Number(t.water_level))) : (online ? derived : 0);
             const valveOpen = online && !!t?.valve_open;
+            const soilConnected = online ? (t?.soil_connected == null ? true : !!t.soil_connected) : true;
             const assignedZone = zones.find((z) => z.id === n.zone_id);
             return (
               <Card key={n.id} className="overflow-hidden animate-fade-in hover:shadow-lg transition-all" style={{ animationDelay: `${i * 40}ms` }}>
@@ -253,13 +254,23 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
                     )}
                   </div>
 
+                  {online && !soilConnected && (
+                    <div className="mb-2 rounded-lg bg-rose-500/10 border border-rose-500/40 px-2.5 py-1.5 flex items-center gap-2 animate-pulse">
+                      <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
+                      <p className="text-[10px] font-extrabold text-rose-600 leading-tight">
+                        ⚠ Soil Sensor Disconnect
+                        <span className="block font-medium text-rose-500/80 text-[9px]">শেষ পরিচিত মান · সময়ভিত্তিক অনুমান</span>
+                      </p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="rounded-lg p-2.5 bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow shadow-sky-500/30">
-                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><Sprout className="h-3 w-3" />SM · মাটি</div>
+                    <div className={`rounded-lg p-2.5 text-white shadow ${online && !soilConnected ? "bg-gradient-to-br from-rose-500 to-red-600 shadow-rose-500/30" : "bg-gradient-to-br from-sky-500 to-blue-600 shadow-sky-500/30"}`}>
+                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><Sprout className="h-3 w-3" />SM · মাটি {online && !soilConnected ? "· ⚠" : ""}</div>
                       <p className="mt-1 text-xl font-extrabold">{bn(moisture.toFixed(0))}<span className="text-xs">%</span></p>
                     </div>
-                    <div className="rounded-lg p-2.5 bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow shadow-cyan-500/30">
-                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><Droplets className="h-3 w-3" />পানির স্তর</div>
+                    <div className={`rounded-lg p-2.5 text-white shadow ${online && !soilConnected ? "bg-gradient-to-br from-rose-500 to-red-600 shadow-rose-500/30" : "bg-gradient-to-br from-cyan-500 to-teal-600 shadow-cyan-500/30"}`}>
+                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"><Droplets className="h-3 w-3" />পানির স্তর {online && !soilConnected ? "· ⚠" : ""}</div>
                       <p className="mt-1 text-xl font-extrabold">{bn(waterLevel.toFixed(0))}<span className="text-xs">%</span></p>
                     </div>
                   </div>

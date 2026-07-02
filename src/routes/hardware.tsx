@@ -807,20 +807,18 @@ const int   SOIL_DISCONNECT_LOW  = 30;     // এর নিচে = floating / n
 const int   SOIL_DISCONNECT_HIGH = 1020;   // এর উপরে = open circuit
 bool soilConnected = false;
 
-// ---- বাস্তবসম্মত মাটির আর্দ্রতা ডায়নামিক্স ----
-// বাস্তব মাটি কখনো 0%→100% সাথে সাথে হয় না — পানি ধীরে ধীরে শোষিত হয়
-// এবং সূর্য/বাষ্পীভবনে আস্তে আস্তে কমে। তাই raw sensor কে দুই স্তরে ফিল্টার:
-//   ১) EMA — স্পাইক/noise সরায় (electrical glitch ও সরাসরি পানির ছোঁয়া)
-//   ২) Slew-rate cap — প্রতি সেকেন্ডে সর্বোচ্চ পরিবর্তন সীমিত
-// ফলে valve খোলার পর কয়েক মিনিট ধরে আর্দ্রতা বাড়ে, valve বন্ধ হলে
-// ধীরে ধীরে কমে — অর্থাৎ dashboard-এ real, বিশ্বাসযোগ্য curve।
-const float SOIL_EMA_ALPHA    = 0.08;
-const float SOIL_RISE_PER_SEC = 0.20;
-const float SOIL_FALL_PER_SEC = 0.05;
-const float SOIL_JITTER_PCT   = 0.4;
+// ---- বাস্তবসম্মত + রিয়েল-টাইম মাটির আর্দ্রতা ডায়নামিক্স ----
+// প্রজেক্ট demo-এর জন্য response snappy রাখা হয়েছে: probe পুরোপুরি ডুবালে
+// কয়েক সেকেন্ডেই 100%-এ পৌঁছাবে, উঠিয়ে নিলে দ্রুত কমে আসবে। তবুও raw
+// noise কমাতে হালকা EMA + slew cap রাখা হলো যাতে গ্রাফে glitch না দেখা যায়।
+const float SOIL_EMA_ALPHA    = 0.35;   // দ্রুত track করবে raw ADC
+const float SOIL_RISE_PER_SEC = 40.0;   // %/sec — probe ডুবানোর সাথে সাথে rise
+const float SOIL_FALL_PER_SEC = 25.0;   // %/sec — probe শুকালে drop
+const float SOIL_JITTER_PCT   = 0.3;
 float soilEmaRaw      = NAN;
 float soilReportedPct = NAN;
 unsigned long lastSoilTickMs = 0;
+
 
 // ---- Servo ----
 Servo valveServo;
@@ -830,7 +828,7 @@ const int SERVO_OPEN   = 90;
 
 bool valveOpen = false;
 unsigned long lastSend = 0;
-const unsigned long SEND_INTERVAL = 5000;
+const unsigned long SEND_INTERVAL = 2000;   // 2s → dashboard-এ real-time feel
 unsigned long lastWifiAttempt = 0;
 const unsigned long WIFI_RETRY_MS = 5000;
 float lastGoodTemp = NAN;
@@ -902,8 +900,9 @@ float readSoilMoisturePct() {
   lastSoilTickMs = now;
 
   float maxStep = (target > soilReportedPct)
-      ? (valveOpen ? SOIL_RISE_PER_SEC : SOIL_RISE_PER_SEC * 0.25) * dt
+      ? SOIL_RISE_PER_SEC * dt
       : SOIL_FALL_PER_SEC * dt;
+
 
   float delta = target - soilReportedPct;
   if (delta >  maxStep) delta =  maxStep;
@@ -1016,14 +1015,20 @@ void sendTelemetry() {
   doc["deviceId"]        = DEVICE_ID;
   doc["zoneId"]          = ZONE_ID;
   doc["role"]            = "sub";
-  doc["soilMoisture"]    = soil;
-  doc["waterLevel"]      = waterLvl;       // 💧 আর্দ্রতা থেকে গণনাকৃত পানির স্তর
-  doc["waterSaturation"] = waterLvl;       // backward-compat alias
-  doc["soilConnected"]   = soilConnected;  // debug: dashboard-এ "sensor wired?"
+  doc["soilConnected"]   = soilConnected;
+  // 🌱 disconnect হলে soilMoisture/waterLevel পাঠাবো না — server শেষ পরিচিত মান
+  //    ধরে রাখবে এবং সময় অনুযায়ী ধীর ঘাটতি (depletion) হিসাব করে দেখাবে।
+  //    reconnect হলে সঙ্গে সঙ্গে বাস্তব probe reading আবার overwrite করবে।
+  if (soilConnected) {
+    doc["soilMoisture"]  = soil;
+    doc["waterLevel"]    = waterLvl;
+    doc["waterSaturation"] = waterLvl;
+  }
   doc["valveOpen"]       = valveOpen;
   doc["rssi"]            = WiFi.RSSI();
   if (!isnan(tempC))    doc["temperature"] = round(tempC * 10.0) / 10.0;
   if (!isnan(humidity)) doc["humidity"]    = round(humidity);
+
 
   String body; serializeJson(doc, body);
   String resp = "";

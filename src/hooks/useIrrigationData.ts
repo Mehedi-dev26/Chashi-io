@@ -19,6 +19,7 @@ export type FieldZone = {
   lastSeen: number | null;
   valveNodeId: string | null;   // device_id of linked sub-node (if any)
   hasNode: boolean;
+  soilConnected: boolean;       // true = probe wired; false = disconnected, values are estimated
 };
 
 export type MotorState = {
@@ -75,7 +76,7 @@ export const PUMP_SPEC = {
 };
 
 // fallback default zones (only used if user has none in DB and seed fails)
-const defaultZones: Omit<FieldZone, "online" | "lastSeen" | "valveNodeId" | "hasNode">[] = [
+const defaultZones: Omit<FieldZone, "online" | "lastSeen" | "valveNodeId" | "hasNode" | "soilConnected">[] = [
   { id: "Z-01", name: "North Field A", nameBn: "উত্তর জমি A", area: 4.2, waterLevel: 0, soilMoisture: 0, status: "idle", valveOpen: false, cropType: "Rice", x: 22, y: 22, polygon: "6,6 38,4 40,32 8,34" },
   { id: "Z-02", name: "North Field B", nameBn: "উত্তর জমি B", area: 3.6, waterLevel: 0, soilMoisture: 0, status: "idle", valveOpen: false, cropType: "Wheat", x: 56, y: 18, polygon: "42,4 76,6 74,30 42,32" },
   { id: "Z-03", name: "East Field",    nameBn: "পূর্ব জমি",   area: 5.1, waterLevel: 0, soilMoisture: 0, status: "idle", valveOpen: false, cropType: "Rice", x: 84, y: 26, polygon: "78,6 96,8 96,42 76,40" },
@@ -86,7 +87,7 @@ const defaultZones: Omit<FieldZone, "online" | "lastSeen" | "valveNodeId" | "has
 ];
 
 let state: Store = {
-  zones: defaultZones.map((z) => ({ ...z, online: false, lastSeen: null, valveNodeId: null, hasNode: false })),
+  zones: defaultZones.map((z) => ({ ...z, online: false, lastSeen: null, valveNodeId: null, hasNode: false, soilConnected: true })),
   motor: {
     id: PUMP_SPEC.device_id,
     name: "মেইন মোটর · BMDA Master",
@@ -118,6 +119,7 @@ type TelemetryRow = {
   voltage: number | null; current: number | null;
   flow_lpm: number | null; runtime_sec: number | null;
   soil_moisture: number | null; water_level: number | null;
+  soil_connected: boolean | null;
   tds_ppm: number | null;
   temperature: number | null; humidity: number | null;
   updated_at: string;
@@ -190,7 +192,8 @@ const applyTelemetry = (row: TelemetryRow) => {
     const wl = row.water_level != null ? Number(row.water_level) : Math.round(derived);
     const valve = row.valve_open ?? z.valveOpen;
     const status: FieldZone["status"] = sm < 25 ? "alert" : valve ? "irrigating" : "idle";
-    return { ...z, soilMoisture: sm, waterLevel: wl, valveOpen: !!valve, status, online: true, lastSeen: ts };
+    const soilConnected = row.soil_connected == null ? true : !!row.soil_connected;
+    return { ...z, soilMoisture: sm, waterLevel: wl, valveOpen: !!valve, status, online: true, lastSeen: ts, soilConnected };
   });
 
   setState({ ...state, zones, weather, metrics: recomputeMetrics(zones) });
@@ -216,12 +219,12 @@ if (typeof window !== "undefined") {
         const stale = z.lastSeen && now - z.lastSeen > PUMP_SPEC.heartbeatMs;
         if (z.online && stale) {
           changed = true;
-          return { ...z, online: false, soilMoisture: 0, waterLevel: 0, valveOpen: false, status: "idle" as const };
+          return { ...z, online: false, soilMoisture: 0, waterLevel: 0, valveOpen: false, status: "idle" as const, soilConnected: true };
         }
         // Defensive: even if never marked online but has stale/no data, force zeros
         if (!z.online && (z.soilMoisture !== 0 || z.waterLevel !== 0 || z.valveOpen)) {
           changed = true;
-          return { ...z, soilMoisture: 0, waterLevel: 0, valveOpen: false, status: "idle" as const };
+          return { ...z, soilMoisture: 0, waterLevel: 0, valveOpen: false, status: "idle" as const, soilConnected: true };
         }
         return z;
       });
@@ -267,6 +270,7 @@ const loadFields = async () => {
     online: false, lastSeen: null,
     valveNodeId: r.valve_node_id ?? null,
     hasNode: !!r.valve_node_id,
+    soilConnected: true,
   }));
   setState({ ...state, zones, metrics: { ...state.metrics, totalNodes: zones.length } });
 
