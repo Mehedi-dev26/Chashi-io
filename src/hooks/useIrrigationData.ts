@@ -19,6 +19,7 @@ export type FieldZone = {
   lastSeen: number | null;
   valveNodeId: string | null;   // device_id of linked sub-node (if any)
   hasNode: boolean;
+  soilConnected: boolean;       // true = probe wired; false = disconnected, values are estimated
 };
 
 export type MotorState = {
