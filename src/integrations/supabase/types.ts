@@ -326,6 +326,63 @@ export type Database = {
         }
         Relationships: []
       }
+      telemetry_history: {
+        Row: {
+          created_at: string
+          current: number | null
+          device_id: string
+          flow_lpm: number | null
+          humidity: number | null
+          id: number
+          ldr: number | null
+          motor_on: boolean | null
+          rssi: number | null
+          soil_moisture: number | null
+          tds_ppm: number | null
+          temperature: number | null
+          valve_open: boolean | null
+          voltage: number | null
+          water_level: number | null
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          current?: number | null
+          device_id: string
+          flow_lpm?: number | null
+          humidity?: number | null
+          id?: number
+          ldr?: number | null
+          motor_on?: boolean | null
+          rssi?: number | null
+          soil_moisture?: number | null
+          tds_ppm?: number | null
+          temperature?: number | null
+          valve_open?: boolean | null
+          voltage?: number | null
+          water_level?: number | null
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          current?: number | null
+          device_id?: string
+          flow_lpm?: number | null
+          humidity?: number | null
+          id?: number
+          ldr?: number | null
+          motor_on?: boolean | null
+          rssi?: number | null
+          soil_moisture?: number | null
+          tds_ppm?: number | null
+          temperature?: number | null
+          valve_open?: boolean | null
+          voltage?: number | null
+          water_level?: number | null
+          zone_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
