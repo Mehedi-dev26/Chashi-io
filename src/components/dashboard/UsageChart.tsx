@@ -107,12 +107,16 @@ export function UsageChart() {
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
               <defs>
+                <linearGradient id="gRun" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="oklch(0.68 0.18 155)" stopOpacity={0.6} />
+                  <stop offset="95%" stopColor="oklch(0.68 0.18 155)" stopOpacity={0} />
+                </linearGradient>
                 <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="oklch(0.58 0.17 150)" stopOpacity={0.5} />
-                  <stop offset="95%" stopColor="oklch(0.58 0.17 150)" stopOpacity={0} />
+                  <stop offset="5%" stopColor="oklch(0.58 0.17 220)" stopOpacity={0.45} />
+                  <stop offset="95%" stopColor="oklch(0.58 0.17 220)" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="oklch(0.75 0.15 85)" stopOpacity={0.45} />
+                  <stop offset="5%" stopColor="oklch(0.75 0.15 85)" stopOpacity={0.4} />
                   <stop offset="95%" stopColor="oklch(0.75 0.15 85)" stopOpacity={0} />
                 </linearGradient>
               </defs>
@@ -128,12 +132,14 @@ export function UsageChart() {
                   boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
                 }}
                 formatter={(value: number, name: string) => {
+                  if (name === "runMin") return [`${bn(Number(value).toFixed(2))} মি`, "রানটাইম"];
                   if (name === "water") return [`${bn(Number(value).toFixed(2))} L`, "পানি"];
                   if (name === "power") return [`${bn(Number(value).toFixed(2))} Wh`, "বিদ্যুৎ"];
                   return [value, name];
                 }}
               />
-              <Area type="monotone" dataKey="water" stroke="oklch(0.58 0.17 150)" strokeWidth={2} fill="url(#g1)" />
+              <Area type="monotone" dataKey="runMin" stroke="oklch(0.68 0.18 155)" strokeWidth={2.5} fill="url(#gRun)" />
+              <Area type="monotone" dataKey="water" stroke="oklch(0.58 0.17 220)" strokeWidth={2} fill="url(#g1)" />
               <Area type="monotone" dataKey="power" stroke="oklch(0.75 0.15 85)" strokeWidth={2} fill="url(#g2)" />
             </AreaChart>
           </ResponsiveContainer>
