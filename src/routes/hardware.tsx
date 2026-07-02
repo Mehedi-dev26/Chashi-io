@@ -548,7 +548,7 @@ void sendTelemetry() {
   WiFiClientSecure client;
   client.setInsecure();
   HTTPClient http;
-  http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
+  http.begin(client, String(SERVER_HOST) + "/telemetry");
   http.setTimeout(5000);
   http.addHeader("Content-Type", "application/json");
   int code = http.POST(body);
@@ -1036,7 +1036,7 @@ void sendTelemetry() {
     http.setReuse(false);
     if (attempt == 1) http.useHTTP10(true);  // fallback for older cores/hotspots
     http.setTimeout(20000);
-    http.begin(client, String(SERVER_HOST) + "/api/public/telemetry");
+    http.begin(client, String(SERVER_HOST) + "/telemetry");
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Accept", "application/json");
     http.addHeader("User-Agent", "BMDA-ESP8266-SUB/1.0");
