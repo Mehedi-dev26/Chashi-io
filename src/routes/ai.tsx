@@ -13,8 +13,10 @@ const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২
 
 export const Route = createFileRoute("/ai")({
   head: () => ({ meta: [{ title: "AI পরামর্শ · BMDA স্মার্ট সেচ" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({ ask: typeof s.ask === "string" ? s.ask : undefined }),
   component: AIPage,
 });
+
 
 type Msg = { role: "user" | "ai"; text: string; time: string };
 
