@@ -8,13 +8,13 @@ import { Activity, RefreshCw } from "lucide-react";
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
 type Bucket = { hourTs: number; runSec: number; waterL: number; powerKwh: number };
-type Row = { hour: string; water: number; power: number; runSec: number };
+type Row = { hour: string; water: number; power: number; runSec: number; runMin: number };
 
 const emptyData: Row[] = Array.from({ length: 24 }, (_, i) => {
   const d = new Date();
   d.setMinutes(0, 0, 0);
   d.setHours(d.getHours() - (23 - i));
-  return { hour: `${bn(d.getHours().toString().padStart(2, "0"))}টা`, water: 0, power: 0, runSec: 0 };
+  return { hour: `${bn(d.getHours().toString().padStart(2, "0"))}টা`, water: 0, power: 0, runSec: 0, runMin: 0 };
 });
 
 export function UsageChart() {
