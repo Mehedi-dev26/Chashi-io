@@ -1,6 +1,6 @@
 /**
  *  BMDA Smart Irrigation — MASTER NODE (ESP32)
- *  Clean production firmware — stable HTTPS transport with raw TLS fallback.
+ *  Clean production firmware — hardware-safe TLS 1.2 telemetry transport.
  *
  *  Hardware
  *   - 6V ultra-quiet pump via relay (GPIO 25, active-LOW)
@@ -11,7 +11,7 @@
  *   - Online LED          (GPIO 2, on-board blue)
  *
  *  Behaviour
- *   - POST /api/public/telemetry every 3s over HTTPS
+ *   - POST /telemetry every 3s over HTTPS
  *   - Backend confirms with {"ok":true} → LED 5Hz heartbeat, "SYSTEM ONLINE"
  *   - Motor auto-OFF if WiFi / backend heartbeat lost (safety)
  *   - Runtime survives reboots (server-side wall-clock delta)
@@ -32,9 +32,9 @@
 // ====== USER CONFIG — hardcoded for BMDA prototype ======
 const char* WIFI_SSID   = "BMDA";
 const char* WIFI_PASS   = "esp12345678";
-const char* SERVER_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
-const char* API_HOST    = "project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
-const char* API_PATH    = "/api/public/telemetry";
+const char* SERVER_HOST = "https://cplhurjwjmybbavkydfv.functions.supabase.co";
+const char* API_HOST    = "cplhurjwjmybbavkydfv.functions.supabase.co";
+const char* API_PATH    = "/telemetry";
 const char* DEVICE_ID   = "MASTER-01";
 const char* ZONE_ID     = "PUMP-HOUSE";
 // ========================================================
@@ -284,7 +284,7 @@ bool ensureWifi() {
   return false;
 }
 
-// -------------------- HTTPS POST (dual stable transport) --------------------
+// -------------------- HTTPS POST (TLS 1.2 hardware-safe transport) --------------------
 bool responseOk(int code, const String& resp) {
   return code >= 200 && code < 300 && resp.indexOf("\"ok\":true") >= 0;
 }
@@ -304,8 +304,9 @@ bool postTelemetryHttpClient(const String& body, String &resp, int &code) {
     return false;
   }
 
-  // Keep this intentionally close to the first stable firmware: Arduino
-  // HTTPClient owns the TLS session and closes it after each request.
+  // This endpoint is pinned to the hardware-safe Cloud function domain.
+  // The earlier lovable.app endpoint is healthy, but it requires newer TLS
+  // that many ESP32 Arduino cores cannot open, causing code -1 / -2001.
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   http.setTimeout(8000);
   http.addHeader("Content-Type", "application/json");
