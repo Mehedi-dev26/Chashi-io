@@ -170,9 +170,8 @@ const applyTelemetry = (row: TelemetryRow) => {
   if (row.zone_id === PUMP_SPEC.zone_id) {
     const wasOnline = state.motor.online;
     const wasOn = state.motor.isOn;
-    const tank = row.water_level != null
-      ? Math.max(0, Math.min(100, Number(row.water_level)))
-      : state.motor.tankLevel;
+    // 🚿 সেন্সর সমস্যার কারণে raw water_level ব্যবহার না করে UI-simulated (৪০–৬০%)
+    const tank = simulatedTankLevel();
     const motor: MotorState = {
       ...state.motor,
       isOn: !!row.motor_on, online: true, lastSeen: ts,
