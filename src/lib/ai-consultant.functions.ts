@@ -68,10 +68,10 @@ ${zoneSummary}
     let reply: string;
     try {
       const { text } = await generateText({
-        model: gateway("google/gemini-2.5-flash"),
+        model: gateway("google/gemini-3-flash-preview"),
         messages,
       });
-      reply = text;
+      reply = text?.trim() || "দুঃখিত, উত্তর তৈরি করা যায়নি।";
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[ai-consultant] gateway error:", msg);
@@ -80,11 +80,12 @@ ${zoneSummary}
       throw new Error("AI_GATEWAY: " + msg.slice(0, 200));
     }
 
-    // Persist Q&A
-    await supabase.from("ai_chats").insert([
+    // Persist Q&A — log but don't fail the request if insert errors
+    const { error: insErr } = await supabase.from("ai_chats").insert([
       { user_id: userId, role: "user", content: data.question },
       { user_id: userId, role: "assistant", content: reply },
     ]);
+    if (insErr) console.error("[ai-consultant] persist error:", insErr.message);
 
     return { reply };
   });
