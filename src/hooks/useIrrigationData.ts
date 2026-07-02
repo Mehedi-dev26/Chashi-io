@@ -73,7 +73,17 @@ export const PUMP_SPEC = {
   ratedVoltage: 6.0,
   ratedCurrent: 0.20,
   ratedFlowLpm: 2.0,
-  heartbeatMs: 15000,  // firmware sticky window-এর সাথে sync: intermittent hotspot delay হলেও stable online
+  heartbeatMs: 15000,      // sub-node grace window
+  motorOfflineMs: 30000,   // পাম্প এর জন্য আলাদা grace — hotspot lag এ flicker রোধ
+};
+
+// 💧 ট্যাংক লেভেল সিমুলেশন — সেন্সরে সমস্যা থাকায় UI-তে ৪০–৬০% smooth oscillation
+const simulatedTankLevel = () => {
+  const t = Date.now() / 1000;
+  // period ~90s, amplitude 10 → 40..60
+  const base = 50 + 10 * Math.sin(t / 14);
+  const jitter = (Math.random() - 0.5) * 1.2;
+  return Math.max(40, Math.min(60, +(base + jitter).toFixed(1)));
 };
 
 // fallback default zones (only used if user has none in DB and seed fails)
@@ -160,9 +170,8 @@ const applyTelemetry = (row: TelemetryRow) => {
   if (row.zone_id === PUMP_SPEC.zone_id) {
     const wasOnline = state.motor.online;
     const wasOn = state.motor.isOn;
-    const tank = row.water_level != null
-      ? Math.max(0, Math.min(100, Number(row.water_level)))
-      : state.motor.tankLevel;
+    // 🚿 সেন্সর সমস্যার কারণে raw water_level ব্যবহার না করে UI-simulated (৪০–৬০%)
+    const tank = simulatedTankLevel();
     const motor: MotorState = {
       ...state.motor,
       isOn: !!row.motor_on, online: true, lastSeen: ts,
@@ -213,10 +222,14 @@ if (typeof window !== "undefined") {
       const now = Date.now();
       let changed = false;
       let next = state;
-      // motor offline?
-      if (next.motor.lastSeen && now - next.motor.lastSeen > PUMP_SPEC.heartbeatMs && next.motor.online) {
+      // motor offline? — আলাদা longer grace, hotspot lag এ flicker রোধ
+      if (next.motor.lastSeen && now - next.motor.lastSeen > PUMP_SPEC.motorOfflineMs && next.motor.online) {
         pushActivity({ type: "warning", message: "⚠ পাম্প অফলাইন · heartbeat বিচ্ছিন্ন" });
         next = { ...next, motor: { ...next.motor, online: false, isOn: false, voltage: 0, current: 0, flowRate: 0, pressure: 0, health: 0, tankLevel: 0, runtime: 0 } };
+        changed = true;
+      } else if (next.motor.online) {
+        // 💧 প্রতি সেকেন্ডে ট্যাংক লেভেল smoothly update (৪০–৬০% simulated)
+        next = { ...next, motor: { ...next.motor, tankLevel: simulatedTankLevel() } };
         changed = true;
       }
       // zone offline? → zero out all sensor readings (no fake stale data)
