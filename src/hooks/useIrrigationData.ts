@@ -76,7 +76,7 @@ export const PUMP_SPEC = {
 };
 
 // fallback default zones (only used if user has none in DB and seed fails)
-const defaultZones: Omit<FieldZone, "online" | "lastSeen" | "valveNodeId" | "hasNode">[] = [
+const defaultZones: Omit<FieldZone, "online" | "lastSeen" | "valveNodeId" | "hasNode" | "soilConnected">[] = [
   { id: "Z-01", name: "North Field A", nameBn: "উত্তর জমি A", area: 4.2, waterLevel: 0, soilMoisture: 0, status: "idle", valveOpen: false, cropType: "Rice", x: 22, y: 22, polygon: "6,6 38,4 40,32 8,34" },
   { id: "Z-02", name: "North Field B", nameBn: "উত্তর জমি B", area: 3.6, waterLevel: 0, soilMoisture: 0, status: "idle", valveOpen: false, cropType: "Wheat", x: 56, y: 18, polygon: "42,4 76,6 74,30 42,32" },
   { id: "Z-03", name: "East Field",    nameBn: "পূর্ব জমি",   area: 5.1, waterLevel: 0, soilMoisture: 0, status: "idle", valveOpen: false, cropType: "Rice", x: 84, y: 26, polygon: "78,6 96,8 96,42 76,40" },
@@ -87,7 +87,7 @@ const defaultZones: Omit<FieldZone, "online" | "lastSeen" | "valveNodeId" | "has
 ];
 
 let state: Store = {
-  zones: defaultZones.map((z) => ({ ...z, online: false, lastSeen: null, valveNodeId: null, hasNode: false })),
+  zones: defaultZones.map((z) => ({ ...z, online: false, lastSeen: null, valveNodeId: null, hasNode: false, soilConnected: true })),
   motor: {
     id: PUMP_SPEC.device_id,
     name: "মেইন মোটর · BMDA Master",
