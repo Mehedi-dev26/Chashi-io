@@ -9,6 +9,7 @@ import { AIInsights } from "@/components/dashboard/AIInsights";
 import { UsageChart } from "@/components/dashboard/UsageChart";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { Roadmap } from "@/components/dashboard/Roadmap";
+import { ConnectivityTest } from "@/components/dashboard/ConnectivityTest";
 import { useIrrigationData } from "@/hooks/useIrrigationData";
 
 export const Route = createFileRoute("/app")({
@@ -32,6 +33,7 @@ function Dashboard() {
         <StatsCards zones={zones} motor={motor} metrics={metrics} weather={weather} />
 
         <QuickActions />
+        <ConnectivityTest />
         <FieldMap zones={zones} onToggle={toggleValve} />
         <div className="grid lg:grid-cols-3 gap-5">
           <MotorPanel motor={motor} onToggle={toggleMotor} />
