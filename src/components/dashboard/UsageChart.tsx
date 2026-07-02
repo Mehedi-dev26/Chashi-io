@@ -104,7 +104,12 @@ export function UsageChart() {
       </div>
 
       <div className="mt-4 h-[200px] relative">
-        {!hasData && mounted && (
+        {errorMsg && mounted && (
+          <div className="absolute inset-0 grid place-items-center text-xs text-rose-600 pointer-events-none z-10 px-4 text-center">
+            ⚠ ডেটা লোড করা যায়নি: {errorMsg}
+          </div>
+        )}
+        {!hasData && !errorMsg && mounted && lastUpdated && (
           <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground pointer-events-none z-10">
             এখনো কোনো রানটাইম ডেটা নেই — মোটর চালু করলে এখানে রিয়েল গ্রাফ দেখাবে
           </div>
