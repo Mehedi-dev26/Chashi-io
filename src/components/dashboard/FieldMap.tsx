@@ -193,6 +193,11 @@ export function FieldMap({ zones, onToggle }: { zones: FieldZone[]; onToggle: (i
                 <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-semibold whitespace-nowrap bg-background/90 backdrop-blur px-1.5 py-0.5 rounded border border-border">
                   {z.nameBn.split(" ").slice(-1)} · {z.hasNode ? `${bn(z.soilMoisture.toFixed(0))}%` : "নো নোড"}
                 </div>
+                {z.online && z.hasNode && !z.soilConnected && (
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-extrabold whitespace-nowrap bg-rose-600 text-white px-1.5 py-0.5 rounded shadow-lg animate-pulse">
+                    ⚠ Soil Sensor Disconnect
+                  </div>
+                )}
               </div>
             </button>
           ))}
