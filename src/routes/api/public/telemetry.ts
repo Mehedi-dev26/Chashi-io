@@ -83,7 +83,7 @@ export const Route = createFileRoute("/api/public/telemetry")({
 
           const { data: prev } = await supabaseAdmin
             .from("device_telemetry")
-            .select("runtime_sec, motor_on, temperature, humidity, updated_at, soil_moisture, water_level, valve_open")
+            .select("runtime_sec, motor_on, temperature, humidity, updated_at, soil_moisture, water_level, valve_open, soil_connected")
             .eq("zone_id", effectiveZoneId)
             .maybeSingle();
 
@@ -105,31 +105,38 @@ export const Route = createFileRoute("/api/public/telemetry")({
           const prevServerRt = Number(prev?.runtime_sec ?? 0);
           const cumulativeRt = prevServerRt + wallDeltaSec;
 
-          // 🌱 Soil-sensor disconnect handling — hold the last known reading and apply
-          // a slow depletion so the dashboard never suddenly drops to 0% just because
-          // the probe was pulled out. When the probe reconnects, the firmware reading
-          // takes over immediately.
+          // 🌱 Soil-sensor disconnect handling — depletion rates:
+          //   soil: 1.0 %/sec (valve open ⇒ 0.2 %/sec)
+          //   water: 0.5 %/sec (valve open ⇒ 0.1 %/sec)
+          // On reconnect we keep the decayed baseline until the real EMA reading
+          // rises above it, so the dashboard never jumps to 0 while the probe
+          // stabilises in soil.
           const soilConnectedIncoming = body.soilConnected == null ? true : Boolean(body.soilConnected);
           const rawSoil = cleanNumber(body.soilMoisture);
           const rawWater = cleanNumber(body.waterLevel);
           const soilConnected = soilConnectedIncoming && rawSoil != null;
 
+          const gapSec = prev?.updated_at
+            ? Math.max(0, Math.floor((nowMs - new Date(prev.updated_at).getTime()) / 1000))
+            : 0;
+          const soilRate = prev?.valve_open ? 0.2 : 1.0;
+          const waterRate = prev?.valve_open ? 0.1 : 0.5;
+          const prevSoil = Number(prev?.soil_moisture ?? 0);
+          const prevWater = Number(prev?.water_level ?? 0);
+          const decayedSoil = clampPercent(Math.max(0, prevSoil - gapSec * soilRate));
+          const decayedWater = clampPercent(Math.max(0, prevWater - gapSec * waterRate));
+
           let soilMoisture: number;
           let waterLevel: number;
           if (soilConnected) {
-            soilMoisture = clampPercent(rawSoil);
-            waterLevel = clampPercent(rawWater ?? soilMoisture);
+            const justReconnected = prev?.soil_connected === false;
+            const incomingSoil = clampPercent(rawSoil);
+            const incomingWater = clampPercent(rawWater ?? rawSoil);
+            soilMoisture = justReconnected ? Math.max(incomingSoil, decayedSoil) : incomingSoil;
+            waterLevel = justReconnected ? Math.max(incomingWater, decayedWater) : incomingWater;
           } else {
-            const gapSec = prev?.updated_at
-              ? Math.max(0, Math.floor((nowMs - new Date(prev.updated_at).getTime()) / 1000))
-              : 0;
-            // %/sec — valve-open irrigation offsets loss; capped so long outages don't wipe reading
-            const rate = prev?.valve_open ? 0.005 : 0.02;
-            const decay = Math.min(20, gapSec * rate);
-            const prevSoil = Number(prev?.soil_moisture ?? 0);
-            const prevWater = Number(prev?.water_level ?? 0);
-            soilMoisture = clampPercent(Math.max(0, prevSoil - decay));
-            waterLevel = clampPercent(Math.max(0, prevWater - decay));
+            soilMoisture = decayedSoil;
+            waterLevel = decayedWater;
           }
 
           const row = {
