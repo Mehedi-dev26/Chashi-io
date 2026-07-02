@@ -828,7 +828,7 @@ const int SERVO_OPEN   = 90;
 
 bool valveOpen = false;
 unsigned long lastSend = 0;
-const unsigned long SEND_INTERVAL = 5000;
+const unsigned long SEND_INTERVAL = 2000;   // 2s → dashboard-এ real-time feel
 unsigned long lastWifiAttempt = 0;
 const unsigned long WIFI_RETRY_MS = 5000;
 float lastGoodTemp = NAN;
