@@ -1,0 +1,1 @@
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_chats TO authenticated; GRANT ALL ON public.ai_chats TO service_role;
