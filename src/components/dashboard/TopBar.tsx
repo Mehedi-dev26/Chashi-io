@@ -67,13 +67,17 @@ export function TopBar() {
         </div>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-2.5">
-          {/* Weather chip */}
-          <div className="hidden xl:flex items-center gap-1.5 px-2.5 h-8 rounded-full bg-accent/15 border border-accent/30">
-            <Sun className="h-3.5 w-3.5 text-accent-foreground" />
-            <span className="text-xs font-semibold text-accent-foreground">{bnDigits("32")}°C</span>
+          {/* DHT11 — Node 1 (তাপমাত্রা ও আর্দ্রতা) */}
+          <div className="hidden xl:flex items-center gap-1.5 px-2.5 h-8 rounded-full bg-accent/15 border border-accent/30" title="নোড ১ · DHT11 সেন্সর">
+            <Thermometer className="h-3.5 w-3.5 text-orange-500" />
+            <span className="text-xs font-semibold text-accent-foreground">
+              {weather.temperature != null ? `${bnDigits(weather.temperature.toFixed(1))}°C` : "—"}
+            </span>
             <span className="opacity-40">·</span>
-            <CloudRain className="h-3 w-3 text-chart-2" />
-            <span className="text-[10px] text-muted-foreground">{bnDigits("18")}%</span>
+            <Droplets className="h-3 w-3 text-sky-500" />
+            <span className="text-[10px] text-muted-foreground">
+              {weather.humidity != null ? `${bnDigits(weather.humidity.toFixed(0))}%` : "—"}
+            </span>
           </div>
 
           {/* Live time */}
