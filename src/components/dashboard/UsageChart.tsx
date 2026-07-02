@@ -22,6 +22,7 @@ export function UsageChart() {
   const [data, setData] = useState<Row[]>(emptyData);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fetchHourly = useServerFn(getHourlyUsage);
 
   useEffect(() => {
@@ -39,6 +40,11 @@ export function UsageChart() {
           },
         });
         if (!active) return;
+        if ((r as { error?: string })?.error) {
+          setErrorMsg((r as { error: string }).error);
+        } else {
+          setErrorMsg(null);
+        }
         const rows: Row[] = (r?.buckets ?? []).map((b: Bucket) => {
           const d = new Date(b.hourTs);
           return {
@@ -50,11 +56,11 @@ export function UsageChart() {
             runMin: +(b.runSec / 60).toFixed(2),
           };
         });
-        if (rows.length) {
-          setData(rows);
-          setLastUpdated(new Date());
-        }
-      } catch { /* ignore */ }
+        if (rows.length) setData(rows);
+        setLastUpdated(new Date());
+      } catch (e) {
+        if (active) setErrorMsg(String((e as Error)?.message ?? e));
+      }
       finally {
         if (active) setIsRefreshing(false);
       }
@@ -71,7 +77,7 @@ export function UsageChart() {
   const yMax = useMemo(() => Math.max(1, ...data.map((r) => Math.max(r.water, r.power, r.runMin))), [data]);
   const lastUpdatedText = lastUpdated
     ? lastUpdated.toLocaleTimeString("bn-BD", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-    : "লোড হচ্ছে";
+    : (errorMsg ? "ত্রুটি" : "সংযোগ হচ্ছে…");
 
   return (
     <div className="glass-card rounded-2xl p-5 hover-lift">
@@ -98,7 +104,12 @@ export function UsageChart() {
       </div>
 
       <div className="mt-4 h-[200px] relative">
-        {!hasData && mounted && (
+        {errorMsg && mounted && (
+          <div className="absolute inset-0 grid place-items-center text-xs text-rose-600 pointer-events-none z-10 px-4 text-center">
+            ⚠ ডেটা লোড করা যায়নি: {errorMsg}
+          </div>
+        )}
+        {!hasData && !errorMsg && mounted && lastUpdated && (
           <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground pointer-events-none z-10">
             এখনো কোনো রানটাইম ডেটা নেই — মোটর চালু করলে এখানে রিয়েল গ্রাফ দেখাবে
           </div>

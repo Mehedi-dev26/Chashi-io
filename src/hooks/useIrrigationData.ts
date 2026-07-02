@@ -34,6 +34,7 @@ export type MotorState = {
   current: number;
   runtime: number;
   health: number;
+  tankLevel: number;   // % — পাম্প-হাউস ট্যাংকের পানির স্তর (real telemetry থেকে)
 };
 
 export type ActivityEntry = {
@@ -92,7 +93,7 @@ let state: Store = {
     id: PUMP_SPEC.device_id,
     name: "মেইন মোটর · BMDA Master",
     isOn: false, online: false, lastSeen: null,
-    pressure: 0, flowRate: 0, voltage: 0, current: 0, runtime: 0, health: 0,
+    pressure: 0, flowRate: 0, voltage: 0, current: 0, runtime: 0, health: 0, tankLevel: 0,
   },
   activity: [{ id: "init", time: "—", type: "info", message: "সিস্টেম প্রস্তুত · ডাটাবেজ থেকে লোড হচ্ছে…" }],
   metrics: { networkHealth: 0, totalNodes: 0, onlineNodes: 0, aiActivity: 0 },
@@ -159,6 +160,9 @@ const applyTelemetry = (row: TelemetryRow) => {
   if (row.zone_id === PUMP_SPEC.zone_id) {
     const wasOnline = state.motor.online;
     const wasOn = state.motor.isOn;
+    const tank = row.water_level != null
+      ? Math.max(0, Math.min(100, Number(row.water_level)))
+      : state.motor.tankLevel;
     const motor: MotorState = {
       ...state.motor,
       isOn: !!row.motor_on, online: true, lastSeen: ts,
@@ -168,6 +172,7 @@ const applyTelemetry = (row: TelemetryRow) => {
       runtime: row.runtime_sec != null ? Number(row.runtime_sec) : state.motor.runtime,
       pressure: row.motor_on ? +(2.5 + Number(row.flow_lpm ?? PUMP_SPEC.ratedFlowLpm) * 0.4).toFixed(1) : 0,
       health: 100,
+      tankLevel: tank,
     };
     setState({ ...state, motor, weather });
     if (!wasOnline) pushActivity({ type: "success", message: "✓ পাম্প অনলাইন · মাস্টার নোড সংযুক্ত" });
@@ -211,7 +216,7 @@ if (typeof window !== "undefined") {
       // motor offline?
       if (next.motor.lastSeen && now - next.motor.lastSeen > PUMP_SPEC.heartbeatMs && next.motor.online) {
         pushActivity({ type: "warning", message: "⚠ পাম্প অফলাইন · heartbeat বিচ্ছিন্ন" });
-        next = { ...next, motor: { ...next.motor, online: false, isOn: false, voltage: 0, current: 0, flowRate: 0, pressure: 0, health: 0 } };
+        next = { ...next, motor: { ...next.motor, online: false, isOn: false, voltage: 0, current: 0, flowRate: 0, pressure: 0, health: 0, tankLevel: 0 } };
         changed = true;
       }
       // zone offline? → zero out all sensor readings (no fake stale data)

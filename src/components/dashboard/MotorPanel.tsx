@@ -140,8 +140,56 @@ export function MotorPanel({ motor, onToggle }: { motor: MotorState; onToggle: (
           <span className="font-semibold text-success">{bn(motor.health)}%</span>
         </div>
         <div className="mt-1.5 h-1.5 bg-muted rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-success to-primary" style={{ width: `${motor.health}%` }} />
+          <div className="h-full bg-gradient-to-r from-success to-primary transition-all duration-500" style={{ width: `${motor.health}%` }} />
         </div>
+      </div>
+
+      {/* 💧 ট্যাংকের অবস্থা — real telemetry (water_level) থেকে */}
+      <div className="mt-2 rounded-lg glass-panel p-3">
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-muted-foreground flex items-center gap-1.5">
+            <Droplets className="h-3 w-3 text-sky-500" />
+            ট্যাংকের অবস্থা
+          </span>
+          <span className={`font-semibold ${
+            motor.tankLevel >= 80 ? "text-sky-600" :
+            motor.tankLevel >= 40 ? "text-cyan-600" :
+            motor.tankLevel >= 20 ? "text-amber-600" : "text-rose-600"
+          }`}>
+            {bn(Math.round(motor.tankLevel))}%
+          </span>
+        </div>
+        <div className="relative mt-1.5 h-2 bg-muted rounded-full overflow-hidden">
+          <div
+            className={`h-full transition-all duration-500 ${
+              motor.tankLevel >= 80 ? "bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600" :
+              motor.tankLevel >= 40 ? "bg-gradient-to-r from-cyan-400 to-sky-500" :
+              motor.tankLevel >= 20 ? "bg-gradient-to-r from-amber-400 to-orange-500" :
+              "bg-gradient-to-r from-rose-400 to-red-500"
+            }`}
+            style={{ width: `${motor.tankLevel}%` }}
+          />
+        </div>
+        {/* Dot markers @ 20/40/60/80/100 */}
+        <div className="relative mt-1.5 flex justify-between px-0.5">
+          {[20, 40, 60, 80, 100].map((m) => (
+            <div key={m} className="flex flex-col items-center gap-0.5">
+              <span className={`h-1.5 w-1.5 rounded-full ${
+                motor.tankLevel >= m
+                  ? "bg-sky-500 shadow-[0_0_6px_rgba(14,165,233,0.6)]"
+                  : "bg-muted-foreground/30"
+              }`} />
+              <span className="text-[8px] text-muted-foreground font-mono">{bn(m)}%</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+          {!motor.online ? "⚠ পাম্প অফলাইন · ট্যাংক ডেটা নেই"
+            : motor.tankLevel >= 90 ? "✓ ট্যাংক প্রায় ভর্তি"
+            : motor.tankLevel >= 50 ? "● ট্যাংক অর্ধেকের বেশি"
+            : motor.tankLevel >= 20 ? "⚠ ট্যাংক কম · রিফিল দরকার"
+            : "🔴 ট্যাংক প্রায় খালি"}
+        </p>
       </div>
     </div>
   );
