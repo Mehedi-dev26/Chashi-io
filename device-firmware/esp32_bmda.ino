@@ -1,6 +1,6 @@
 /**
  *  BMDA Smart Irrigation — MASTER NODE (ESP32)
- *  Clean production firmware — single stable HTTPS transport, no fallbacks.
+ *  Clean production firmware — stable HTTPS transport with raw TLS fallback.
  *
  *  Hardware
  *   - 6V ultra-quiet pump via relay (GPIO 25, active-LOW)
@@ -11,7 +11,7 @@
  *   - Online LED          (GPIO 2, on-board blue)
  *
  *  Behaviour
- *   - POST /api/public/telemetry every 3s over HTTPS (fresh socket, close)
+ *   - POST /api/public/telemetry every 3s over HTTPS
  *   - Backend confirms with {"ok":true} → LED 5Hz heartbeat, "SYSTEM ONLINE"
  *   - Motor auto-OFF if WiFi / backend heartbeat lost (safety)
  *   - Runtime survives reboots (server-side wall-clock delta)
@@ -284,8 +284,12 @@ bool ensureWifi() {
   return false;
 }
 
-// -------------------- HTTPS POST (original stable transport) --------------------
-bool postTelemetry(const String& body, String &resp, int &code) {
+// -------------------- HTTPS POST (dual stable transport) --------------------
+bool responseOk(int code, const String& resp) {
+  return code >= 200 && code < 300 && resp.indexOf("\"ok\":true") >= 0;
+}
+
+bool postTelemetryHttpClient(const String& body, String &resp, int &code) {
   resp = ""; code = 0;
 
   WiFiClientSecure client;
@@ -305,6 +309,8 @@ bool postTelemetry(const String& body, String &resp, int &code) {
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   http.setTimeout(8000);
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("Accept", "application/json");
+  http.addHeader("Connection", "close");
   http.addHeader("User-Agent", "ESP32HTTPClient");
   code = http.POST(body);
   resp = http.getString();
@@ -314,7 +320,81 @@ bool postTelemetry(const String& body, String &resp, int &code) {
                   (unsigned)ESP.getFreeHeap(), WiFi.RSSI());
   }
   http.end();
-  return code >= 200 && code < 300 && resp.indexOf("\"ok\":true") >= 0;
+  return responseOk(code, resp);
+}
+
+bool postTelemetryRawTls(const String& body, String &resp, int &code) {
+  resp = ""; code = 0;
+
+  IPAddress ip;
+  if (WiFi.hostByName(API_HOST, ip)) {
+    Serial.printf("[NET] DNS %s -> %s\n", API_HOST, ip.toString().c_str());
+  } else {
+    Serial.printf("[NET] DNS failed for %s\n", API_HOST);
+  }
+
+  WiFiClientSecure client;
+  client.setInsecure();
+  client.setTimeout(12000);
+
+  if (!client.connect(API_HOST, 443)) {
+    code = -2001;
+    Serial.printf("[NET] RAW TLS connect failed host=%s heap=%u rssi=%d\n",
+                  API_HOST, (unsigned)ESP.getFreeHeap(), WiFi.RSSI());
+    client.stop();
+    return false;
+  }
+
+  client.print(String("POST ") + API_PATH + " HTTP/1.1\r\n");
+  client.print(String("Host: ") + API_HOST + "\r\n");
+  client.print("User-Agent: ESP32RawTLS\r\n");
+  client.print("Accept: application/json\r\n");
+  client.print("Content-Type: application/json\r\n");
+  client.print(String("Content-Length: ") + body.length() + "\r\n");
+  client.print("Connection: close\r\n\r\n");
+  client.print(body);
+
+  unsigned long start = millis();
+  while (!client.available() && client.connected() && millis() - start < 12000UL) delay(10);
+  if (!client.available()) {
+    code = -2002;
+    Serial.println("[NET] RAW TLS timeout waiting response");
+    client.stop();
+    return false;
+  }
+
+  String statusLine = client.readStringUntil('\n');
+  statusLine.trim();
+  int sp1 = statusLine.indexOf(' ');
+  if (sp1 > 0 && statusLine.length() >= sp1 + 4) code = statusLine.substring(sp1 + 1, sp1 + 4).toInt();
+  else code = -2003;
+
+  while (client.available()) {
+    String line = client.readStringUntil('\n');
+    if (line == "\r" || line.length() == 0) break;
+  }
+
+  start = millis();
+  while (client.connected() || client.available()) {
+    while (client.available()) resp += (char)client.read();
+    if (millis() - start > 12000UL) break;
+    delay(5);
+  }
+  client.stop();
+
+  if (!responseOk(code, resp)) {
+    Serial.printf("[NET] RAW TLS response code=%d body=%s\n", code, resp.substring(0, 120).c_str());
+  }
+  return responseOk(code, resp);
+}
+
+bool postTelemetry(const String& body, String &resp, int &code) {
+  // Primary: Arduino HTTPClient (normal path). Fallback: manual raw TLS.
+  // This keeps the old stable behaviour but fixes boards/networks where
+  // HTTPClient returns -1 before the request reaches the backend.
+  if (postTelemetryHttpClient(body, resp, code)) return true;
+  Serial.println("[NET] primary POST failed — trying RAW TLS fallback");
+  return postTelemetryRawTls(body, resp, code);
 }
 
 // -------------------- Telemetry cycle --------------------
