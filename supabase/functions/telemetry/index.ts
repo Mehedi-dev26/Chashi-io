@@ -173,6 +173,7 @@ Deno.serve(async (request) => {
         zone_id: effectiveZoneId,
         soil_moisture: row.soil_moisture,
         water_level: row.water_level,
+        soil_connected: row.soil_connected,
         ldr: row.ldr,
         temperature: row.temperature,
         humidity: row.humidity,
