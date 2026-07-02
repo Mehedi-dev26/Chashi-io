@@ -1103,11 +1103,10 @@ const char* WIFI_SSID = "YOUR_WIFI"; // মাস্টারের সাথে
 // ৪. Arduino IDE → Upload → ৫ সেকেন্ডের মধ্যে dashboard-এ লাইভ।
 // (মাস্টার কখনো ডুপ্লিকেট হবে না — পুরো নেটওয়ার্কে একটিই থাকবে)`;
 
-// ⚙️ Backend (server routes like /api/public/telemetry) runs ONLY on the
-//    Lovable Cloud Worker. Vercel hosts the static frontend only — POSTs to
-//    the Vercel domain return 405. Always pin firmware to the stable Lovable
-//    backend URL, regardless of which domain the user is viewing this page from.
-const BACKEND_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
+// ⚙️ Hardware posts to a Lovable Cloud function endpoint that supports the
+//    older TLS profile used by ESP32/ESP8266 Arduino cores.
+const BACKEND_HOST = "https://cplhurjwjmybbavkydfv.functions.supabase.co";
+const TELEMETRY_PATH = "/telemetry";
 
 function HardwarePage() {
   const [copied, setCopied] = useState<string | null>(null);
@@ -1127,6 +1126,10 @@ function HardwarePage() {
     .replace(
       /const char\* API_HOST\s*=\s*"[^"]+";/,
       `const char* API_HOST    = "${backendUrl.hostname}";`,
+    )
+    .replace(
+      /const char\* API_PATH\s*=\s*"[^"]+";/,
+      `const char* API_PATH    = "${TELEMETRY_PATH}";`,
     );
   const subCode = buildSubCode(serverHost);
 
@@ -1267,10 +1270,10 @@ function HardwarePage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[11px] uppercase tracking-wider font-bold opacity-95">ফার্মওয়্যার সার্ভার URL (ব্যাকএন্ড)</p>
-              <p className="text-sm font-extrabold mt-0.5">নিচের ফার্মওয়্যার সবসময় Lovable Cloud ব্যাকএন্ডে POST করবে</p>
-              <p className="font-mono text-xs md:text-sm bg-black/25 rounded-lg px-3 py-2 mt-2 break-all">{serverHost}</p>
+              <p className="text-sm font-extrabold mt-0.5">নিচের ফার্মওয়্যার সবসময় hardware-safe Lovable Cloud endpoint-এ POST করবে</p>
+              <p className="font-mono text-xs md:text-sm bg-black/25 rounded-lg px-3 py-2 mt-2 break-all">{serverHost}{TELEMETRY_PATH}</p>
               <p className="text-[11px] mt-2 opacity-90 leading-relaxed">
-                <strong>⚠ গুরুত্বপূর্ণ:</strong> Vercel শুধু ফ্রন্টএন্ড (UI) host করে — ব্যাকএন্ড API (<code className="bg-black/30 px-1 rounded">/api/public/telemetry</code>) Vercel-এ চলে না। Vercel domain-এ POST করলে <strong>405 Method Not Allowed</strong> আসবে। তাই ESP32-এর <code className="bg-black/30 px-1 rounded">SERVER_HOST</code> সবসময় উপরের Lovable Cloud URL-এ pin করা — এটিই সঠিক backend।
+                <strong>⚠ গুরুত্বপূর্ণ:</strong> আগের app endpoint browser/server থেকে ঠিক ছিল, কিন্তু ESP32 Arduino core অনেক সময় ওই domain-এর TLS handshake খুলতে পারে না — তাই Serial Monitor-এ <strong>-1 / -2001</strong> দেখাচ্ছিল। এই নতুন endpoint একই database-এ save করে এবং ESP32/ESP8266-এর জন্য TLS 1.2 compatible।
               </p>
               {originMismatch && (
                 <p className="text-[11px] mt-2 bg-amber-500/30 rounded-lg px-3 py-2 leading-relaxed border border-amber-200/40">
