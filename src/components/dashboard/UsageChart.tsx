@@ -8,13 +8,13 @@ import { Activity, RefreshCw } from "lucide-react";
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
 type Bucket = { hourTs: number; runSec: number; waterL: number; powerKwh: number };
-type Row = { hour: string; water: number; power: number; runSec: number };
+type Row = { hour: string; water: number; power: number; runSec: number; runMin: number };
 
 const emptyData: Row[] = Array.from({ length: 24 }, (_, i) => {
   const d = new Date();
   d.setMinutes(0, 0, 0);
   d.setHours(d.getHours() - (23 - i));
-  return { hour: `${bn(d.getHours().toString().padStart(2, "0"))}টা`, water: 0, power: 0, runSec: 0 };
+  return { hour: `${bn(d.getHours().toString().padStart(2, "0"))}টা`, water: 0, power: 0, runSec: 0, runMin: 0 };
 });
 
 export function UsageChart() {
@@ -47,6 +47,7 @@ export function UsageChart() {
             // Watt-hours read more intuitively for a 6V demo pump than kWh
             power: +(b.powerKwh * 1000).toFixed(2),
             runSec: b.runSec,
+            runMin: +(b.runSec / 60).toFixed(2),
           };
         });
         if (rows.length) {
@@ -67,7 +68,7 @@ export function UsageChart() {
   const totalPower = data.reduce((s, r) => s + r.power, 0);
   const totalSec = data.reduce((s, r) => s + r.runSec, 0);
   const hasData = totalSec > 0;
-  const yMax = useMemo(() => Math.max(1, ...data.map((r) => Math.max(r.water, r.power))), [data]);
+  const yMax = useMemo(() => Math.max(1, ...data.map((r) => Math.max(r.water, r.power, r.runMin))), [data]);
   const lastUpdatedText = lastUpdated
     ? lastUpdated.toLocaleTimeString("bn-BD", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
     : "লোড হচ্ছে";
@@ -83,10 +84,11 @@ export function UsageChart() {
             <h2 className="text-base font-bold">২৪ ঘণ্টার ব্যবহার</h2>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            পানি (লিটার) · বিদ্যুৎ (ওয়াট-ঘণ্টা) · মোট রানটাইম {bn(Math.round(totalSec / 60))} মি
+            রানটাইম (মিনিট) · পানি (লিটার) · বিদ্যুৎ (ওয়াট-ঘণ্টা) · মোট রানটাইম {bn(Math.round(totalSec / 60))} মি
           </p>
         </div>
         <div className="flex items-center gap-3 text-[11px] flex-wrap justify-end">
+          <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 font-semibold text-emerald-600"><span className="h-2 w-2 rounded-full bg-emerald-500" /> রানটাইম {bn(Math.round(totalSec / 60))} মি</span>
           <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary"><span className="h-2 w-2 rounded-full bg-primary" /> পানি {bn(totalWater.toFixed(1))} L</span>
           <span className="flex items-center gap-1.5 rounded-full bg-accent/20 px-2.5 py-1 font-semibold text-accent-foreground"><span className="h-2 w-2 rounded-full bg-accent" /> বিদ্যুৎ {bn(totalPower.toFixed(1))} Wh</span>
           <span className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
@@ -105,12 +107,16 @@ export function UsageChart() {
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
               <defs>
+                <linearGradient id="gRun" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="oklch(0.68 0.18 155)" stopOpacity={0.6} />
+                  <stop offset="95%" stopColor="oklch(0.68 0.18 155)" stopOpacity={0} />
+                </linearGradient>
                 <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="oklch(0.58 0.17 150)" stopOpacity={0.5} />
-                  <stop offset="95%" stopColor="oklch(0.58 0.17 150)" stopOpacity={0} />
+                  <stop offset="5%" stopColor="oklch(0.58 0.17 220)" stopOpacity={0.45} />
+                  <stop offset="95%" stopColor="oklch(0.58 0.17 220)" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="oklch(0.75 0.15 85)" stopOpacity={0.45} />
+                  <stop offset="5%" stopColor="oklch(0.75 0.15 85)" stopOpacity={0.4} />
                   <stop offset="95%" stopColor="oklch(0.75 0.15 85)" stopOpacity={0} />
                 </linearGradient>
               </defs>
@@ -126,12 +132,14 @@ export function UsageChart() {
                   boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
                 }}
                 formatter={(value: number, name: string) => {
+                  if (name === "runMin") return [`${bn(Number(value).toFixed(2))} মি`, "রানটাইম"];
                   if (name === "water") return [`${bn(Number(value).toFixed(2))} L`, "পানি"];
                   if (name === "power") return [`${bn(Number(value).toFixed(2))} Wh`, "বিদ্যুৎ"];
                   return [value, name];
                 }}
               />
-              <Area type="monotone" dataKey="water" stroke="oklch(0.58 0.17 150)" strokeWidth={2} fill="url(#g1)" />
+              <Area type="monotone" dataKey="runMin" stroke="oklch(0.68 0.18 155)" strokeWidth={2.5} fill="url(#gRun)" />
+              <Area type="monotone" dataKey="water" stroke="oklch(0.58 0.17 220)" strokeWidth={2} fill="url(#g1)" />
               <Area type="monotone" dataKey="power" stroke="oklch(0.75 0.15 85)" strokeWidth={2} fill="url(#g2)" />
             </AreaChart>
           </ResponsiveContainer>
