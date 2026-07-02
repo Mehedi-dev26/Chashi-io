@@ -284,7 +284,7 @@ bool ensureWifi() {
   return false;
 }
 
-// -------------------- HTTPS POST (single stable transport) --------------------
+// -------------------- HTTPS POST (original stable transport) --------------------
 bool postTelemetry(const String& body, String &resp, int &code) {
   resp = ""; code = 0;
 
@@ -292,24 +292,28 @@ bool postTelemetry(const String& body, String &resp, int &code) {
   client.setInsecure();
 
   HTTPClient http;
-  http.setReuse(false);
-  http.setTimeout(12000);
-
   const String url = String(SERVER_HOST) + API_PATH;
   if (!http.begin(client, url)) {
     Serial.println("[NET] http.begin() failed");
-    code = -1000; client.stop(); return false;
+    code = -1000;
+    http.end();
+    return false;
   }
+
+  // Keep this intentionally close to the first stable firmware: Arduino
+  // HTTPClient owns the TLS session and closes it after each request.
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+  http.setTimeout(8000);
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("User-Agent", "ESP32HTTPClient");
   code = http.POST(body);
-  if (code > 0) {
-    resp = http.getString();
-  } else {
+  resp = http.getString();
+  if (code <= 0) {
     Serial.printf("[NET] POST err=%d (%s) heap=%u rssi=%d\n",
                   code, HTTPClient::errorToString(code).c_str(),
                   (unsigned)ESP.getFreeHeap(), WiFi.RSSI());
   }
-  http.end(); client.stop();
+  http.end();
   return code >= 200 && code < 300 && resp.indexOf("\"ok\":true") >= 0;
 }
 
