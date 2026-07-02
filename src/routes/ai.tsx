@@ -4,8 +4,6 @@ import { AIInsights } from "@/components/dashboard/AIInsights";
 import { useIrrigationData } from "@/hooks/useIrrigationData";
 import { Sparkles, Brain, CloudRain, TrendingUp, Send, User } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { askConsultant } from "@/lib/ai-consultant.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -23,10 +21,10 @@ type Msg = { role: "user" | "ai"; text: string; time: string };
 function AIPage() {
   const { zones } = useIrrigationData();
   const search = Route.useSearch();
-  const ask = useServerFn(askConsultant);
 
   const [prompt, setPrompt] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "ai",
@@ -35,44 +33,26 @@ function AIPage() {
     },
   ]);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return;
-      const { data } = await supabase
-        .from("ai_chats")
-        .select("role,content,created_at")
-        .eq("user_id", u.user.id)
-        .order("created_at", { ascending: true })
-        .limit(50);
-      if (data && data.length) {
-        setMessages(
-          data.map((m) => ({
-            role: m.role === "assistant" ? "ai" : "user",
-            text: m.content,
-            time: new Date(m.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-          })),
-        );
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, thinking]);
-
-  // Auto-send optimize prompt when arriving from dashboard with ?ask=optimize
   const autoSentRef = useRef(false);
-  useEffect(() => {
-    if (autoSentRef.current) return;
-    if (search.ask === "optimize") {
-      autoSentRef.current = true;
-      setTimeout(() => send("আজকের সেচ সূচি অপটিমাইজ করো — জোন ভিত্তিক সময় ও মিনিট দাও"), 300);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search.ask]);
 
+  const askAI = async (question: string) => {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) throw new Error("AUTH_REQUIRED");
+
+    const response = await fetch("/api/ai-consultant", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ question }),
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as { reply?: string; error?: string };
+    if (!response.ok) throw new Error(payload.error || `HTTP_${response.status}`);
+    return payload.reply || "দুঃখিত, উত্তর তৈরি করা যায়নি।";
+  };
 
   const send = async (text: string) => {
     const q = text.trim();
@@ -82,18 +62,60 @@ function AIPage() {
     setPrompt("");
     setThinking(true);
     try {
-      const { reply } = await ask({ data: { question: q } });
+      const reply = await askAI(q);
       setMessages((m) => [...m, { role: "ai", text: reply, time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) }]);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      if (msg.includes("RATE_LIMIT")) toast.error("খুব দ্রুত প্রশ্ন · কিছুক্ষণ পর আবার চেষ্টা করুন");
+      if (msg.includes("AUTH_REQUIRED")) toast.error("AI ব্যবহার করতে আগে সাইন ইন করুন");
+      else if (msg.includes("RATE_LIMIT")) toast.error("খুব দ্রুত প্রশ্ন · কিছুক্ষণ পর আবার চেষ্টা করুন");
       else if (msg.includes("CREDITS_EXHAUSTED")) toast.error("AI ক্রেডিট শেষ — workspace billing-এ যোগ করুন");
+      else if (msg.includes("AI_CONFIG_MISSING")) toast.error("AI সংযোগ প্রস্তুত নয়");
       else toast.error("AI ত্রুটি: " + msg.slice(0, 80));
       setMessages((m) => [...m, { role: "ai", text: "⚠ উত্তর তৈরি করা যায়নি। কিছুক্ষণ পরে আবার চেষ্টা করুন।", time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) }]);
     } finally {
       setThinking(false);
     }
   };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: u } = await supabase.auth.getUser();
+        if (!u.user) return;
+        const { data } = await supabase
+          .from("ai_chats")
+          .select("role,content,created_at")
+          .eq("user_id", u.user.id)
+          .order("created_at", { ascending: true })
+          .limit(50);
+        if (data && data.length) {
+          setMessages(
+            data.map((m) => ({
+              role: m.role === "assistant" ? "ai" : "user",
+              text: m.content,
+              time: new Date(m.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+            })),
+          );
+        }
+      } finally {
+        setHistoryLoaded(true);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, thinking]);
+
+  // Auto-send optimize prompt when arriving from dashboard with ?ask=optimize
+  useEffect(() => {
+    if (autoSentRef.current) return;
+    if (search.ask === "optimize" && historyLoaded) {
+      autoSentRef.current = true;
+      setTimeout(() => send("আজকের সেচ সূচি অপটিমাইজ করো — জোন ভিত্তিক সময় ও মিনিট দাও"), 150);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.ask, historyLoaded]);
 
   const suggestions = [
     "আজকের সেচ সূচি অপ্টিমাইজ করো",
@@ -112,7 +134,7 @@ function AIPage() {
       <div className="stagger space-y-5">
         <div className="grid sm:grid-cols-3 gap-3">
           {[
-            { icon: Brain,      label: "AI ইঞ্জিন",          value: "Gemini 3 Flash",  desc: "ডাটাবেজ-সংযুক্ত · রিয়েল-টাইম context", grad: "from-violet-500 via-fuchsia-500 to-pink-500", ring: "ring-violet-300/40" },
+            { icon: Brain,      label: "AI ইঞ্জিন",          value: "Lovable AI",  desc: "ডাটাবেজ-সংযুক্ত · রিয়েল-টাইম context", grad: "from-violet-500 via-fuchsia-500 to-pink-500", ring: "ring-violet-300/40" },
             { icon: TrendingUp, label: "জোন বিশ্লেষণ",       value: `${bn(zones.length)}টি জমি`, desc: "সরাসরি database থেকে",                  grad: "from-lime-500 via-green-500 to-emerald-500",   ring: "ring-lime-300/40" },
             { icon: CloudRain,  label: "আবহাওয়া উৎস",       value: "BMD লাইভ",        desc: "প্রতি ৩০ মিনিটে আপডেট",                  grad: "from-orange-500 via-amber-500 to-yellow-500", ring: "ring-amber-300/40" },
           ].map((c) => (
