@@ -62,6 +62,18 @@ function AIPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, thinking]);
 
+  // Auto-send optimize prompt when arriving from dashboard with ?ask=optimize
+  const autoSentRef = useRef(false);
+  useEffect(() => {
+    if (autoSentRef.current) return;
+    if (search.ask === "optimize") {
+      autoSentRef.current = true;
+      setTimeout(() => send("আজকের সেচ সূচি অপটিমাইজ করো — জোন ভিত্তিক সময় ও মিনিট দাও"), 300);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.ask]);
+
+
   const send = async (text: string) => {
     const q = text.trim();
     if (!q || thinking) return;
