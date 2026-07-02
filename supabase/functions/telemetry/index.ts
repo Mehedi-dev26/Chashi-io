@@ -104,8 +104,8 @@ Deno.serve(async (request) => {
     }
     if (nodeRows?.[0]?.zone_id) effectiveZoneId = nodeRows[0].zone_id;
 
-    const prevRows = await rest<Array<{ runtime_sec: number | null; motor_on: boolean | null; updated_at: string | null; soil_moisture: number | null; water_level: number | null; valve_open: boolean | null }>>(
-      `device_telemetry?select=runtime_sec,motor_on,updated_at,soil_moisture,water_level,valve_open&zone_id=eq.${encodeURIComponent(effectiveZoneId)}&limit=1`,
+    const prevRows = await rest<Array<{ runtime_sec: number | null; motor_on: boolean | null; updated_at: string | null; soil_moisture: number | null; water_level: number | null; valve_open: boolean | null; soil_connected: boolean | null }>>(
+      `device_telemetry?select=runtime_sec,motor_on,updated_at,soil_moisture,water_level,valve_open,soil_connected&zone_id=eq.${encodeURIComponent(effectiveZoneId)}&limit=1`,
     );
     const prev = prevRows?.[0];
     const nowMs = Date.now();
@@ -117,26 +117,40 @@ Deno.serve(async (request) => {
       if (elapsed > 0 && elapsed <= 60 && (motorOnNow || prev.motor_on)) wallDeltaSec = elapsed;
     }
 
-    // 🌱 Soil-sensor disconnect handling — keep last known values with time-based depletion
-    // so the dashboard never suddenly drops to 0 just because the probe was pulled out.
+    // 🌱 Soil-sensor disconnect handling — depletion rates:
+    //   soil: 1.0 %/sec  (valve open ⇒ 0.2 %/sec — irrigation offsets loss)
+    //   water: 0.5 %/sec (valve open ⇒ 0.1 %/sec)
+    // On reconnect, the firmware EMA needs a few samples to settle; if the raw
+    // reading is BELOW the decayed baseline we keep the decayed value so the
+    // dashboard never jumps back to 0. Once the real reading exceeds the
+    // decayed value, we switch to the real reading immediately.
     const soilConnectedIncoming = body.soilConnected == null ? true : Boolean(body.soilConnected);
     const rawSoil = cleanNumber(body.soilMoisture);
     const rawWater = cleanNumber(body.waterLevel);
     const soilConnected = soilConnectedIncoming && rawSoil != null;
 
+    const gapSec = prev?.updated_at
+      ? Math.max(0, Math.floor((nowMs - new Date(prev.updated_at).getTime()) / 1000))
+      : 0;
+    const soilRate = prev?.valve_open ? 0.2 : 1.0;    // %/sec
+    const waterRate = prev?.valve_open ? 0.1 : 0.5;   // %/sec
+    const prevSoil = Number(prev?.soil_moisture ?? 0);
+    const prevWater = Number(prev?.water_level ?? 0);
+    const decayedSoil = clampPercent(Math.max(0, prevSoil - gapSec * soilRate));
+    const decayedWater = clampPercent(Math.max(0, prevWater - gapSec * waterRate));
+
     let soilMoisture: number;
     let waterLevel: number;
     if (soilConnected) {
-      soilMoisture = clampPercent(rawSoil);
-      waterLevel = clampPercent(rawWater ?? soilMoisture);
+      const justReconnected = prev?.soil_connected === false;
+      const incomingSoil = clampPercent(rawSoil);
+      const incomingWater = clampPercent(rawWater ?? rawSoil);
+      // On reconnect: never drop below the decayed baseline while EMA settles.
+      soilMoisture = justReconnected ? Math.max(incomingSoil, decayedSoil) : incomingSoil;
+      waterLevel = justReconnected ? Math.max(incomingWater, decayedWater) : incomingWater;
     } else {
-      const gapSec = prev?.updated_at ? Math.max(0, Math.floor((nowMs - new Date(prev.updated_at).getTime()) / 1000)) : 0;
-      const rate = prev?.valve_open ? 0.005 : 0.02;   // %/sec; valve-open irrigation offsets loss
-      const decay = Math.min(20, gapSec * rate);      // cap so long outages don't wipe reading
-      const prevSoil = Number(prev?.soil_moisture ?? 0);
-      const prevWater = Number(prev?.water_level ?? 0);
-      soilMoisture = clampPercent(Math.max(0, prevSoil - decay));
-      waterLevel = clampPercent(Math.max(0, prevWater - decay));
+      soilMoisture = decayedSoil;
+      waterLevel = decayedWater;
     }
 
     const row = {
