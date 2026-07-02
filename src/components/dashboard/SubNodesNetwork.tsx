@@ -16,7 +16,7 @@ type FieldNode = { id: string; device_id: string; zone_id: string | null; label:
 type Telemetry = {
   zone_id: string; device_id: string; soil_moisture: number | null; water_level: number | null; tds_ppm: number | null;
   ldr: number | null; valve_open: boolean | null; temperature: number | null; humidity: number | null;
-  rssi: number | null; updated_at: string;
+  rssi: number | null; updated_at: string; soil_connected: boolean | null;
 };
 
 const ONLINE_MS = 15000;
