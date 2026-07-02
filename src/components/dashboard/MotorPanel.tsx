@@ -191,3 +191,6 @@ export function MotorPanel({ motor, onToggle }: { motor: MotorState; onToggle: (
             : "🔴 ট্যাংক প্রায় খালি"}
         </p>
       </div>
+    </div>
+  );
+}
