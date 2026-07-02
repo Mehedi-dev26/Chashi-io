@@ -1277,7 +1277,7 @@ function HardwarePage() {
               </p>
               {originMismatch && (
                 <p className="text-[11px] mt-2 bg-amber-500/30 rounded-lg px-3 py-2 leading-relaxed border border-amber-200/40">
-                  আপনি এখন <code className="bg-black/30 px-1 rounded">{viewOrigin}</code> থেকে এই পেজ দেখছেন (Vercel/custom domain) — UI এখান থেকে কাজ করে, কিন্তু ESP32 অবশ্যই উপরের Lovable URL-এ POST করবে।
+                  আপনি এখন <code className="bg-black/30 px-1 rounded">{viewOrigin}</code> থেকে এই পেজ দেখছেন — UI এখান থেকে কাজ করে, কিন্তু ESP32 অবশ্যই উপরের hardware endpoint-এ POST করবে।
                 </p>
               )}
             </div>
