@@ -268,6 +268,7 @@ const loadFields = async () => {
     online: false, lastSeen: null,
     valveNodeId: r.valve_node_id ?? null,
     hasNode: !!r.valve_node_id,
+    soilConnected: true,
   }));
   setState({ ...state, zones, metrics: { ...state.metrics, totalNodes: zones.length } });
 
