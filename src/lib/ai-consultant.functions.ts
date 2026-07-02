@@ -68,7 +68,7 @@ ${zoneSummary}
     let reply: string;
     try {
       const { text } = await generateText({
-        model: gateway("google/gemini-3-flash-preview"),
+        model: gateway("google/gemini-2.5-flash"),
         messages,
       });
       reply = text?.trim() || "দুঃখিত, উত্তর তৈরি করা যায়নি।";
@@ -77,8 +77,9 @@ ${zoneSummary}
       console.error("[ai-consultant] gateway error:", msg);
       if (msg.includes("429")) throw new Error("RATE_LIMIT");
       if (msg.includes("402")) throw new Error("CREDITS_EXHAUSTED");
-      throw new Error("AI_GATEWAY: " + msg.slice(0, 200));
+      throw new Error("AI_GATEWAY:" + msg.slice(0, 300));
     }
+
 
     // Persist Q&A — log but don't fail the request if insert errors
     const { error: insErr } = await supabase.from("ai_chats").insert([
