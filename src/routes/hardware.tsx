@@ -779,8 +779,8 @@ const buildSubCode = (serverHost: string) => `/**
 #include <DHT.h>
 
 // ====== EDIT THESE ======
-const char* WIFI_SSID   = "YOUR_WIFI";
-const char* WIFI_PASS   = "YOUR_PASSWORD";
+const char* WIFI_SSID   = "BMDA";
+const char* WIFI_PASS   = "esp12345678";
 const char* SERVER_HOST = "${serverHost}";
 const char* DEVICE_ID   = "SUB-01";    // প্রতিটি sub-node-এর অনন্য নাম
 const char* ZONE_ID     = "Z-01";      // dashboard-এ যেই জোন
@@ -1046,7 +1046,7 @@ void sendTelemetry() {
     http.end();
     client.stop();
     if (code == 200 && resp.indexOf("\\\"ok\\\":true") >= 0) break;
-    Serial.printf("[%s] POST retry mode=%s code=%d\n", ZONE_ID, attempt == 0 ? "HTTP/1.1" : "HTTP/1.0", code);
+    Serial.printf("[%s] POST retry mode=%s code=%d\\n", ZONE_ID, attempt == 0 ? "HTTP/1.1" : "HTTP/1.0", code);
     delay(350);
   }
 
