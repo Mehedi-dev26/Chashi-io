@@ -136,6 +136,25 @@ export const Route = createFileRoute("/api/public/telemetry")({
             return Response.json({ ok: false, error: "telemetry storage failed" }, { status: 500, headers: CORS });
           }
 
+          // Historical archive — every sample kept for charts / ML / audit.
+          const { error: histErr } = await supabaseAdmin.from("telemetry_history").insert({
+            device_id: deviceId,
+            zone_id: effectiveZoneId,
+            soil_moisture: row.soil_moisture,
+            water_level: row.water_level,
+            ldr: row.ldr,
+            temperature: row.temperature,
+            humidity: row.humidity,
+            valve_open: row.valve_open,
+            motor_on: row.motor_on,
+            flow_lpm: row.flow_lpm,
+            voltage: row.voltage,
+            current: row.current,
+            rssi: row.rssi,
+            tds_ppm: row.tds_ppm,
+          });
+          if (histErr) console.error("[telemetry] history insert", histErr);
+
           // Persist runtime delta for hourly/monthly aggregation.
           if (wallDeltaSec > 0) {
             await supabaseAdmin.from("motor_runtime_log").insert({
@@ -143,6 +162,7 @@ export const Route = createFileRoute("/api/public/telemetry")({
               delta_sec: wallDeltaSec,
             });
           }
+
 
           // Pop pending commands for this device
           const { data: pending } = await supabaseAdmin
