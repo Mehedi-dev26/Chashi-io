@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Activity, Bell, Wifi, Search, ChevronRight, Sun, CloudRain } from "lucide-react";
+import { Bell, Wifi, Search, ChevronRight, Thermometer, Droplets } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useRouterState, Link } from "@tanstack/react-router";
+import { useIrrigationData } from "@/hooks/useIrrigationData";
 
 const bnDigits = (s: string) => s.replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
