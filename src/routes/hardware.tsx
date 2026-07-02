@@ -1015,14 +1015,20 @@ void sendTelemetry() {
   doc["deviceId"]        = DEVICE_ID;
   doc["zoneId"]          = ZONE_ID;
   doc["role"]            = "sub";
-  doc["soilMoisture"]    = soil;
-  doc["waterLevel"]      = waterLvl;       // 💧 আর্দ্রতা থেকে গণনাকৃত পানির স্তর
-  doc["waterSaturation"] = waterLvl;       // backward-compat alias
-  doc["soilConnected"]   = soilConnected;  // debug: dashboard-এ "sensor wired?"
+  doc["soilConnected"]   = soilConnected;
+  // 🌱 disconnect হলে soilMoisture/waterLevel পাঠাবো না — server শেষ পরিচিত মান
+  //    ধরে রাখবে এবং সময় অনুযায়ী ধীর ঘাটতি (depletion) হিসাব করে দেখাবে।
+  //    reconnect হলে সঙ্গে সঙ্গে বাস্তব probe reading আবার overwrite করবে।
+  if (soilConnected) {
+    doc["soilMoisture"]  = soil;
+    doc["waterLevel"]    = waterLvl;
+    doc["waterSaturation"] = waterLvl;
+  }
   doc["valveOpen"]       = valveOpen;
   doc["rssi"]            = WiFi.RSSI();
   if (!isnan(tempC))    doc["temperature"] = round(tempC * 10.0) / 10.0;
   if (!isnan(humidity)) doc["humidity"]    = round(humidity);
+
 
   String body; serializeJson(doc, body);
   String resp = "";
