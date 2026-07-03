@@ -117,6 +117,19 @@ function Landing() {
               <span key={t} className="font-semibold drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">{t}</span>
             ))}
           </div>
+
+          {/* Developer credit */}
+          <div className="mt-5 flex items-center justify-center">
+            <a
+              href="https://mehedihassan.iam.bd/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 backdrop-blur-md border border-white/30 text-white text-sm font-bold shadow-lg hover:bg-white/25 hover:scale-[1.03] transition"
+            >
+              <span className="text-amber-300">Develop করেছেন</span>
+              <span className="underline underline-offset-2 decoration-amber-300/70">Mehedi Hasan</span>
+            </a>
+          </div>
         </div>
       </section>
 
@@ -323,7 +336,7 @@ function Landing() {
               </div>
               <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্রকল্প সম্পর্কে</p>
               <h2 className="text-3xl sm:text-5xl font-bangla font-extrabold tracking-tight leading-tight">
-                বরেন্দ্র অঞ্চলে <span className="text-rainbow">পানির সুষম ব্যবহার</span>
+                বরেন্দ্র অঞ্চলে <span className="text-rainbow">কৃষি পানির সুষম ব্যবহার</span>
               </h2>
               <p className="mt-5 text-muted-foreground text-sm sm:text-base leading-relaxed max-w-3xl mx-auto">
                 Chashi.io প্ল্যাটফর্ম বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষের কৃষি অবকাঠামোকে আধুনিকীকরণের একটি উদ্যোগ।
