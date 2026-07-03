@@ -8,9 +8,9 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Chashi.io · IoT-চালিত কৃষি জলব্যবস্থাপনা প্ল্যাটফর্ম" },
-      { name: "description", content: "বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষের জন্য ESP32/ESP8266-ভিত্তিক স্মার্ট সেচ, AI পরামর্শ, NDVI স্যাটেলাইট ও রিয়েল-টাইম সেন্সর নেটওয়ার্ক।" },
-      { property: "og:title", content: "Chashi.io · IoT কৃষি প্ল্যাটফর্ম" },
+      { title: "চাষি.io · স্মার্ট সেচ ব্যবস্থাপনা" },
+      { name: "description", content: "চাষি.io — বরেন্দ্র অঞ্চলের জন্য IoT-চালিত স্মার্ট সেচ ব্যবস্থাপনা প্ল্যাটফর্ম।" },
+      { property: "og:title", content: "চাষি.io · স্মার্ট সেচ ব্যবস্থাপনা" },
       { property: "og:description", content: "জল সাশ্রয়, ফসলের উৎপাদন বৃদ্ধি ও কৃষকের জন্য বুদ্ধিমান সিদ্ধান্ত — সব এক প্ল্যাটফর্মে।" },
     ],
   }),
