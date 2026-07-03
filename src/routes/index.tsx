@@ -135,17 +135,20 @@ function Landing() {
 
       {/* Features */}
       <section id="features" className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
+      {/* Benefits — why this system matters */}
+      <section id="features" className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-10 sm:mb-14">
-          <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্ল্যাটফর্মের বৈশিষ্ট্য</p>
+          <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্ল্যাটফর্মের উপকারিতা</p>
           <h2 className="text-3xl sm:text-5xl font-bangla font-extrabold tracking-tight">
-            যা যা <span className="text-rainbow">প্রয়োজন</span>, একসাথে।
+            কৃষকের জন্য <span className="text-rainbow">প্রকৃত সুফল</span>।
           </h2>
-          <p className="mt-3 text-muted-foreground max-w-xl mx-auto text-sm sm:text-base">
-            সেচ, মোটর, সেন্সর, AI, স্যাটেলাইট — সমস্ত কিছু একটি বুদ্ধিমান কেন্দ্রীয় প্যানেল থেকে।
+          <p className="mt-3 text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base">
+            শুধু প্রযুক্তি নয় — জল, বিদ্যুৎ, সময় ও অর্থের সাশ্রয় সহ ফলন বৃদ্ধি ও টেকসই কৃষি।
+            চাষি.io ব্যবহারে যা যা লাভ:
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {features.map((f) => (
+          {benefits.map((f) => (
             <div
               key={f.title}
               className={`group relative overflow-hidden rounded-2xl p-6 sm:p-7 text-white bg-gradient-to-br ${f.tint} shadow-xl hover:-translate-y-1.5 hover:shadow-2xl transition-all duration-300`}
@@ -157,7 +160,7 @@ function Landing() {
                   <f.icon className="h-6 w-6 text-white drop-shadow" />
                 </div>
                 <h3 className="font-bangla text-xl font-bold tracking-tight text-white">{f.title}</h3>
-                <p className="text-sm text-white/90 mt-2 leading-relaxed">{f.desc}</p>
+                <p className="text-sm text-white/95 mt-2 leading-relaxed">{f.desc}</p>
               </div>
             </div>
           ))}
