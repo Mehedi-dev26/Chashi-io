@@ -254,6 +254,63 @@ function Landing() {
         </div>
       </section>
 
+      {/* Future Plans / Roadmap */}
+      <section id="roadmap" className="py-16 sm:py-24 bg-gradient-to-b from-emerald-50/40 via-white to-amber-50/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-14">
+            <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">রোডম্যাপ</p>
+            <h2 className="text-3xl sm:text-5xl font-bangla font-extrabold tracking-tight">
+              আমাদের <span className="text-rainbow">ভবিষ্যৎ পরিকল্পনা</span>
+            </h2>
+            <p className="mt-3 text-muted-foreground max-w-3xl mx-auto text-sm sm:text-base">
+              BMDA (বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষ)-এর চলমান সেচ প্রকল্পগুলোকে আরও স্মার্ট, আধুনিক ও ডেটা-চালিত করা —
+              LoRa দীর্ঘ-দূরত্ব যোগাযোগ, AI ভিত্তিক পানি বরাদ্দ এবং কৃষকের হাতে বাংলা মোবাইল অ্যাপ।
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+            {[
+              { icon: Radio, title: "LoRa/LoRaWAN নেটওয়ার্ক", desc: "দূরবর্তী মাঠে low-power দীর্ঘ-দূরত্ব সংযোগ — WiFi ছাড়াই সেন্সর ডেটা।", badge: "চলমান", tint: "from-emerald-500 to-teal-600", badgeCls: "bg-amber-100 text-amber-700" },
+              { icon: Satellite, title: "BMDA সেচ প্রকল্প আধুনিকীকরণ", desc: "চলমান deep tube-well ও পাম্প হাউসগুলোকে IoT-চালিত স্মার্ট সিস্টেমে রূপান্তর।", badge: "চলমান", tint: "from-sky-500 to-blue-600", badgeCls: "bg-amber-100 text-amber-700" },
+              { icon: Brain, title: "AI পানি বরাদ্দ ইঞ্জিন", desc: "ফসল, আবহাওয়া ও মাটির অবস্থা বিশ্লেষণ করে স্বয়ংক্রিয় সেচ সময়সূচি।", badge: "চলমান", tint: "from-violet-500 to-purple-600", badgeCls: "bg-amber-100 text-amber-700" },
+              { icon: Smartphone, title: "কৃষকের বাংলা মোবাইল অ্যাপ", desc: "SMS + অ্যাপ notification, ভয়েস কমান্ড ও সহজ বাংলা ড্যাশবোর্ড।", badge: "পরিকল্পিত", tint: "from-cyan-500 to-sky-600", badgeCls: "bg-sky-100 text-sky-700" },
+              { icon: Leaf, title: "ড্রোন ও স্যাটেলাইট NDVI", desc: "ফসলের স্বাস্থ্য পর্যবেক্ষণ ও সমস্যা এলাকা চিহ্নিতকরণ।", badge: "পরিকল্পিত", tint: "from-lime-500 to-emerald-600", badgeCls: "bg-sky-100 text-sky-700" },
+              { icon: ShieldCheck, title: "ব্লকচেইন পানি ব্যবহার লগ", desc: "স্বচ্ছ ও জবাবদিহিমূলক অপরিবর্তনীয় বিতরণ রেকর্ড।", badge: "গবেষণা", tint: "from-amber-500 to-orange-600", badgeCls: "bg-sky-100 text-sky-700" },
+            ].map((it) => (
+              <div key={it.title} className="group relative overflow-hidden rounded-2xl p-4 sm:p-6 bg-white border border-border/60 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all">
+                <div className={`absolute -top-10 -right-10 h-28 w-28 rounded-full bg-gradient-to-br ${it.tint} opacity-15 blur-2xl group-hover:opacity-30 transition-opacity`} />
+                <div className="relative">
+                  <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br ${it.tint} grid place-items-center shadow-md mb-3 sm:mb-4`}>
+                    <it.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  </div>
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <h3 className="font-bangla text-sm sm:text-lg font-bold tracking-tight leading-snug">{it.title}</h3>
+                  </div>
+                  <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md mb-2 ${it.badgeCls}`}>{it.badge}</span>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{it.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 sm:mt-14 rounded-2xl p-6 sm:p-8 bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-xl relative overflow-hidden">
+            <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-amber-400/30 blur-3xl" />
+            <div className="relative flex items-start gap-4 flex-wrap">
+              <div className="h-12 w-12 shrink-0 rounded-2xl bg-white/20 backdrop-blur grid place-items-center">
+                <Rocket className="h-6 w-6 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-bangla text-xl sm:text-2xl font-bold mb-2">দীর্ঘমেয়াদী লক্ষ্য</h3>
+                <p className="text-sm sm:text-base text-white/90 leading-relaxed">
+                  বাংলাদেশের বরেন্দ্র অঞ্চলের প্রতিটি BMDA deep tube-well ও সেচ প্রকল্পকে একটি ইউনিফায়েড IoT + AI প্ল্যাটফর্মে যুক্ত করে
+                  কৃষকদের জন্য জল সাশ্রয়, উৎপাদন বৃদ্ধি ও টেকসই কৃষি নিশ্চিত করা।
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Testimonial / About */}
       <section id="about" className="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-6">
         <div className="rounded-3xl p-[2px] bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 shadow-2xl shadow-orange-500/20">
