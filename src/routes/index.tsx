@@ -84,9 +84,13 @@ function Landing() {
             <Sun className="h-3.5 w-3.5 text-amber-600" />
           </div>
 
-          <h1 className="font-bangla text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] max-w-5xl mx-auto">
-            <span className="brand-chashi">Chashi</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span><br />
-            <span className="text-foreground">স্মার্ট সেচ ব্যবস্থাপনা।</span>
+          <h1 className="text-5xl sm:text-7xl lg:text-8xl tracking-tight leading-[1.05] max-w-5xl mx-auto">
+            <span className="brand-chashi font-black">Chashi</span><span className="brand-chashi-dot font-black">.</span><span className="brand-chashi font-black">io</span>
+            <span className="block font-bangla font-extrabold text-3xl sm:text-5xl lg:text-6xl mt-3 sm:mt-4">
+              <span className="text-foreground">স্মার্ট সেচ </span>
+              <span className="brand-chashi">ব্যবস্থাপনা</span>
+              <span className="text-foreground">।</span>
+            </span>
           </h1>
           <p className="mt-5 sm:mt-6 text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2">
             ESP32/ESP8266-চালিত IoT সেন্সর নেটওয়ার্ক, AI সিদ্ধান্ত-সহায়তা ও স্যাটেলাইট বিশ্লেষণ —
