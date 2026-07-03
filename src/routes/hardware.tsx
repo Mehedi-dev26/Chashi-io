@@ -12,7 +12,7 @@ const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২
 
 
 export const Route = createFileRoute("/hardware")({
-  head: () => ({ meta: [{ title: "হার্ডওয়্যার গাইড · BMDA স্মার্ট সেচ" }] }),
+  head: () => ({ meta: [{ title: "হার্ডওয়্যার গাইড · Chashi.io" }] }),
   component: HardwarePage,
 });
 

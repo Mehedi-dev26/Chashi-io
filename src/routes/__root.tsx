@@ -72,10 +72,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BMDA স্মার্ট সেচ · AI IoT Dashboard" },
-      { name: "description", content: "BMDA স্মার্ট সেচের AI-চালিত IoT dashboard, motor control, sensor telemetry ও irrigation schedule optimization." },
+      { title: "Chashi.io · AI IoT Dashboard" },
+      { name: "description", content: "Chashi.ioের AI-চালিত IoT dashboard, motor control, sensor telemetry ও irrigation schedule optimization." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "BMDA স্মার্ট সেচ · AI IoT Dashboard" },
+      { property: "og:title", content: "Chashi.io · AI IoT Dashboard" },
       { property: "og:description", content: "AI-চালিত motor control, sensor telemetry ও irrigation schedule optimization dashboard." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

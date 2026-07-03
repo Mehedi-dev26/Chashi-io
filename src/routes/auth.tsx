@@ -8,8 +8,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "লগ ইন · BMDA স্মার্ট সেচ প্ল্যাটফর্ম" },
-      { name: "description", content: "BMDA স্মার্ট ইরিগেশন প্ল্যাটফর্মে অপারেটর প্রবেশদ্বার।" },
+      { title: "লগ ইন · Chashi.io প্ল্যাটফর্ম" },
+      { name: "description", content: "Chashi.io প্ল্যাটফর্মে অপারেটর প্রবেশদ্বার।" },
     ],
   }),
   component: AuthPage,
@@ -53,7 +53,7 @@ function AuthPage() {
             <Sprout className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <p className="font-black text-lg leading-tight">BMDA স্মার্ট সেচ</p>
+            <p className="font-black text-lg leading-tight">Chashi.io</p>
             <p className="text-[10px] text-muted-foreground">বরেন্দ্র · IoT v২.৬</p>
           </div>
         </Link>

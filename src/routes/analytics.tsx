@@ -8,7 +8,7 @@ import { TrendingUp, TrendingDown, Download } from "lucide-react";
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
 export const Route = createFileRoute("/analytics")({
-  head: () => ({ meta: [{ title: "পরিসংখ্যান · BMDA স্মার্ট সেচ" }] }),
+  head: () => ({ meta: [{ title: "পরিসংখ্যান · Chashi.io" }] }),
   component: AnalyticsPage,
 });
 

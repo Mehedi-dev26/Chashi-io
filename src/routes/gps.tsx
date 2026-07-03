@@ -15,7 +15,7 @@ export const Route = createFileRoute("/gps")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "GPS মানচিত্র · জমি ও যন্ত্রপাতি Link Up · BMDA" },
+      { title: "GPS মানচিত্র · জমি ও যন্ত্রপাতি Link Up · Chashi.io" },
       { name: "description", content: "OpenStreetMap-ভিত্তিক কৃষি GPS মানচিত্র — জমি, ভাল্ভ ও মোটর সরাসরি লিঙ্ক করুন।" },
     ],
   }),

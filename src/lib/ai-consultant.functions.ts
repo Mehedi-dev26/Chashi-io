@@ -42,7 +42,7 @@ export const askConsultant = createServerFn({ method: "POST" })
         }).join("\n")
       : "(কোনো জমি যোগ করা হয়নি)";
 
-    const systemContext = `তুমি BMDA স্মার্ট সেচ AI পরামর্শক। সর্বদা সংক্ষিপ্ত, বাংলায়, কৃষকের ভাষায় উত্তর দাও। নিচের real-time তথ্যের উপর ভিত্তি করে উত্তর দাও:
+    const systemContext = `তুমি Chashi.io AI পরামর্শক। সর্বদা সংক্ষিপ্ত, বাংলায়, কৃষকের ভাষায় উত্তর দাও। নিচের real-time তথ্যের উপর ভিত্তি করে উত্তর দাও:
 
 পাম্প (MASTER-01): ${masterOnline ? "✓ অনলাইন" : "⚠ অফলাইন"}, voltage=${master?.voltage ?? 0}V, current=${master?.current ?? 0}A, flow=${master?.flow_lpm ?? 0}L/min, runtime=${((master?.runtime_sec ?? 0)/3600).toFixed(2)}h, motor=${master?.motor_on?"ON":"OFF"}
 

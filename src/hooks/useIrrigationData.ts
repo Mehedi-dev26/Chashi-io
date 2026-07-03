@@ -102,7 +102,7 @@ let state: Store = {
   zones: defaultZones.map((z) => ({ ...z, online: false, lastSeen: null, valveNodeId: null, hasNode: false, soilConnected: true })),
   motor: {
     id: PUMP_SPEC.device_id,
-    name: "মেইন মোটর · BMDA Master",
+    name: "মেইন মোটর · Chashi.io Master",
     isOn: false, online: false, lastSeen: null,
     pressure: 0, flowRate: 0, voltage: 0, current: 0, runtime: 0, health: 0, tankLevel: 0,
   },

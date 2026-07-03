@@ -11,7 +11,7 @@ import { Satellite, Leaf, Calendar, Download, RefreshCw, Info, AlertTriangle, Ch
 
 export const Route = createFileRoute("/satellite")({
   head: () => ({ meta: [
-    { title: "স্যাটেলাইট NDVI বিশ্লেষণ · BMDA স্মার্ট সেচ" },
+    { title: "স্যাটেলাইট NDVI বিশ্লেষণ · Chashi.io" },
     { name: "description", content: "Sentinel-2 স্যাটেলাইট থেকে NDVI সূচকে ফসলের স্বাস্থ্য, জোনভিত্তিক সমস্যা চিহ্নিতকরণ ও সেচ পরামর্শ।" },
   ] }),
   component: SatPage,
