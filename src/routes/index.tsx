@@ -350,9 +350,15 @@ function Landing() {
                 ))}
               </div>
               <div className="mt-8">
-                <Link to="/auth" className="h-12 px-8 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-bold text-sm shadow-xl shadow-orange-500/40 hover:shadow-2xl hover:scale-[1.03] transition inline-flex items-center gap-2">
-                  এখনই Panel-এ প্রবেশ করুন <ArrowRight className="h-4 w-4" />
-                </Link>
+                <a
+                  href="https://mehedihassan.iam.bd/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-3.5 rounded-2xl bg-gradient-to-br from-white/90 via-amber-50/80 to-emerald-50/70 border border-amber-300/60 shadow-lg shadow-amber-500/10 hover:shadow-xl hover:shadow-amber-500/20 hover:scale-[1.03] transition-all duration-300"
+                >
+                  <span className="text-[11px] sm:text-xs font-bold tracking-wider uppercase text-muted-foreground">Develop করেছেন</span>
+                  <span className="font-display text-lg sm:text-xl font-black tracking-tight text-gradient-prestige">Mehedi Hasan</span>
+                </a>
               </div>
             </div>
           </div>
