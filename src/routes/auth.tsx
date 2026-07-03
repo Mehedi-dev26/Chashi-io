@@ -49,12 +49,12 @@ function AuthPage() {
 
       <div className="w-full max-w-md">
         <Link to="/" className="flex items-center gap-2.5 mb-6 hover:opacity-80 transition w-fit">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-chart-2 grid place-items-center shadow-lg">
-            <Sprout className="h-5 w-5 text-primary-foreground" />
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 via-lime-400 to-amber-400 grid place-items-center shadow-lg shadow-amber-500/30">
+            <Sprout className="h-5 w-5 text-white" />
           </div>
           <div>
-            <p className="font-black text-lg leading-tight">Chashi.io</p>
-            <p className="text-[10px] text-muted-foreground">বরেন্দ্র · IoT v২.৬</p>
+            <p className="text-lg leading-tight"><span className="brand-chashi">চাষি</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span></p>
+            <p className="text-[10px] text-muted-foreground">স্মার্ট সেচ ব্যবস্থাপনা</p>
           </div>
         </Link>
 
