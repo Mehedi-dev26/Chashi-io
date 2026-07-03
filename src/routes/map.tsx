@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { FieldMap } from "@/components/dashboard/FieldMap";
-import { useIrrigationData } from "@/hooks/useIrrigationData";
-import { MapPin, Layers, Satellite, Compass } from "lucide-react";
+import { useIrrigationData, PUMP_SPEC } from "@/hooks/useIrrigationData";
+import { MapPin, Layers, Radio, Compass } from "lucide-react";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
@@ -11,40 +11,88 @@ export const Route = createFileRoute("/map")({
   component: MapPage,
 });
 
+// 1 একর ≈ ৪০৪৭ m² → মোট আয়তন থেকে বাস্তব field dimensions (16:10 aspect) derive
+// তারপর প্রতিটি zone-এর %-coord কে মিটারে রূপান্তর করে পাম্প (50,50) থেকে দূরত্ব যোগ
+function computePipelineKm(zones: { x: number; y: number; area: number }[]) {
+  const totalAcres = zones.reduce((s, z) => s + z.area, 0);
+  if (!totalAcres) return 0;
+  const totalM2 = totalAcres * 4047;
+  // 16:10 aspect → width = √(A * 1.6), height = width / 1.6
+  const widthM = Math.sqrt(totalM2 * 1.6);
+  const heightM = widthM / 1.6;
+  let totalM = 0;
+  for (const z of zones) {
+    const dx = ((z.x - 50) / 100) * widthM;
+    const dy = ((z.y - 50) / 100) * heightM;
+    totalM += Math.sqrt(dx * dx + dy * dy);
+  }
+  return totalM / 1000;
+}
+
 function MapPage() {
   const { zones, toggleValve } = useIrrigationData();
   const totalArea = zones.reduce((s, z) => s + z.area, 0);
   const active = zones.filter((z) => z.valveOpen).length;
+  const pipelineKm = computePipelineKm(zones);
+  const now = Date.now();
+  const onlineNodes = zones.filter((z) => z.lastSeen && now - z.lastSeen < PUMP_SPEC.heartbeatMs).length;
+  const totalNodesWithHw = zones.filter((z) => z.hasNode).length;
+
+  const cards = [
+    {
+      label: "মোট এলাকা",
+      value: `${bn(totalArea.toFixed(1))} একর`,
+      sub: `${bn((totalArea * 0.4047).toFixed(2))} হেক্টর`,
+      icon: Compass,
+      gradient: "from-emerald-500 via-teal-500 to-cyan-600",
+      shadow: "shadow-emerald-500/40",
+    },
+    {
+      label: "সক্রিয় জোন",
+      value: `${bn(active)} / ${bn(zones.length)}`,
+      sub: active > 0 ? "সেচ চলছে" : "কোনো ভাল্ভ খোলা নেই",
+      icon: MapPin,
+      gradient: "from-fuchsia-500 via-purple-500 to-indigo-600",
+      shadow: "shadow-purple-500/40",
+    },
+    {
+      label: "পাইপলাইন দৈর্ঘ্য",
+      value: `${bn(pipelineKm.toFixed(2))} কিমি`,
+      sub: `${bn(zones.length)}টি জোন পাম্প থেকে`,
+      icon: Layers,
+      gradient: "from-sky-500 via-blue-500 to-indigo-600",
+      shadow: "shadow-blue-500/40",
+    },
+    {
+      label: "সংযুক্ত সাব-নোড",
+      value: `${bn(onlineNodes)} / ${bn(totalNodesWithHw)}`,
+      sub: totalNodesWithHw ? `${bn(Math.round((onlineNodes / Math.max(1, totalNodesWithHw)) * 100))}% অনলাইন` : "কোনো নোড যুক্ত নয়",
+      icon: Radio,
+      gradient: "from-orange-500 via-amber-500 to-rose-500",
+      shadow: "shadow-orange-500/40",
+    },
+  ];
 
   return (
     <DashboardLayout
       title="জমির মানচিত্র · লাইভ টপোলজি"
       subtitle="স্যাটেলাইট ভিউ ও পাইপলাইন নেটওয়ার্কে সকল সেচ জোন দেখুন এবং নিয়ন্ত্রণ করুন।"
-      actions={
-        <div className="flex gap-2">
-          <button className="h-9 px-3 rounded-lg glass-panel text-xs font-semibold flex items-center gap-1.5 hover-lift">
-            <Layers className="h-3.5 w-3.5" /> স্তর
-          </button>
-          <button className="h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 hover-lift">
-            <Satellite className="h-3.5 w-3.5" /> স্যাটেলাইট
-          </button>
-        </div>
-      }
     >
       <div className="stagger space-y-5">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { label: "মোট এলাকা", value: `${bn(totalArea.toFixed(1))} একর`, icon: Compass },
-            { label: "সক্রিয় জোন", value: `${bn(active)} / ${bn(zones.length)}`, icon: MapPin },
-            { label: "পাইপলাইন", value: `${bn("4.2")} কিমি`, icon: Layers },
-            { label: "GPS স্যাটেলাইট", value: `${bn("12")} সংযুক্ত`, icon: Satellite },
-          ].map((s) => (
-            <div key={s.label} className="glass-card rounded-2xl p-4 hover-lift">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</p>
-                <s.icon className="h-4 w-4 text-primary" />
+          {cards.map((s) => (
+            <div
+              key={s.label}
+              className={`group relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br ${s.gradient} shadow-lg ${s.shadow} ring-1 ring-white/30 text-white hover-lift transition-transform`}
+            >
+              <span className="pointer-events-none absolute -top-8 -right-8 h-24 w-24 rounded-full bg-white/15 blur-2xl group-hover:bg-white/25 transition-colors" />
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-white/10" />
+              <div className="relative flex items-center justify-between">
+                <p className="text-[11px] uppercase tracking-wider font-bold text-white/90">{s.label}</p>
+                <s.icon className="h-4 w-4 text-white/90 drop-shadow" />
               </div>
-              <p className="text-2xl font-bold mt-2">{s.value}</p>
+              <p className="relative text-2xl font-extrabold mt-2 tabular-nums drop-shadow">{s.value}</p>
+              <p className="relative text-[10px] font-semibold text-white/85 mt-0.5">{s.sub}</p>
             </div>
           ))}
         </div>
