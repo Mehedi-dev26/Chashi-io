@@ -149,7 +149,7 @@ function Landing() {
           {benefits.map((f) => (
             <div
               key={f.title}
-              className={`group relative overflow-hidden rounded-2xl p-6 sm:p-7 text-white bg-gradient-to-br ${f.tint} shadow-xl hover:-translate-y-1.5 hover:shadow-2xl transition-all duration-300`}
+              className={`group relative overflow-hidden rounded-2xl p-4 sm:p-7 text-white bg-gradient-to-br ${f.tint} shadow-xl hover:-translate-y-1.5 hover:shadow-2xl transition-all duration-300`}
             >
               <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/20 blur-2xl group-hover:scale-125 transition-transform duration-500" />
               <div className="absolute -bottom-12 -left-12 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
