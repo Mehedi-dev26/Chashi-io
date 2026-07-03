@@ -180,7 +180,7 @@ export function TopBar() {
                         return (
                           <button
                             key={z.id}
-                            onClick={() => { setSearchOpen(false); setQ(""); navigate({ to: "/zones", search: { zone: z.id } as never }); }}
+                            onClick={() => { setSearchOpen(false); setQ(""); navigate({ to: "/zones" }); }}
                             className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-secondary/60 transition text-left group"
                           >
                             <span className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 ${z.hasNode && isOnline ? "bg-emerald-500/15 text-emerald-600" : z.hasNode ? "bg-rose-500/15 text-rose-600" : "bg-muted text-muted-foreground"}`}>
