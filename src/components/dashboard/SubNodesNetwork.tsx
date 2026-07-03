@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Cpu, Wifi, WifiOff, Plus, Trash2, Droplets, Sun, Signal, Activity, Sprout, MapPin, Eye, Copy, Check } from "lucide-react";
+import { Cpu, Wifi, WifiOff, Plus, Trash2, Droplets, Sun, Signal, Activity, Sprout, MapPin, Eye, Copy, Check, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -51,6 +51,9 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
   const [form, setForm] = useState({ device_id: "", label: "", zone_id: "", notes: "" });
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const [infoNode, setInfoNode] = useState<FieldNode | null>(null);
+  const [editNode, setEditNode] = useState<FieldNode | null>(null);
+  const [editForm, setEditForm] = useState({ device_id: "", label: "", zone_id: "", notes: "" });
+  const [editSaving, setEditSaving] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [, tick] = useState(0);
 
@@ -111,6 +114,44 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
     if (error) { toast.error(error.message); return; }
     setNodes((p) => p.filter((n) => n.id !== id));
     toast.info(`${device_id} মুছে ফেলা হলো`);
+  };
+
+  const openEdit = (n: FieldNode) => {
+    setEditForm({ device_id: n.device_id, label: n.label, zone_id: n.zone_id ?? "", notes: n.notes ?? "" });
+    setEditNode(n);
+  };
+
+  const saveEdit = async () => {
+    if (!editNode || !user) return;
+    const newDevId = editForm.device_id.trim();
+    const newLabel = editForm.label.trim();
+    if (!newDevId || !newLabel) { toast.error("Device ID ও নাম প্রয়োজন"); return; }
+    const oldDevId = editNode.device_id;
+    setEditSaving(true);
+    // Update the sub-node row
+    const { error: ue } = await supabase.from("field_nodes").update({
+      device_id: newDevId,
+      label: newLabel,
+      zone_id: editForm.zone_id || null,
+      notes: editForm.notes || null,
+    }).eq("id", editNode.id);
+    if (ue) { setEditSaving(false); toast.error(ue.message); return; }
+    // Keep the linked field's valve_node_id consistent
+    if (oldDevId !== newDevId) {
+      await supabase.from("fields").update({ valve_node_id: newDevId }).eq("user_id", user.id).eq("valve_node_id", oldDevId);
+    }
+    // Sync field assignment
+    if (editForm.zone_id) {
+      // Clear this device from any other field, then link to the new one
+      await supabase.from("fields").update({ valve_node_id: null }).eq("user_id", user.id).eq("valve_node_id", newDevId);
+      await supabase.from("fields").update({ valve_node_id: newDevId }).eq("user_id", user.id).eq("zone_id", editForm.zone_id);
+    } else {
+      await supabase.from("fields").update({ valve_node_id: null }).eq("user_id", user.id).eq("valve_node_id", newDevId);
+    }
+    setEditSaving(false);
+    setEditNode(null);
+    toast.success(`${newDevId} সংরক্ষণ হয়েছে · firmware-এ নতুন ID flash করতে ভুলবেন না`);
+    await reloadNodes();
   };
 
   const onAssign = async (n: FieldNode, zoneId: string) => {
@@ -335,6 +376,13 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
                         <Eye className="h-3.5 w-3.5" />
                       </button>
                       <button
+                        onClick={() => openEdit(n)}
+                        title="সম্পাদনা করুন"
+                        className="h-7 w-7 rounded-md grid place-items-center bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow shadow-amber-500/30 hover:scale-110 transition"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
                         onClick={() => remove(n.id, n.device_id)}
                         title="মুছে ফেলুন"
                         className="h-7 w-7 rounded-md grid place-items-center bg-rose-500/15 text-rose-600 hover:bg-rose-500/25 transition"
@@ -442,6 +490,57 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!editNode} onOpenChange={(o) => !o && setEditNode(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-4 w-4 text-amber-500" /> সাব-নোড সম্পাদনা
+            </DialogTitle>
+          </DialogHeader>
+          {editNode && (
+            <div className="space-y-3">
+              <div>
+                <Label>Device ID</Label>
+                <Input value={editForm.device_id} onChange={(e) => setEditForm({ ...editForm, device_id: e.target.value })} placeholder="SUB-01" />
+                <p className="text-[10px] text-amber-600 mt-1 font-semibold">⚠ Device ID বদলালে ESP8266 firmware-এ নতুন ID re-flash করতে হবে</p>
+              </div>
+              <div>
+                <Label>নাম</Label>
+                <Input value={editForm.label} onChange={(e) => setEditForm({ ...editForm, label: e.target.value })} placeholder="উত্তর জমির নোড" />
+              </div>
+              <div>
+                <Label>জমিতে assign</Label>
+                <select
+                  value={editForm.zone_id}
+                  onChange={(e) => setEditForm({ ...editForm, zone_id: e.target.value })}
+                  className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="">— unassigned —</option>
+                  {zones.map((z) => {
+                    const takenByOther = z.hasNode && z.valveNodeId !== editNode.device_id;
+                    return (
+                      <option key={z.id} value={z.id} disabled={takenByOther}>
+                        {z.id} · {z.nameBn} {takenByOther ? "(নেওয়া)" : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              <div>
+                <Label>নোট (ঐচ্ছিক)</Label>
+                <Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={2} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditNode(null)} disabled={editSaving}>বাতিল</Button>
+            <Button onClick={saveEdit} disabled={editSaving}>
+              {editSaving ? "সংরক্ষণ হচ্ছে…" : "সংরক্ষণ করুন"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!infoNode} onOpenChange={(o) => !o && setInfoNode(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
