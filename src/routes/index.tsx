@@ -323,7 +323,7 @@ function Landing() {
               </div>
               <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্রকল্প সম্পর্কে</p>
               <h2 className="text-3xl sm:text-5xl font-bangla font-extrabold tracking-tight leading-tight">
-                বরেন্দ্র অঞ্চলে <span className="text-rainbow">পানির সুষম ব্যবহার</span>
+                বরেন্দ্র অঞ্চলে <span className="text-rainbow">কৃষি পানির সুষম ব্যবহার</span>
               </h2>
               <p className="mt-5 text-muted-foreground text-sm sm:text-base leading-relaxed max-w-3xl mx-auto">
                 Chashi.io প্ল্যাটফর্ম বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষের কৃষি অবকাঠামোকে আধুনিকীকরণের একটি উদ্যোগ।
