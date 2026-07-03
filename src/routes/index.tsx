@@ -68,52 +68,56 @@ function Landing() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative">
-        <div className="absolute inset-0 grid-bg opacity-30 -z-10" />
-        <div className="absolute -top-20 left-1/4 w-[420px] h-[420px] bg-amber-300/40 blur-3xl rounded-full -z-10" />
-        <div className="absolute top-40 -right-20 w-[420px] h-[420px] bg-emerald-400/30 blur-3xl rounded-full -z-10" />
-        <div className="absolute top-80 left-1/2 w-[360px] h-[360px] bg-sky-400/25 blur-3xl rounded-full -z-10" />
+      {/* Hero — Barind morning landscape */}
+      <section className="relative overflow-hidden isolate">
+        {/* Background image */}
+        <div
+          className="absolute inset-0 -z-20 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroBg})` }}
+        />
+        {/* Readability overlay: golden top, deep emerald bottom */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-amber-900/35 via-emerald-950/45 to-emerald-950/75" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(6,46,32,0.35)_75%)]" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-16 sm:pb-24 text-center">
-          <div className="inline-flex flex-wrap items-center justify-center gap-2 px-3.5 h-auto py-1.5 rounded-full bg-gradient-to-r from-amber-100 via-yellow-50 to-emerald-100 border border-amber-300/60 text-xs font-semibold text-amber-900 mb-6 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 sm:pt-24 pb-20 sm:pb-32 text-center">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/30 text-xs font-semibold text-white mb-6 shadow-lg">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inset-0 rounded-full bg-amber-500 animate-ping opacity-60" />
-              <span className="relative rounded-full h-2 w-2 bg-amber-500" />
+              <span className="absolute inset-0 rounded-full bg-amber-300 animate-ping opacity-70" />
+              <span className="relative rounded-full h-2 w-2 bg-amber-300" />
             </span>
             বরেন্দ্র অঞ্চলের জন্য পরবর্তী-প্রজন্মের কৃষি প্ল্যাটফর্ম
-            <Sun className="h-3.5 w-3.5 text-amber-600" />
+            <Sun className="h-3.5 w-3.5 text-amber-300" />
           </div>
 
-          <h1 className="font-bangla text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] max-w-5xl mx-auto">
+          <h1 className="font-bangla text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] max-w-5xl mx-auto drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)]">
             <span className="brand-chashi">Chashi</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span><br />
-            <span className="text-foreground">স্মার্ট সেচ </span><span className="text-sun">ব্যবস্থাপনা।</span>
+            <span className="text-white">স্মার্ট সেচ </span><span className="text-sun">ব্যবস্থাপনা।</span>
           </h1>
-          <p className="mt-5 sm:mt-6 text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2">
+          <p className="mt-5 sm:mt-6 text-sm sm:text-lg text-white/90 max-w-2xl mx-auto leading-relaxed px-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
             ESP32/ESP8266-চালিত IoT সেন্সর নেটওয়ার্ক, AI সিদ্ধান্ত-সহায়তা ও স্যাটেলাইট বিশ্লেষণ —
             বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষের জন্য নির্মিত পেশাদার স্মার্ট ইরিগেশন প্ল্যাটফর্ম।
           </p>
 
           <div className="mt-7 sm:mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3 px-4 sm:px-0">
-            <Link to="/auth" className="h-12 px-7 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-bold text-sm shadow-xl shadow-orange-500/30 hover:shadow-2xl hover:scale-[1.02] transition inline-flex items-center justify-center gap-2">
+            <Link to="/auth" className="h-12 px-7 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-bold text-sm shadow-xl shadow-orange-900/40 hover:shadow-2xl hover:scale-[1.02] transition inline-flex items-center justify-center gap-2">
               Main Panel-এ প্রবেশ করুন <ArrowRight className="h-4 w-4" />
             </Link>
-            <a href="#features" className="h-12 px-6 rounded-xl border-2 border-emerald-300 bg-white/70 backdrop-blur font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-emerald-50 hover:border-emerald-400 transition text-emerald-800">
+            <a href="#features" className="h-12 px-6 rounded-xl border-2 border-white/50 bg-white/10 backdrop-blur-md font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-white/20 hover:border-white/70 transition text-white">
               <PlayCircle className="h-4 w-4" /> ডেমো দেখুন
             </a>
           </div>
 
           {/* Trust strip */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-white/80">
             {["✅ Government-grade security", "🌱 Eco-friendly", "⚡ Real-time", "🇧🇩 বাংলায় তৈরি"].map((t) => (
-              <span key={t} className="font-medium">{t}</span>
+              <span key={t} className="font-medium drop-shadow">{t}</span>
             ))}
           </div>
 
-          {/* Stats */}
-          <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
+          {/* Stats — pushed down for breathing room over the landscape */}
+          <div className="mt-20 sm:mt-28 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
             {stats.map((s) => (
-              <div key={s.u} className={`relative overflow-hidden rounded-2xl p-5 sm:p-6 text-center bg-gradient-to-br ${s.c} shadow-xl hover:scale-[1.04] hover:-translate-y-1 transition-transform duration-300`}>
+              <div key={s.u} className={`relative overflow-hidden rounded-2xl p-5 sm:p-6 text-center bg-gradient-to-br ${s.c} shadow-2xl ring-1 ring-white/25 hover:scale-[1.04] hover:-translate-y-1 transition-transform duration-300`}>
                 <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-white/25 blur-xl" />
                 <div className="absolute -bottom-8 -left-6 h-16 w-16 rounded-full bg-white/15 blur-lg" />
                 <p className="relative font-bangla text-3xl sm:text-4xl font-extrabold tabular-nums text-white drop-shadow">{s.v}</p>
