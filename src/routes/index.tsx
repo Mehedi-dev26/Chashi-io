@@ -136,16 +136,16 @@ function Landing() {
       {/* Benefits — why this system matters */}
       <section id="features" className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-10 sm:mb-14">
-          <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্ল্যাটফর্মের উপকারিতা</p>
+          <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">এই সিস্টেমের উপকারিতা</p>
           <h2 className="text-3xl sm:text-5xl font-bangla font-extrabold tracking-tight">
-            কৃষকের জন্য <span className="text-rainbow">প্রকৃত সুফল</span>।
+            আমাদের এই সিস্টেম ব্যবহারে <span className="text-rainbow">কী কী উপকারিতা</span>?
           </h2>
           <p className="mt-3 text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base">
             শুধু প্রযুক্তি নয় — জল, বিদ্যুৎ, সময় ও অর্থের সাশ্রয় সহ ফলন বৃদ্ধি ও টেকসই কৃষি।
             চাষি.io ব্যবহারে যা যা লাভ:
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
           {benefits.map((f) => (
             <div
               key={f.title}
