@@ -209,7 +209,7 @@ export function TopBar() {
                       {results.routes.map((r) => (
                         <button
                           key={r.url}
-                          onClick={() => { setSearchOpen(false); setQ(""); navigate({ to: r.url as never }); }}
+                          onClick={() => { setSearchOpen(false); setQ(""); navigate({ to: r.url as "/app" }); }}
                           className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-secondary/60 transition text-left"
                         >
                           <span className="h-8 w-8 rounded-lg grid place-items-center shrink-0 bg-primary/15 text-primary">
