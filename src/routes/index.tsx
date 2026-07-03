@@ -3,6 +3,7 @@ import {
   Sprout, ArrowRight, Cpu, Droplets, Gauge, Sparkles, ShieldCheck,
   Activity, Satellite, CircuitBoard, ChevronRight, MapPin, Brain, Zap,
   Sun, CloudRain, Leaf, BarChart3, Wifi, Star, CheckCircle2, PlayCircle,
+  Rocket, Radio, Smartphone, Lightbulb, Clock, CircleCheck,
 } from "lucide-react";
 import heroBg from "@/assets/hero-barind-morning.jpg";
 
