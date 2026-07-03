@@ -491,6 +491,57 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
         </Card>
       )}
 
+      <Dialog open={!!editNode} onOpenChange={(o) => !o && setEditNode(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-4 w-4 text-amber-500" /> সাব-নোড সম্পাদনা
+            </DialogTitle>
+          </DialogHeader>
+          {editNode && (
+            <div className="space-y-3">
+              <div>
+                <Label>Device ID</Label>
+                <Input value={editForm.device_id} onChange={(e) => setEditForm({ ...editForm, device_id: e.target.value })} placeholder="SUB-01" />
+                <p className="text-[10px] text-amber-600 mt-1 font-semibold">⚠ Device ID বদলালে ESP8266 firmware-এ নতুন ID re-flash করতে হবে</p>
+              </div>
+              <div>
+                <Label>নাম</Label>
+                <Input value={editForm.label} onChange={(e) => setEditForm({ ...editForm, label: e.target.value })} placeholder="উত্তর জমির নোড" />
+              </div>
+              <div>
+                <Label>জমিতে assign</Label>
+                <select
+                  value={editForm.zone_id}
+                  onChange={(e) => setEditForm({ ...editForm, zone_id: e.target.value })}
+                  className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="">— unassigned —</option>
+                  {zones.map((z) => {
+                    const takenByOther = z.hasNode && z.valveNodeId !== editNode.device_id;
+                    return (
+                      <option key={z.id} value={z.id} disabled={takenByOther}>
+                        {z.id} · {z.nameBn} {takenByOther ? "(নেওয়া)" : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              <div>
+                <Label>নোট (ঐচ্ছিক)</Label>
+                <Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={2} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditNode(null)} disabled={editSaving}>বাতিল</Button>
+            <Button onClick={saveEdit} disabled={editSaving}>
+              {editSaving ? "সংরক্ষণ হচ্ছে…" : "সংরক্ষণ করুন"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!infoNode} onOpenChange={(o) => !o && setInfoNode(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
