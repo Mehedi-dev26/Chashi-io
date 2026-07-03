@@ -18,13 +18,16 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-const features = [
-  { icon: Droplets, title: "জোন-ভিত্তিক সেচ", desc: "৭+ জোনের ভাল্ভ ও পানি প্রবাহ স্মার্টফোন থেকে নিয়ন্ত্রণ।", tint: "from-sky-400 to-cyan-500" },
-  { icon: Gauge, title: "মোটর অটোমেশন", desc: "চাপ, ভোল্টেজ, কারেন্ট মনিটরিং সহ স্বয়ংক্রিয় shutoff।", tint: "from-amber-400 to-orange-500" },
-  { icon: Brain, title: "AI পরামর্শ", desc: "মাটি, আবহাওয়া ও ফসল অনুযায়ী বুদ্ধিমান সেচ সুপারিশ।", tint: "from-violet-500 to-fuchsia-500" },
-  { icon: Satellite, title: "NDVI স্যাটেলাইট", desc: "Sentinel-2 ডেটায় ফসলের স্বাস্থ্য ও জলের প্রয়োজন বিশ্লেষণ।", tint: "from-emerald-400 to-teal-500" },
-  { icon: CircuitBoard, title: "Master-Slave Hardware", desc: "ESP32 মাস্টার + একাধিক ESP8266 sub-node দিয়ে স্কেলেবল।", tint: "from-yellow-400 to-amber-500" },
-  { icon: ShieldCheck, title: "Role-Based Security", desc: "Admin, Operator, Viewer — প্রত্যেকের জন্য নিরাপদ access।", tint: "from-rose-400 to-pink-600" },
+const benefits = [
+  { icon: Droplets, title: "৪০% জল সাশ্রয়", desc: "মাটির আর্দ্রতা ও আবহাওয়া দেখে শুধু প্রয়োজনের সময়ই সেচ — অপচয় বন্ধ, ভূগর্ভস্থ পানি রক্ষা।", tint: "from-sky-400 to-cyan-500" },
+  { icon: Sprout, title: "ফসলের উৎপাদন বৃদ্ধি", desc: "সঠিক সময়ে সঠিক পরিমাণ পানি — ধান, গম ও সবজির ফলন ১৫–২৫% পর্যন্ত বেশি।", tint: "from-emerald-400 to-green-600" },
+  { icon: Zap, title: "বিদ্যুৎ ও জ্বালানি সাশ্রয়", desc: "স্বয়ংক্রিয় মোটর shutoff ও শিডিউলিংয়ের ফলে বিদ্যুৎ বিল ৩০%+ কমে যায়।", tint: "from-amber-400 to-orange-500" },
+  { icon: Brain, title: "বুদ্ধিমান সিদ্ধান্ত", desc: "AI বাংলায় বলে দেয় কখন, কোন জোনে কতটুকু সেচ দরকার — অভিজ্ঞতার উপর নির্ভরতা কমে।", tint: "from-violet-500 to-fuchsia-500" },
+  { icon: Activity, title: "শ্রম ও সময় সাশ্রয়", desc: "মাঠে না গিয়ে মোবাইল থেকেই ভাল্ভ, পাম্প ও সেচ নিয়ন্ত্রণ — দৈনিক ২–৩ ঘণ্টা বাঁচে।", tint: "from-rose-400 to-pink-600" },
+  { icon: Leaf, title: "টেকসই ও পরিবেশ-বান্ধব", desc: "কম পানি, কম বিদ্যুৎ, কম কার্বন — জলবায়ু পরিবর্তনের যুগে দায়িত্বশীল কৃষি।", tint: "from-lime-400 to-emerald-500" },
+  { icon: BarChart3, title: "ডেটা-ভিত্তিক পরিকল্পনা", desc: "প্রতিটি জোনের সেচ, ফলন ও খরচের ইতিহাস — ভবিষ্যতের পরিকল্পনা আরও নির্ভুল।", tint: "from-indigo-400 to-blue-600" },
+  { icon: ShieldCheck, title: "খরা ও ফসল-ক্ষতি প্রতিরোধ", desc: "রিয়েল-টাইম alert ও পূর্বাভাসে আগেই সতর্ক — খরা, অতিবৃষ্টি বা যন্ত্র-বিকলে ফসল বাঁচে।", tint: "from-yellow-400 to-amber-600" },
+  { icon: CheckCircle2, title: "কৃষকের আর্থিক লাভ", desc: "কম খরচ + বেশি ফলন = হেক্টর প্রতি ২৫,০০০+ টাকা অতিরিক্ত আয়ের সম্ভাবনা।", tint: "from-teal-400 to-cyan-600" },
 ];
 
 const stats = [
@@ -130,19 +133,20 @@ function Landing() {
         </div>
       </section>
 
-      {/* Features */}
+      {/* Benefits — why this system matters */}
       <section id="features" className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-10 sm:mb-14">
-          <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্ল্যাটফর্মের বৈশিষ্ট্য</p>
+          <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্ল্যাটফর্মের উপকারিতা</p>
           <h2 className="text-3xl sm:text-5xl font-bangla font-extrabold tracking-tight">
-            যা যা <span className="text-rainbow">প্রয়োজন</span>, একসাথে।
+            কৃষকের জন্য <span className="text-rainbow">প্রকৃত সুফল</span>।
           </h2>
-          <p className="mt-3 text-muted-foreground max-w-xl mx-auto text-sm sm:text-base">
-            সেচ, মোটর, সেন্সর, AI, স্যাটেলাইট — সমস্ত কিছু একটি বুদ্ধিমান কেন্দ্রীয় প্যানেল থেকে।
+          <p className="mt-3 text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base">
+            শুধু প্রযুক্তি নয় — জল, বিদ্যুৎ, সময় ও অর্থের সাশ্রয় সহ ফলন বৃদ্ধি ও টেকসই কৃষি।
+            চাষি.io ব্যবহারে যা যা লাভ:
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {features.map((f) => (
+          {benefits.map((f) => (
             <div
               key={f.title}
               className={`group relative overflow-hidden rounded-2xl p-6 sm:p-7 text-white bg-gradient-to-br ${f.tint} shadow-xl hover:-translate-y-1.5 hover:shadow-2xl transition-all duration-300`}
@@ -154,7 +158,7 @@ function Landing() {
                   <f.icon className="h-6 w-6 text-white drop-shadow" />
                 </div>
                 <h3 className="font-bangla text-xl font-bold tracking-tight text-white">{f.title}</h3>
-                <p className="text-sm text-white/90 mt-2 leading-relaxed">{f.desc}</p>
+                <p className="text-sm text-white/95 mt-2 leading-relaxed">{f.desc}</p>
               </div>
             </div>
           ))}
