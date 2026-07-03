@@ -63,7 +63,7 @@ export function DashboardLayout({
             </div>
             <div className="space-y-5">{children}</div>
             <footer className="text-center text-[11px] text-muted-foreground py-6">
-              <span className="brand-chashi font-bold">চাষি</span><span className="brand-chashi-dot">.</span><span className="brand-chashi font-bold">io</span> · স্মার্ট সেচ ব্যবস্থাপনা · বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষ
+              <span className="brand-chashi font-bold">Chashi</span><span className="brand-chashi-dot">.</span><span className="brand-chashi font-bold">io</span> · স্মার্ট সেচ ব্যবস্থাপনা · বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষ
             </footer>
           </main>
         </SidebarInset>

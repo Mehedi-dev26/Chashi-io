@@ -8,9 +8,9 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "চাষি.io · স্মার্ট সেচ ব্যবস্থাপনা" },
-      { name: "description", content: "চাষি.io — বরেন্দ্র অঞ্চলের জন্য IoT-চালিত স্মার্ট সেচ ব্যবস্থাপনা প্ল্যাটফর্ম।" },
-      { property: "og:title", content: "চাষি.io · স্মার্ট সেচ ব্যবস্থাপনা" },
+      { title: "Chashi.io · স্মার্ট সেচ ব্যবস্থাপনা" },
+      { name: "description", content: "Chashi.io — বরেন্দ্র অঞ্চলের জন্য IoT-চালিত স্মার্ট সেচ ব্যবস্থাপনা প্ল্যাটফর্ম।" },
+      { property: "og:title", content: "Chashi.io · স্মার্ট সেচ ব্যবস্থাপনা" },
       { property: "og:description", content: "জল সাশ্রয়, ফসলের উৎপাদন বৃদ্ধি ও কৃষকের জন্য বুদ্ধিমান সিদ্ধান্ত — সব এক প্ল্যাটফর্মে।" },
     ],
   }),
@@ -50,7 +50,7 @@ function Landing() {
               <Sprout className="h-5 w-5 text-white" />
             </div>
             <div className="leading-tight min-w-0">
-              <p className="text-sm truncate"><span className="brand-chashi">চাষি</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span></p>
+              <p className="text-sm truncate"><span className="brand-chashi">Chashi</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span></p>
               <p className="text-[10px] text-muted-foreground truncate">স্মার্ট সেচ ব্যবস্থাপনা</p>
             </div>
           </Link>
@@ -85,7 +85,7 @@ function Landing() {
           </div>
 
           <h1 className="font-bangla text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] max-w-5xl mx-auto">
-            <span className="brand-chashi">চাষি</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span><br />
+            <span className="brand-chashi">Chashi</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span><br />
             <span className="text-foreground">স্মার্ট সেচ ব্যবস্থাপনা।</span>
           </h1>
           <p className="mt-5 sm:mt-6 text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2">
