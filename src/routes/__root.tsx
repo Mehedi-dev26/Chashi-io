@@ -73,7 +73,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Chashi.io · AI IoT Dashboard" },
-      { name: "description", content: "Chashi.ioের AI-চালিত IoT dashboard, motor control, sensor telemetry ও irrigation schedule optimization." },
+      { name: "description", content: "Chashi.io-এর AI-চালিত IoT dashboard, motor control, sensor telemetry ও irrigation schedule optimization." },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "Chashi.io · AI IoT Dashboard" },
       { property: "og:description", content: "AI-চালিত motor control, sensor telemetry ও irrigation schedule optimization dashboard." },
