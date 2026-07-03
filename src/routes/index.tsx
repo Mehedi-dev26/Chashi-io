@@ -4,6 +4,7 @@ import {
   Activity, Satellite, CircuitBoard, ChevronRight, MapPin, Brain, Zap,
   Sun, CloudRain, Leaf, BarChart3, Wifi, Star, CheckCircle2, PlayCircle,
 } from "lucide-react";
+import heroBg from "@/assets/hero-barind-morning.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
