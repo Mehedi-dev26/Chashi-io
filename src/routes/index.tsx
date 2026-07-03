@@ -133,8 +133,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
       {/* Benefits — why this system matters */}
       <section id="features" className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-10 sm:mb-14">
