@@ -18,13 +18,16 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-const features = [
-  { icon: Droplets, title: "জোন-ভিত্তিক সেচ", desc: "৭+ জোনের ভাল্ভ ও পানি প্রবাহ স্মার্টফোন থেকে নিয়ন্ত্রণ।", tint: "from-sky-400 to-cyan-500" },
-  { icon: Gauge, title: "মোটর অটোমেশন", desc: "চাপ, ভোল্টেজ, কারেন্ট মনিটরিং সহ স্বয়ংক্রিয় shutoff।", tint: "from-amber-400 to-orange-500" },
-  { icon: Brain, title: "AI পরামর্শ", desc: "মাটি, আবহাওয়া ও ফসল অনুযায়ী বুদ্ধিমান সেচ সুপারিশ।", tint: "from-violet-500 to-fuchsia-500" },
-  { icon: Satellite, title: "NDVI স্যাটেলাইট", desc: "Sentinel-2 ডেটায় ফসলের স্বাস্থ্য ও জলের প্রয়োজন বিশ্লেষণ।", tint: "from-emerald-400 to-teal-500" },
-  { icon: CircuitBoard, title: "Master-Slave Hardware", desc: "ESP32 মাস্টার + একাধিক ESP8266 sub-node দিয়ে স্কেলেবল।", tint: "from-yellow-400 to-amber-500" },
-  { icon: ShieldCheck, title: "Role-Based Security", desc: "Admin, Operator, Viewer — প্রত্যেকের জন্য নিরাপদ access।", tint: "from-rose-400 to-pink-600" },
+const benefits = [
+  { icon: Droplets, title: "৪০% জল সাশ্রয়", desc: "মাটির আর্দ্রতা ও আবহাওয়া দেখে শুধু প্রয়োজনের সময়ই সেচ — অপচয় বন্ধ, ভূগর্ভস্থ পানি রক্ষা।", tint: "from-sky-400 to-cyan-500" },
+  { icon: Sprout, title: "ফসলের উৎপাদন বৃদ্ধি", desc: "সঠিক সময়ে সঠিক পরিমাণ পানি — ধান, গম ও সবজির ফলন ১৫–২৫% পর্যন্ত বেশি।", tint: "from-emerald-400 to-green-600" },
+  { icon: Zap, title: "বিদ্যুৎ ও জ্বালানি সাশ্রয়", desc: "স্বয়ংক্রিয় মোটর shutoff ও শিডিউলিংয়ের ফলে বিদ্যুৎ বিল ৩০%+ কমে যায়।", tint: "from-amber-400 to-orange-500" },
+  { icon: Brain, title: "বুদ্ধিমান সিদ্ধান্ত", desc: "AI বাংলায় বলে দেয় কখন, কোন জোনে কতটুকু সেচ দরকার — অভিজ্ঞতার উপর নির্ভরতা কমে।", tint: "from-violet-500 to-fuchsia-500" },
+  { icon: Activity, title: "শ্রম ও সময় সাশ্রয়", desc: "মাঠে না গিয়ে মোবাইল থেকেই ভাল্ভ, পাম্প ও সেচ নিয়ন্ত্রণ — দৈনিক ২–৩ ঘণ্টা বাঁচে।", tint: "from-rose-400 to-pink-600" },
+  { icon: Leaf, title: "টেকসই ও পরিবেশ-বান্ধব", desc: "কম পানি, কম বিদ্যুৎ, কম কার্বন — জলবায়ু পরিবর্তনের যুগে দায়িত্বশীল কৃষি।", tint: "from-lime-400 to-emerald-500" },
+  { icon: BarChart3, title: "ডেটা-ভিত্তিক পরিকল্পনা", desc: "প্রতিটি জোনের সেচ, ফলন ও খরচের ইতিহাস — ভবিষ্যতের পরিকল্পনা আরও নির্ভুল।", tint: "from-indigo-400 to-blue-600" },
+  { icon: ShieldCheck, title: "খরা ও ফসল-ক্ষতি প্রতিরোধ", desc: "রিয়েল-টাইম alert ও পূর্বাভাসে আগেই সতর্ক — খরা, অতিবৃষ্টি বা যন্ত্র-বিকলে ফসল বাঁচে।", tint: "from-yellow-400 to-amber-600" },
+  { icon: CheckCircle2, title: "কৃষকের আর্থিক লাভ", desc: "কম খরচ + বেশি ফলন = হেক্টর প্রতি ২৫,০০০+ টাকা অতিরিক্ত আয়ের সম্ভাবনা।", tint: "from-teal-400 to-cyan-600" },
 ];
 
 const stats = [
