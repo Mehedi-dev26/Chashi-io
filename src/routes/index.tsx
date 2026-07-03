@@ -198,7 +198,7 @@ function Landing() {
           <div>
             <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-sun">প্রযুক্তি স্ট্যাক</p>
             <h2 className="text-3xl sm:text-5xl font-bangla font-extrabold tracking-tight leading-tight">
-              Master–Slave <span className="text-rainbow">IoT আর্কিটেকচার</span>
+              এই IoT প্রকল্পের <span className="text-rainbow">আর্কিটেকচার</span>
             </h2>
             <p className="mt-4 text-muted-foreground leading-relaxed">
               একটি ESP32 মাস্টার নোড পাম্প হাউস পরিচালনা করে — flow, pressure, tank level। মাঠে একাধিক ESP8266 sub-node মাটির আদ্রতা, LDR ও ভাল্ভ নিয়ন্ত্রণ করে। সব কিছু WiFi/HTTP দিয়ে cloud panel-এ লাইভ সংযুক্ত।
@@ -208,7 +208,7 @@ function Landing() {
                 { i: Cpu, t: "ESP32 মাস্টার + ESP8266 সাব-নোড", c: "from-amber-400 to-orange-500" },
                 { i: Activity, t: "রিয়েল-টাইম telemetry (প্রতি ৫ সেকেন্ডে)", c: "from-sky-400 to-blue-500" },
                 { i: MapPin, t: "GPS-ভিত্তিক জোন ম্যাপিং", c: "from-rose-400 to-pink-500" },
-                { i: Sparkles, t: "Lovable AI Gateway দিয়ে বাংলা পরামর্শ", c: "from-violet-500 to-fuchsia-500" },
+                { i: Sparkles, t: "Artificial Intelligence Gateway দিয়ে বাংলা পরামর্শ", c: "from-violet-500 to-fuchsia-500" },
               ].map((x) => (
                 <li key={x.t} className="flex items-center gap-3 text-sm font-medium">
                   <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${x.c} grid place-items-center shrink-0 shadow-md`}>
