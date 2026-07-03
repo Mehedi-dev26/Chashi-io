@@ -376,6 +376,13 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
                         <Eye className="h-3.5 w-3.5" />
                       </button>
                       <button
+                        onClick={() => openEdit(n)}
+                        title="সম্পাদনা করুন"
+                        className="h-7 w-7 rounded-md grid place-items-center bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow shadow-amber-500/30 hover:scale-110 transition"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
                         onClick={() => remove(n.id, n.device_id)}
                         title="মুছে ফেলুন"
                         className="h-7 w-7 rounded-md grid place-items-center bg-rose-500/15 text-rose-600 hover:bg-rose-500/25 transition"
