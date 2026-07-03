@@ -51,6 +51,9 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
   const [form, setForm] = useState({ device_id: "", label: "", zone_id: "", notes: "" });
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const [infoNode, setInfoNode] = useState<FieldNode | null>(null);
+  const [editNode, setEditNode] = useState<FieldNode | null>(null);
+  const [editForm, setEditForm] = useState({ device_id: "", label: "", zone_id: "", notes: "" });
+  const [editSaving, setEditSaving] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [, tick] = useState(0);
 
