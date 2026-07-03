@@ -8,9 +8,9 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BMDA স্মার্ট সেচ · IoT-চালিত কৃষি জলব্যবস্থাপনা প্ল্যাটফর্ম" },
+      { title: "Chashi.io · IoT-চালিত কৃষি জলব্যবস্থাপনা প্ল্যাটফর্ম" },
       { name: "description", content: "বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষের জন্য ESP32/ESP8266-ভিত্তিক স্মার্ট সেচ, AI পরামর্শ, NDVI স্যাটেলাইট ও রিয়েল-টাইম সেন্সর নেটওয়ার্ক।" },
-      { property: "og:title", content: "BMDA স্মার্ট সেচ · IoT কৃষি প্ল্যাটফর্ম" },
+      { property: "og:title", content: "Chashi.io · IoT কৃষি প্ল্যাটফর্ম" },
       { property: "og:description", content: "জল সাশ্রয়, ফসলের উৎপাদন বৃদ্ধি ও কৃষকের জন্য বুদ্ধিমান সিদ্ধান্ত — সব এক প্ল্যাটফর্মে।" },
     ],
   }),
@@ -50,7 +50,7 @@ function Landing() {
               <Sprout className="h-5 w-5 text-white" />
             </div>
             <div className="leading-tight min-w-0">
-              <p className="font-black text-sm truncate">BMDA স্মার্ট সেচ</p>
+              <p className="font-black text-sm truncate">Chashi.io</p>
               <p className="text-[10px] text-muted-foreground truncate">বরেন্দ্র · IoT v২.৬</p>
             </div>
           </Link>
@@ -85,7 +85,7 @@ function Landing() {
           </div>
 
           <h1 className="font-bangla text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] max-w-5xl mx-auto">
-            <span className="text-foreground">বরেন্দ্র স্মার্ট ইরিগেশন</span><br />
+            <span className="text-foreground">Chashi.io স্মার্ট ইরিগেশন</span><br />
             <span className="text-rainbow">IoT-চালিত কৃষি বিপ্লব।</span>
           </h1>
           <p className="mt-5 sm:mt-6 text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2">
@@ -257,7 +257,7 @@ function Landing() {
                 বরেন্দ্র অঞ্চলে <span className="text-rainbow">পানির সুষম ব্যবহার</span>
               </h2>
               <p className="mt-5 text-muted-foreground text-sm sm:text-base leading-relaxed max-w-3xl mx-auto">
-                BMDA স্মার্ট সেচ প্ল্যাটফর্ম বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষের কৃষি অবকাঠামোকে আধুনিকীকরণের একটি উদ্যোগ।
+                Chashi.io প্ল্যাটফর্ম বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষের কৃষি অবকাঠামোকে আধুনিকীকরণের একটি উদ্যোগ।
                 এটি IoT, কৃত্রিম বুদ্ধিমত্তা ও স্যাটেলাইট ডেটা একত্রিত করে কৃষকদের জন্য জল সাশ্রয়, ফসলের উৎপাদন বৃদ্ধি ও পরিচালনার ব্যয় কমানোর সমাধান প্রদান করে।
               </p>
               <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
@@ -281,7 +281,7 @@ function Landing() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
           <span className="inline-flex items-center gap-1.5"><Leaf className="h-3.5 w-3.5 text-emerald-600" /> পরিবেশবান্ধব কৃষি</span>
           <span className="hidden sm:inline">·</span>
-          <span>© {new Date().getFullYear()} বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষ · BMDA স্মার্ট সেচ প্ল্যাটফর্ম</span>
+          <span>© {new Date().getFullYear()} বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষ · Chashi.io প্ল্যাটফর্ম</span>
         </div>
       </footer>
     </div>

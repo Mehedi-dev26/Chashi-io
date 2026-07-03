@@ -80,7 +80,7 @@ export function Roadmap() {
             <Rocket className="h-4 w-4 text-primary" /> ভবিষ্যৎ পরিকল্পনা ও রোডম্যাপ
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            BMDA স্মার্ট সেচ ব্যবস্থাকে এগিয়ে নিতে পরবর্তী উন্নয়ন ধাপসমূহ
+            Chashi.io ব্যবস্থাকে এগিয়ে নিতে পরবর্তী উন্নয়ন ধাপসমূহ
           </p>
         </div>
         <div className="text-right">

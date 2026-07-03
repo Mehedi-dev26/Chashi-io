@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { SubNodesNetwork } from "@/components/dashboard/SubNodesNetwork";
 
 export const Route = createFileRoute("/devices")({
-  head: () => ({ meta: [{ title: "ডিভাইস নেটওয়ার্ক · BMDA" }] }),
+  head: () => ({ meta: [{ title: "ডিভাইস নেটওয়ার্ক · Chashi.io" }] }),
   component: DevicesPage,
 });
 

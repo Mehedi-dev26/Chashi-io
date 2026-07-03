@@ -11,7 +11,7 @@ const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২
 type AvailableNode = { device_id: string; label: string; zone_id: string | null };
 
 export const Route = createFileRoute("/zones")({
-  head: () => ({ meta: [{ title: "সেচ জোন · BMDA স্মার্ট সেচ" }] }),
+  head: () => ({ meta: [{ title: "সেচ জোন · Chashi.io" }] }),
   component: ZonesPage,
 });
 

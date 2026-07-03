@@ -5,7 +5,7 @@ import { Bell, AlertTriangle, CheckCircle2, Info, AlertCircle, Filter } from "lu
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
 export const Route = createFileRoute("/alerts")({
-  head: () => ({ meta: [{ title: "বিজ্ঞপ্তি · BMDA স্মার্ট সেচ" }] }),
+  head: () => ({ meta: [{ title: "বিজ্ঞপ্তি · Chashi.io" }] }),
   component: AlertsPage,
 });
 

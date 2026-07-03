@@ -9,7 +9,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { FileDown, Printer, DollarSign, Droplets, TrendingUp, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/billing")({
-  head: () => ({ meta: [{ title: "জল ব্যবহার ও বিলিং · BMDA" }] }),
+  head: () => ({ meta: [{ title: "জল ব্যবহার ও বিলিং · Chashi.io" }] }),
   component: BillingPage,
 });
 

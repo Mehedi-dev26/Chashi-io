@@ -133,7 +133,7 @@ export function TopBar() {
 
         {/* Breadcrumb */}
         <nav className="hidden sm:flex items-center gap-1.5 text-xs min-w-0">
-          <Link to="/app" className="text-muted-foreground hover:text-foreground transition font-medium">BMDA</Link>
+          <Link to="/app" className="text-muted-foreground hover:text-foreground transition font-medium">Chashi.io</Link>
           <ChevronRight className="h-3 w-3 text-muted-foreground/50 shrink-0" />
           <span className="font-semibold text-foreground truncate">{label}</span>
         </nav>

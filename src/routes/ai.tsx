@@ -10,7 +10,7 @@ import { toast } from "sonner";
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
 export const Route = createFileRoute("/ai")({
-  head: () => ({ meta: [{ title: "AI পরামর্শ · BMDA স্মার্ট সেচ" }] }),
+  head: () => ({ meta: [{ title: "AI পরামর্শ · Chashi.io" }] }),
   validateSearch: (s: Record<string, unknown>) => ({ ask: typeof s.ask === "string" ? s.ask : undefined }),
   component: AIPage,
 });
@@ -28,7 +28,7 @@ function AIPage() {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "ai",
-      text: "আসসালামু আলাইকুম! আমি BMDA স্মার্ট সেচ AI। আমার কাছে আপনার সকল জমি, পাম্প, সেন্সর, ভাল্ভ ও রিয়েল-টাইম টেলিমেট্রি ডেটাবেজে সরাসরি access আছে। বাংলায় যেকোনো প্রশ্ন করুন।",
+      text: "আসসালামু আলাইকুম! আমি Chashi.io AI। আমার কাছে আপনার সকল জমি, পাম্প, সেন্সর, ভাল্ভ ও রিয়েল-টাইম টেলিমেট্রি ডেটাবেজে সরাসরি access আছে। বাংলায় যেকোনো প্রশ্ন করুন।",
       time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
     },
   ]);

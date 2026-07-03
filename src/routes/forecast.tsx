@@ -9,7 +9,7 @@ import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, C
 import { Brain, TrendingUp, AlertCircle, Zap, Calendar, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/forecast")({
-  head: () => ({ meta: [{ title: "ML পূর্বাভাস · BMDA" }] }),
+  head: () => ({ meta: [{ title: "ML পূর্বাভাস · Chashi.io" }] }),
   component: ForecastPage,
 });
 

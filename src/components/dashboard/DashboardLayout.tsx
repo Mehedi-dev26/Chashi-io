@@ -63,7 +63,7 @@ export function DashboardLayout({
             </div>
             <div className="space-y-5">{children}</div>
             <footer className="text-center text-[11px] text-muted-foreground py-6">
-              BMDA স্মার্ট সেচ · IoT নিয়ন্ত্রণ v২.৬ · বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষ
+              Chashi.io · IoT নিয়ন্ত্রণ v২.৬ · বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষ
             </footer>
           </main>
         </SidebarInset>

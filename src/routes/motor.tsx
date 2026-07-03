@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
 export const Route = createFileRoute("/motor")({
-  head: () => ({ meta: [{ title: "মোটর নিয়ন্ত্রণ · BMDA স্মার্ট সেচ" }] }),
+  head: () => ({ meta: [{ title: "মোটর নিয়ন্ত্রণ · Chashi.io" }] }),
   component: MotorPage,
 });
 

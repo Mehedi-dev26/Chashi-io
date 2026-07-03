@@ -101,7 +101,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="leading-tight min-w-0 animate-fade-in">
-              <p className="font-bold text-[15px] tracking-tight truncate text-sidebar-foreground">BMDA স্মার্ট সেচ</p>
+              <p className="font-bold text-[15px] tracking-tight truncate text-sidebar-foreground">Chashi.io</p>
               <p className="text-[11px] text-sidebar-foreground/70 truncate">বরেন্দ্র · IoT v২.৬</p>
             </div>
           )}

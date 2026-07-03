@@ -13,7 +13,7 @@ import { Download, Calendar, Droplets, Thermometer, Activity } from "lucide-reac
 export const Route = createFileRoute("/history")({
   head: () => ({
     meta: [
-      { title: "ঐতিহাসিক তথ্য · BMDA স্মার্ট সেচ" },
+      { title: "ঐতিহাসিক তথ্য · Chashi.io" },
       { name: "description", content: "৭/৩০ দিনের sensor data, পানি ব্যবহার ও মাটির আর্দ্রতার trend chart।" },
     ],
   }),

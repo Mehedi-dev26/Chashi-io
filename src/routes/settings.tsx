@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "সেটিংস · BMDA স্মার্ট সেচ" }] }),
+  head: () => ({ meta: [{ title: "সেটিংস · Chashi.io" }] }),
   component: SettingsPage,
 });
 
