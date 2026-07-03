@@ -116,6 +116,44 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
     toast.info(`${device_id} মুছে ফেলা হলো`);
   };
 
+  const openEdit = (n: FieldNode) => {
+    setEditForm({ device_id: n.device_id, label: n.label, zone_id: n.zone_id ?? "", notes: n.notes ?? "" });
+    setEditNode(n);
+  };
+
+  const saveEdit = async () => {
+    if (!editNode || !user) return;
+    const newDevId = editForm.device_id.trim();
+    const newLabel = editForm.label.trim();
+    if (!newDevId || !newLabel) { toast.error("Device ID ও নাম প্রয়োজন"); return; }
+    const oldDevId = editNode.device_id;
+    setEditSaving(true);
+    // Update the sub-node row
+    const { error: ue } = await supabase.from("field_nodes").update({
+      device_id: newDevId,
+      label: newLabel,
+      zone_id: editForm.zone_id || null,
+      notes: editForm.notes || null,
+    }).eq("id", editNode.id);
+    if (ue) { setEditSaving(false); toast.error(ue.message); return; }
+    // Keep the linked field's valve_node_id consistent
+    if (oldDevId !== newDevId) {
+      await supabase.from("fields").update({ valve_node_id: newDevId }).eq("user_id", user.id).eq("valve_node_id", oldDevId);
+    }
+    // Sync field assignment
+    if (editForm.zone_id) {
+      // Clear this device from any other field, then link to the new one
+      await supabase.from("fields").update({ valve_node_id: null }).eq("user_id", user.id).eq("valve_node_id", newDevId);
+      await supabase.from("fields").update({ valve_node_id: newDevId }).eq("user_id", user.id).eq("zone_id", editForm.zone_id);
+    } else {
+      await supabase.from("fields").update({ valve_node_id: null }).eq("user_id", user.id).eq("valve_node_id", newDevId);
+    }
+    setEditSaving(false);
+    setEditNode(null);
+    toast.success(`${newDevId} সংরক্ষণ হয়েছে · firmware-এ নতুন ID flash করতে ভুলবেন না`);
+    await reloadNodes();
+  };
+
   const onAssign = async (n: FieldNode, zoneId: string) => {
     await assignNodeToField(n.device_id, zoneId || null);
     await reloadNodes();
