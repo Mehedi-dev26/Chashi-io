@@ -50,8 +50,8 @@ function Landing() {
               <Sprout className="h-5 w-5 text-white" />
             </div>
             <div className="leading-tight min-w-0">
-              <p className="font-black text-sm truncate">Chashi.io</p>
-              <p className="text-[10px] text-muted-foreground truncate">বরেন্দ্র · IoT v২.৬</p>
+              <p className="text-sm truncate"><span className="brand-chashi">চাষি</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span></p>
+              <p className="text-[10px] text-muted-foreground truncate">স্মার্ট সেচ ব্যবস্থাপনা</p>
             </div>
           </Link>
           <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
