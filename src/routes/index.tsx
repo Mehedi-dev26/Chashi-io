@@ -8,9 +8,9 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Chashi.io · IoT-চালিত কৃষি জলব্যবস্থাপনা প্ল্যাটফর্ম" },
-      { name: "description", content: "বরেন্দ্র বহুমুখী উন্নয়ন কর্তৃপক্ষের জন্য ESP32/ESP8266-ভিত্তিক স্মার্ট সেচ, AI পরামর্শ, NDVI স্যাটেলাইট ও রিয়েল-টাইম সেন্সর নেটওয়ার্ক।" },
-      { property: "og:title", content: "Chashi.io · IoT কৃষি প্ল্যাটফর্ম" },
+      { title: "চাষি.io · স্মার্ট সেচ ব্যবস্থাপনা" },
+      { name: "description", content: "চাষি.io — বরেন্দ্র অঞ্চলের জন্য IoT-চালিত স্মার্ট সেচ ব্যবস্থাপনা প্ল্যাটফর্ম।" },
+      { property: "og:title", content: "চাষি.io · স্মার্ট সেচ ব্যবস্থাপনা" },
       { property: "og:description", content: "জল সাশ্রয়, ফসলের উৎপাদন বৃদ্ধি ও কৃষকের জন্য বুদ্ধিমান সিদ্ধান্ত — সব এক প্ল্যাটফর্মে।" },
     ],
   }),
@@ -50,8 +50,8 @@ function Landing() {
               <Sprout className="h-5 w-5 text-white" />
             </div>
             <div className="leading-tight min-w-0">
-              <p className="font-black text-sm truncate">Chashi.io</p>
-              <p className="text-[10px] text-muted-foreground truncate">বরেন্দ্র · IoT v২.৬</p>
+              <p className="text-sm truncate"><span className="brand-chashi">চাষি</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span></p>
+              <p className="text-[10px] text-muted-foreground truncate">স্মার্ট সেচ ব্যবস্থাপনা</p>
             </div>
           </Link>
           <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
@@ -85,8 +85,8 @@ function Landing() {
           </div>
 
           <h1 className="font-bangla text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] max-w-5xl mx-auto">
-            <span className="text-foreground">Chashi.io স্মার্ট ইরিগেশন</span><br />
-            <span className="text-rainbow">IoT-চালিত কৃষি বিপ্লব।</span>
+            <span className="brand-chashi">চাষি</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span><br />
+            <span className="text-foreground">স্মার্ট সেচ ব্যবস্থাপনা।</span>
           </h1>
           <p className="mt-5 sm:mt-6 text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2">
             ESP32/ESP8266-চালিত IoT সেন্সর নেটওয়ার্ক, AI সিদ্ধান্ত-সহায়তা ও স্যাটেলাইট বিশ্লেষণ —
