@@ -222,13 +222,10 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    font-family: "Baloo Da 2", "Hind Siliguri", system-ui, sans-serif;
     font-weight: 900;
-    font-stretch: 125%;
-    letter-spacing: -0.02em;
-    text-shadow: 0 1px 0 oklch(0.30 0.08 165 / 0.08);
+    letter-spacing: -0.01em;
   }
-  .brand-chashi-dot { color: oklch(0.72 0.17 65); font-weight: 900; }
+  .brand-chashi-dot { color: oklch(0.72 0.17 65); }
 
   .bg-gradient-primary { background: var(--gradient-primary); }
   .bg-gradient-gold, .bg-sun { background: var(--gradient-gold); }

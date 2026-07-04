@@ -101,7 +101,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="leading-tight min-w-0 animate-fade-in">
-              <p className="text-xl tracking-tight truncate"><span className="brand-chashi">Chashi</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span></p>
+              <p className="text-[15px] tracking-tight truncate"><span className="brand-chashi">Chashi</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span></p>
               <p className="text-[11px] text-sidebar-foreground/70 truncate">স্মার্ট সেচ ব্যবস্থাপনা</p>
             </div>
           )}
