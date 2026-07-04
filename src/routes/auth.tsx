@@ -53,7 +53,7 @@ function AuthPage() {
             <Sprout className="h-5 w-5 text-white" />
           </div>
           <div>
-            <p className="text-lg leading-tight"><span className="brand-chashi">Chashi</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span></p>
+            <p className="text-2xl leading-tight tracking-tight"><span className="brand-chashi">Chashi</span><span className="brand-chashi-dot">.</span><span className="brand-chashi">io</span></p>
             <p className="text-[10px] text-muted-foreground">স্মার্ট সেচ ব্যবস্থাপনা</p>
           </div>
         </Link>
