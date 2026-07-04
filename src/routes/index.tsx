@@ -354,10 +354,13 @@ function Landing() {
                   href="https://mehedihassan.iam.bd/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 px-7 sm:px-10 py-3.5 sm:py-4 rounded-2xl bg-gradient-emerald-gold border border-amber-300/70 shadow-gold hover:shadow-glow hover:scale-[1.04] transition-all duration-300"
+                  className="group inline-flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 px-7 sm:px-10 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 border border-white/30 shadow-xl shadow-orange-900/40 hover:shadow-2xl hover:scale-[1.04] transition-all duration-300"
                   style={{ fontFamily: "'Playfair Display', 'Noto Serif Bengali', Georgia, serif" }}
                 >
-                  <span className="text-[11px] sm:text-xs font-extrabold tracking-[0.2em] uppercase text-amber-100/90">Develop করেছেন</span>
+                  <span className="text-xl sm:text-2xl font-black tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
+                    Develop করেছেন
+                  </span>
+                  <span className="hidden sm:inline text-2xl font-black text-white/70">·</span>
                   <span className="text-xl sm:text-2xl font-black tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] group-hover:text-amber-50 transition-colors">
                     Mehedi Hasan
                   </span>
