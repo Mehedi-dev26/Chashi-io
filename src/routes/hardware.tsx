@@ -1109,9 +1109,9 @@ const char* WIFI_SSID = "YOUR_WIFI"; // মাস্টারের সাথে
 // ৪. Arduino IDE → Upload → ৫ সেকেন্ডের মধ্যে dashboard-এ লাইভ।
 // (মাস্টার কখনো ডুপ্লিকেট হবে না — পুরো নেটওয়ার্কে একটিই থাকবে)`;
 
-// ⚙️ Hardware posts to a Lovable Cloud function endpoint that supports the
-//    older TLS profile used by ESP32/ESP8266 Arduino cores.
-const BACKEND_HOST = "https://cplhurjwjmybbavkydfv.functions.supabase.co";
+// ⚙️ Hardware posts to Supabase Edge Function endpoint for telemetry
+const DEFAULT_SUPABASE_PROJECT_ID = "fjyhsziphwepdkpiqiod";
+const BACKEND_HOST = `https://${(typeof import.meta !== "undefined" && import.meta.env?.VITE_SUPABASE_PROJECT_ID) || DEFAULT_SUPABASE_PROJECT_ID}.functions.supabase.co`;
 const TELEMETRY_PATH = "/telemetry";
 
 function HardwarePage() {

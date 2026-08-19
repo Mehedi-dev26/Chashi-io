@@ -32,8 +32,8 @@
 // ====== USER CONFIG — hardcoded for BMDA prototype ======
 const char* WIFI_SSID   = "BMDA";
 const char* WIFI_PASS   = "esp12345678";
-const char* SERVER_HOST = "https://cplhurjwjmybbavkydfv.functions.supabase.co";
-const char* API_HOST    = "cplhurjwjmybbavkydfv.functions.supabase.co";
+const char* SERVER_HOST = "https://fjyhsziphwepdkpiqiod.functions.supabase.co";
+const char* API_HOST    = "fjyhsziphwepdkpiqiod.functions.supabase.co";
 const char* API_PATH    = "/telemetry";
 const char* DEVICE_ID   = "MASTER-01";
 const char* ZONE_ID     = "PUMP-HOUSE";

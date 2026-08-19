@@ -17,8 +17,9 @@ const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২
 
 async function pingEndpoint(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
   const t0 = performance.now();
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "fjyhsziphwepdkpiqiod";
   try {
-    const r = await fetch("https://cplhurjwjmybbavkydfv.functions.supabase.co/telemetry", { method: "GET", cache: "no-store" });
+    const r = await fetch(`https://${projectId}.functions.supabase.co/telemetry`, { method: "GET", cache: "no-store" });
     const latencyMs = Math.round(performance.now() - t0);
     if (!r.ok) return { ok: false, latencyMs, error: `HTTP ${r.status}` };
     const j = await r.json().catch(() => ({}));
